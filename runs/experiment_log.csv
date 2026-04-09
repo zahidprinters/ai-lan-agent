@@ -1,0 +1,1 @@
+epoch,train_loss,val_loss,train_perplexity,val_perplexity,gap,overfit_warning

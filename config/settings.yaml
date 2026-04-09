@@ -1,0 +1,4 @@
+project_name: AI Lan
+mode: safe
+default_device: cpu
+

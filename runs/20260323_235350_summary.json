@@ -1,0 +1,20 @@
+{
+  "timestamp": "20260323_235350",
+  "data_path": "D:\\dextop\\tempn\\data\\input.txt",
+  "data_size_bytes": 8221,
+  "model_path": "D:\\dextop\\tempn\\models\\char_model.pt",
+  "best_model_path": "D:\\dextop\\tempn\\models\\char_model_best.pt",
+  "tokenizer_path": "D:\\dextop\\tempn\\models\\char_tokenizer.json",
+  "epochs": 200,
+  "learning_rate": 0.001,
+  "batch_size": 32,
+  "train_ratio": 0.9,
+  "block_size": 16,
+  "hidden_size": 64,
+  "vocab_size": 50,
+  "best_val_loss": 2.082181907617129,
+  "final_train_loss": 0.009722197980310534,
+  "final_val_loss": 9.988579291563768,
+  "train_token_count": 7398,
+  "val_token_count": 822
+}

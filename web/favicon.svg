@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AI Lan">
+  <defs>
+    <linearGradient id="g1" x1="12" y1="8" x2="52" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5ca8ff" />
+      <stop offset="0.55" stop-color="#28d17d" />
+      <stop offset="1" stop-color="#f6a623" />
+    </linearGradient>
+    <radialGradient id="g2" cx="30%" cy="25%" r="90%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.28" />
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="#08111d" />
+  <rect x="5" y="5" width="54" height="54" rx="15" fill="url(#g2)" />
+  <path d="M32 10 48 19v18L32 54 16 37V19Z" fill="none" stroke="url(#g1)" stroke-width="4" stroke-linejoin="round" />
+  <path d="M32 18v28" fill="none" stroke="#def5ff" stroke-width="3.5" stroke-linecap="round" />
+  <path d="M24 24.8 32 28l8-3.2" fill="none" stroke="#def5ff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M24 38.8 32 36l8 2.8" fill="none" stroke="#def5ff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="32" cy="32" r="2.6" fill="#f6a623" />
+</svg>

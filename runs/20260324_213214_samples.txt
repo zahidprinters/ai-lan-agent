@@ -1,0 +1,134 @@
+epoch=1
+train_loss=2.7930
+val_loss=2.3162
+train_perplexity=16.3293
+val_perplexity=10.1372
+train_val_gap=-0.4768
+overfit_warning=ok
+sample:
+AI cbbgphecsW
+tpciui.che, aromomepimmth.
+.
+ut e dmare -faraty onard. wico ir goyea levueneate tepder and coroilte.
+
+meg ind
+
+epoch=20
+train_loss=0.1236
+val_loss=4.0095
+train_perplexity=1.1315
+val_perplexity=55.1174
+train_val_gap=3.8859
+overfit_warning=high
+sample:
+AI modatraction lo sorul con prow, fuveresttind,nction atcunse.
+Caliningt.blate stoplh formusts a Whon coded fite the puter
+
+epoch=40
+train_loss=0.0356
+val_loss=6.0124
+train_perplexity=1.0362
+val_perplexity=408.4488
+train_val_gap=5.9768
+overfit_warning=high
+sample:
+AI modaliext repsack the corel he pipelins fhe mond isp at oreustinips, time.
+uin iokncime, leec speps steaces.
+Sal beor se
+
+epoch=60
+train_loss=0.0313
+val_loss=6.6392
+train_perplexity=1.0318
+val_perplexity=764.4502
+train_val_gap=6.6079
+overfit_warning=high
+sample:
+AI modations.
+It uncome ble efubgets stableab laces, lable s malh naster.
+On eathor explriter prcomthe project che movel as
+
+epoch=80
+train_loss=0.0197
+val_loss=7.1817
+train_perplexity=1.0199
+val_perplexity=1315.1057
+train_val_gap=7.1620
+overfit_warning=high
+sample:
+AI somuld evantem whecturisi als bof tmoll arge model angineps tre for the chichen prouline plparditas relpured ot antmatho
+
+epoch=100
+train_loss=0.0173
+val_loss=7.6909
+train_perplexity=1.0174
+val_perplexity=2188.3577
+train_val_gap=7.6736
+overfit_warning=high
+sample:
+AI modationsive so mowe mowers.
+A puses text is rarofutentrodst, antarle, maded.
+The morledatse sy charissy pitile os ru fo
+
+epoch=120
+train_loss=0.0121
+val_loss=8.2281
+train_perplexity=1.0122
+val_perplexity=3744.8550
+train_val_gap=8.2160
+overfit_warning=high
+sample:
+AI sodulisno ad batior becle, rnllange dack.
+A rrwotns, ander,, and and t adaca forterint, ches toke if th featuint.
+That i
+
+epoch=140
+train_loss=0.0126
+val_loss=8.7874
+train_perplexity=1.0127
+val_perplexity=6551.3584
+train_val_gap=8.7748
+overfit_warning=high
+sample:
+AI sodustydalace, the mover, and stren torald.
+That d batits mopy.
+Dov more sext bedmo
+ ula iogace ring text winl.
+Bate pho
+
+epoch=160
+train_loss=0.0115
+val_loss=9.1369
+train_perplexity=1.0115
+val_perplexity=9291.9935
+train_val_gap=9.1254
+overfit_warning=high
+sample:
+AI sodussPIt ange ander metovext.
+Igersa tedinf eteht.
+Tt che cedy comples io learn.
+
+Emod.
+, che cunsetsos Wictt, smaching
+
+epoch=180
+train_loss=0.0117
+val_loss=9.6166
+train_perplexity=1.0117
+val_perplexity=15012.5033
+train_val_gap=9.6050
+overfit_warning=high
+sample:
+AI sastoy demaressmore noc usesta training.
+It idatge somersuin tave forefing is gemeng, maworatce fuink, vertionceushons i
+
+epoch=200
+train_loss=0.0105
+val_loss=9.9967
+train_perplexity=1.0105
+val_perplexity=21954.0147
+train_val_gap=9.9862
+overfit_warning=high
+sample:
+AI sastoy delareds int manc, the model seting bo arage momad bable
+ures ant a tion, the ingise a nof lows ingia s.Picat he 

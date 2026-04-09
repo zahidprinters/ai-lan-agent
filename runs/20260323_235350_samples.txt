@@ -1,0 +1,90 @@
+epoch=1
+train_loss=2.7972
+val_loss=2.3033
+sample:
+AI dikonin eaid boay toanliit b whr rab  iaiolleg saalurbi . rbeetloPorwr
+Lucimtathtatoprgeliace ptoe anainit receir bseltu
+
+epoch=20
+train_loss=0.1190
+val_loss=4.0219
+sample:
+AI strongen wheld imall A shabee.
+
+he project betava iot oun sean beecrain staung.
+
+vatinctihe ios stoge the simpre.
+In is 
+
+epoch=40
+train_loss=0.0366
+val_loss=5.8791
+sample:
+AI stson, bedfus, ouncurss.
+Savel the data in ontte, wxppsetice decose.
+Crecune momline.
+Thid capre tistsuan e tonderaskan 
+
+epoch=60
+train_loss=0.0317
+val_loss=6.4731
+sample:
+AI stson, betfuns a tabrochis can ext niteranfit stable mopll oncalb e vations crathing wark endursteat becamsial are thod 
+
+epoch=80
+train_loss=0.0289
+val_loss=7.0711
+sample:
+AI stsucterand stadett trons futrutputie.
+ has tre tractis mali formufer pectimelizect.
+
+Toimprove tuit ns foj steronty, co
+
+epoch=100
+train_loss=0.0273
+val_loss=7.4843
+sample:
+AI stsucterts dedavalid s morls gE grectay rear ploke cf the dwics te chedesta lanal be chable bexause phe istad takens.
+Di
+
+epoch=120
+train_loss=0.0171
+val_loss=7.9045
+sample:
+AI the calf st fow thougets fethe pext ons.
+The kencode mote didace madnergpwrre.
+ntsos, bedation toe dataoce and atse thel
+
+epoch=140
+train_loss=0.0160
+val_loss=8.4647
+sample:
+AI the.
+Etar stion doDs es a ly lerrata data a realy project intuge miel izar the the.
+Fhe patte campendemme.
+.
+The prectic
+
+epoch=160
+train_loss=0.0121
+val_loss=9.0006
+sample:
+AI thenctrections salurdgin shen argint formatten usphe madedabeg vara ngyure.
+It socule sovis ons tre riproduststo tiaind 
+
+epoch=180
+train_loss=0.0104
+val_loss=9.4741
+sample:
+AI then the dite, to tange chay instrinc,ict in oasea ay us crable.
+nins, ioypinses intong wilf at isecrinverfstent.
+Ii tho
+
+epoch=200
+train_loss=0.0097
+val_loss=9.9886
+sample:
+AI ststecthen onstan f peateocl.
+
+Lacand the prijects the gever a sers.
+That kinise uspatet ohes fned syeplins,riut wiatiun

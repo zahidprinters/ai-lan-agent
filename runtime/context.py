@@ -1,0 +1,55 @@
+﻿"""Runtime context composition for agent execution."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+from memory.short_term.buffer import ShortTermBuffer
+from tools.context_builder import build_prompt_context
+
+
+def build_runtime_context(
+    *,
+    query: str,
+    short_term_buffer: ShortTermBuffer | None = None,
+    memory_limit: int = 5,
+    snippet_limit: int = 5,
+    min_score: float = 0.05,
+    memory_kind: str | None = None,
+    memory_db_path: Path | None = None,
+    merged_corpus_path: Path | None = None,
+) -> dict[str, Any]:
+    retrieval_context = build_prompt_context(
+        query=query,
+        memory_limit=memory_limit,
+        snippet_limit=snippet_limit,
+        min_score=min_score,
+        memory_kind=memory_kind,
+        memory_db_path=memory_db_path,
+        merged_corpus_path=merged_corpus_path,
+    )
+
+    short_term_text = "(no short-term context)"
+    if short_term_buffer is not None:
+        short_term_text = short_term_buffer.to_context_text()
+
+    assembled_text = "\n\n".join(
+        [
+            f"Runtime Query: {query}",
+            "Short-Term Context:",
+            short_term_text,
+            "Retrieved Context:",
+            str(retrieval_context.get("context_text", "")).strip() or "(none)",
+        ]
+    ).strip()
+
+    return {
+        "query": query,
+        "short_term_context": short_term_text,
+        "retrieval": retrieval_context,
+        "assembled_context": assembled_text,
+    }
+
+
+__all__ = ["build_runtime_context", "build_prompt_context"]

@@ -1,0 +1,6 @@
+tools:
+  web.search:
+    enabled: true
+  pc.list_workspace_files:
+    enabled: true
+

@@ -1,0 +1,133 @@
+AI engineering starts with clear goals and repeatable experiments.
+A small project can teach the same core lessons as a large system when the workflow is careful and the observations are honest.
+This repository is focused on learning how language models work from the inside.
+The project uses a Windows machine with a CPU-first strategy and a simple Python environment.
+The purpose is not to chase the largest model.
+The purpose is to understand data, tokenization, optimization, validation, and generation.
+
+A character model learns one symbol at a time.
+It reads a short context window and predicts the next character.
+That sounds simple, but the method teaches important ideas.
+The model must encode patterns, punctuation, spacing, and repeated structure.
+When the dataset is tiny, the model quickly memorizes the training text.
+When the dataset becomes larger and more consistent, the model begins to generalize more usefully.
+Validation loss helps us see the difference between memorization and useful learning.
+
+A clean dataset matters more than people expect.
+If the text is noisy, inconsistent, or full of accidental formatting, the model spends its capacity learning garbage.
+If the text is organized and domain specific, the model learns stable patterns faster.
+This project should prefer plain text with complete sentences, consistent spelling, and a narrow topic.
+For the current phase, the topic is AI engineering, software workflow, and technical explanation.
+Later, the data can expand toward industrial notes, PLC logic, maintenance steps, and embedded systems guidance.
+
+The tokenizer is a small but critical part of the pipeline.
+It converts symbols into IDs that the model can process.
+A good beginner tokenizer should be readable and reliable.
+It should save and load its vocabulary without surprises.
+It should also handle unknown characters safely instead of crashing.
+That is why this project now uses an unknown token fallback.
+The goal is not perfection.
+The goal is stable behavior during experiments.
+
+Training on CPU requires patience and discipline.
+Large models are not the target for this machine.
+Small experiments, quick iteration, and careful measurement are the right strategy.
+Batching helps keep memory usage steady.
+A train and validation split helps us watch generalization.
+If training loss drops to nearly zero while validation loss keeps rising, the model is overfitting.
+That result is not a failure.
+It is useful feedback about the dataset and the training setup.
+
+PyTorch is a strong learning tool because it exposes the core building blocks clearly.
+Embeddings map token IDs into vectors.
+Linear layers transform features.
+Activation functions introduce nonlinearity.
+Loss functions measure error.
+Optimizers adjust parameters over time.
+When these pieces are connected in a small project, the training loop becomes easy to reason about.
+That clarity is valuable for anyone building a model from scratch.
+
+The current character model is intentionally simple.
+It uses an embedding layer followed by linear layers.
+That architecture is enough to learn local text patterns.
+It is not a full transformer.
+It does not model long range context well.
+Still, it gives a strong foundation for the next step.
+Once the training pipeline is stable, the project can move toward positional information, self attention, feed forward blocks, and stacked transformer layers.
+That transition will be much easier because the data flow and evaluation habits are already in place.
+
+Documentation is part of the engineering work.
+A project becomes stronger when the code and the written plan stay aligned.
+The README should explain the current phase, the environment, the goals, and the commands to run.
+The machine report should capture the verified system facts.
+The AI context file should help any future assistant understand the rules and the direction of the work.
+The project metadata should define the owner, the version, the environment, and the current milestone.
+Updating documentation on every meaningful change prevents confusion later.
+
+Good experiments ask narrow questions.
+Did batching make training more stable.
+Did a larger dataset reduce overfitting.
+Did the new tokenizer behavior prevent crashes.
+Did generated text become more coherent.
+Each change should be followed by a small test and a written observation.
+That habit turns a toy project into a real engineering practice.
+It also makes future improvements much easier to judge.
+
+A healthy training workflow is simple.
+Load the text.
+Create the tokenizer.
+Split the data into train and validation sections.
+Create datasets and loaders.
+Run the training loop.
+Track train loss and validation loss.
+Save the checkpoint and tokenizer.
+Generate sample text and inspect the output.
+Then decide what to improve next.
+This project now follows that pattern.
+
+The next stage should focus on better data quality and better measurements.
+A larger corpus of technical writing will give the character model more structure to learn.
+More varied but still related paragraphs will help reduce memorization.
+Simple logging of generated samples can make improvements easier to compare.
+Checkpoint notes can record batch size, block size, and training ratio.
+Once those basics are comfortable, the project will be ready for a mini GPT style architecture.
+
+This machine is good for thoughtful work.
+It is not built for giant training jobs, but it is absolutely capable of teaching the core logic of language modeling.
+With a CPU first strategy, clear documentation, and steady iteration, this repository can grow into a serious learning platform.
+The project should stay practical, readable, and honest about results.
+That mindset is more valuable than trying to imitate a large scale lab without the right hardware.
+
+Technical writing is useful training data because it contains repeated structure.
+It uses clear nouns, verbs, constraints, and instructions.
+That gives a small model many chances to learn predictable local relationships.
+Words like model, dataset, training, validation, tokenizer, checkpoint, and context appear often.
+Repeated use of those terms helps the model build stronger patterns in a small corpus.
+A mixed corpus can be valuable later, but a focused corpus is better for the current stage.
+
+The project can later include domain specific material.
+For example, industrial notes may describe sensors, relays, timers, sequences, and fault conditions.
+Arduino text may describe pins, loops, serial communication, debounce logic, and calibration.
+PLC style writing may describe inputs, outputs, ladder logic, interlocks, and safety checks.
+Those domains are good long term targets because they connect directly to practical work.
+For now, the safer move is to strengthen the general technical language pipeline before introducing a second domain.
+
+Every checkpoint is a learning artifact.
+A checkpoint is not only a file on disk.
+It is a record of the dataset, the model settings, and the behavior at a given time.
+If the generated text improves, the project should note why.
+If validation loss gets worse, the project should ask whether the dataset is too small or too repetitive.
+If the model becomes unstable, the project should inspect learning rate, batch size, and data cleanliness.
+That kind of reflection is how progress becomes repeatable.
+
+A mini transformer will be more powerful than the current model, but only if the fundamentals are already stable.
+The project should not rush that step.
+It should first prove that the data pipeline is healthy, the tokenization is safe, the metrics are understandable, and the generated samples are worth comparing.
+Once those pieces feel routine, adding attention and positional logic will be a natural upgrade instead of a confusing jump.
+
+This repository is a training ground for disciplined AI engineering.
+It values small models, clear experiments, readable code, and honest evaluation.
+It should continue expanding the dataset with focused technical text.
+It should continue tracking both training and validation behavior.
+It should continue improving the generation quality one step at a time.
+That steady path is the right path for this machine and this project.

@@ -1,0 +1,135 @@
+epoch=1
+train_loss=4.1774
+val_loss=4.1113
+train_perplexity=65.1994
+val_perplexity=61.0260
+train_val_gap=-0.0661
+overfit_warning=ok
+sample:
+AI vREwEWizFCoaje.xAg
+C-OGU.W-ItMaPBFvyftWVs,bsshEBvbAPaPakxst fToa,StMIDD-,f
+lIdmtDFvPR.tC,mOdIj
+km.GUEdk
+s-LUvakhpaLBBvco
+
+epoch=20
+train_loss=2.5591
+val_loss=2.5295
+train_perplexity=12.9244
+val_perplexity=12.5467
+train_val_gap=-0.0297
+overfit_warning=ok
+sample:
+AI nfSupurtWcrg
+
+
+FESr,St,th, illlldMArrin ofeatfFs re traste.
+PVteellodbepl stqupre ssitWntyUomeo in t nplers s peayte, Ar
+
+epoch=40
+train_loss=2.3403
+val_loss=2.3177
+train_perplexity=10.3848
+val_perplexity=10.1525
+train_val_gap=-0.0226
+overfit_warning=ok
+sample:
+AI tohainge maifecacus t rknde ts blapomalalelisend Paicl ctiowre sf uzend tenme r wind lulugernde io e othexthexp.
+Ithotha
+
+epoch=60
+train_loss=2.3008
+val_loss=2.2892
+train_perplexity=9.9822
+val_perplexity=9.8674
+train_val_gap=-0.0116
+overfit_warning=ok
+sample:
+AI torrd dedoitarat t d tin g aror g ttokfl Ithe.
+CPUMansexpr nge s bimoninizatpust vanim aty, weafroroetishs.
+DMIt co powa
+
+epoch=80
+train_loss=2.2892
+val_loss=2.2896
+train_perplexity=9.8674
+val_perplexity=9.8708
+train_val_gap=0.0003
+overfit_warning=ok
+sample:
+AI sprmaiofowofstte clingin san, PUhefoul a intrsmecabexthec silin ceacat.
+Thas teriangsps alpand secegarte frd e theafun w
+
+epoch=100
+train_loss=2.2853
+val_loss=2.2958
+train_perplexity=9.8287
+val_perplexity=9.9322
+train_val_gap=0.0105
+overfit_warning=ok
+sample:
+AI takpons, s ll vendexprmand tit pinges s pelamojudouatanabser wothoise t iextunyThojeg foventisong.
+
+Thoular tadachasfig 
+
+epoch=120
+train_loss=2.2823
+val_loss=2.3034
+train_perplexity=9.7991
+val_perplexity=10.0077
+train_val_gap=0.0211
+overfit_warning=ok
+sample:
+AI phers ber g lamin bulell focashermosey asild reprdd me.
+Pssathapat vetee iorpes the firguleneryoan.
+A trbecotiod s, pofo
+
+epoch=140
+train_loss=2.2813
+val_loss=2.3097
+train_perplexity=9.7891
+val_perplexity=10.0712
+train_val_gap=0.0284
+overfit_warning=ok
+sample:
+AI ngeas pldire ulureapeantely, mond ingiowojeds pay dl st vat.
+It gearark t trg.
+
+Thalachalprinys.
+EA smesesite, te taioje
+
+epoch=160
+train_loss=2.2808
+val_loss=2.3144
+train_perplexity=9.7847
+val_perplexity=10.1191
+train_val_gap=0.0336
+overfit_warning=ok
+sample:
+AI itheag l mistiminoda shendangrourer.
+Thy s te dscar wro fuanef a lize w lorers, de g.
+
+Wojulpanes.
+Thed quist mp ct tod 
+
+epoch=180
+train_loss=2.2808
+val_loss=2.3172
+train_perplexity=9.7842
+val_perplexity=10.1477
+train_val_gap=0.0365
+overfit_warning=ok
+sample:
+AI belps ses ro imse tures n co cis acatser ilaus s.
+Ito m r s t atheshed atid attimelpr amo tabse les.
+LC le edid dale ss.
+
+epoch=200
+train_loss=2.2800
+val_loss=2.3192
+train_perplexity=9.7764
+val_perplexity=10.1672
+train_val_gap=0.0392
+overfit_warning=ok
+sample:
+AI wiprg minthats thopatrastomo bs, inginedulodiculung th ginth ma bethergencos ting d clors, vepithat tiresuld tatepojulea

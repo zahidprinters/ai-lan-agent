@@ -1,0 +1,11 @@
+epoch=1
+train_loss=4.3379
+val_loss=4.2493
+train_perplexity=76.5442
+val_perplexity=70.0594
+train_val_gap=-0.0885
+overfit_warning=ok
+sample:
+AI ,Gpi anOVBtApxMpDn
+MCRLTRLTchF
+T cFFdRVmaiqhprpl-RyiEcu-kqwgCl-jxcEmClagbcFdBspnMlTqxRUMR.ORbEyviVFuiUIoIEkghelURehv atF

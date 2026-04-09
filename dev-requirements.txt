@@ -1,0 +1,6 @@
+-r requirements.txt
+pytest
+black
+mypy
+wandb==0.17.0
+mlflow==2.13.0

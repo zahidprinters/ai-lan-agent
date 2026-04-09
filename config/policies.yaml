@@ -1,0 +1,8 @@
+policy:
+  require_confirmation:
+    - pc.type_text
+    - pc.open_app
+    - android.launch_app
+    - android.tap
+    - android.swipe
+

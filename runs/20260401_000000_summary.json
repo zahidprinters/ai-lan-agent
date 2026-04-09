@@ -1,0 +1,55 @@
+{
+  "version": "0.3.0",
+  "timestamp": "20260401_000000",
+  "model_type": "transformer",
+  "best_val_loss": 0.4,
+  "best_val_perplexity": null,
+  "train_val_gap": null,
+  "overfit_warning": null,
+  "system": {
+    "os": "Windows",
+    "os_release": "10",
+    "python_version": "3.11.9",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 142 Stepping 10, GenuineIntel",
+    "device": "cpu",
+    "use_amp": false
+  },
+  "data": {
+    "path": "data\\input.txt",
+    "size_bytes": 8221,
+    "train_token_count": 100,
+    "val_token_count": 10,
+    "vocab_size": 4
+  },
+  "hyperparameters": {
+    "model_type": "transformer",
+    "epochs": 50,
+    "learning_rate": 0.001,
+    "batch_size": 32,
+    "train_ratio": 0.9,
+    "block_size": 16,
+    "hidden_size": 64,
+    "n_layer": 2,
+    "n_head": 1,
+    "dropout": 0.0,
+    "stochastic_depth": 0.0,
+    "patience": 50
+  },
+  "metrics": {
+    "best_val_loss": 0.4,
+    "best_val_perplexity": null,
+    "final_train_loss": 0.3,
+    "final_val_loss": 0.4,
+    "final_train_perplexity": null,
+    "final_val_perplexity": null,
+    "train_val_gap": null,
+    "overfit_warning": null
+  },
+  "paths": {
+    "model_path": "D:\\dextop\\tempn\\models\\char_model.pt",
+    "best_model_path": "D:\\dextop\\tempn\\models\\char_model_best.pt",
+    "tokenizer_path": "D:\\dextop\\tempn\\models\\char_tokenizer.json"
+  },
+  "is_project_run": true
+}

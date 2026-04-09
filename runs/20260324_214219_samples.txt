@@ -1,0 +1,126 @@
+epoch=1
+train_loss=4.2096
+val_loss=4.0859
+train_perplexity=67.3311
+val_perplexity=59.4948
+train_val_gap=-0.1237
+overfit_warning=ok
+sample:
+AI rxDotVmwa EevnU.DALuLVr.rmMOAwF,AWVUvdd,DgOOd,cpudoM sDByzqi,uMfa.lsF,GelaliuGqqbaD-DgOfdmTjCm-LalGqns. uelesTGFoTzGPGce
+
+epoch=20
+train_loss=2.6072
+val_loss=2.5600
+train_perplexity=13.5609
+val_perplexity=12.9354
+train_val_gap=-0.0472
+overfit_warning=ok
+sample:
+AI e -rfiTBAcervOnlvsinvMzene,l wrpse, ss trWw s.
+
+O tr,catrsirmewkeictrimenfpkenojwrercon.
+IhaCige wtaclff n.
+Theat sOorw,
+
+epoch=40
+train_loss=2.3502
+val_loss=2.3277
+train_perplexity=10.4878
+val_perplexity=10.2541
+train_val_gap=-0.0225
+overfit_warning=ok
+sample:
+AI ischearestherar, pd W.
+
+Rerieon iofuuThereniaray te t bls liayt ian t va tro f oul selt in t t trMSangithe pPc ly fl d a
+
+epoch=60
+train_loss=2.3015
+val_loss=2.2920
+train_perplexity=9.9892
+val_perplexity=9.8950
+train_val_gap=-0.0095
+overfit_warning=ok
+sample:
+AI a f mar uiselexthe taninvedabrwatrin atis bema thaprinojuntarepualule trl t Risfe is crs prf imoraize, indeathng fulene 
+
+epoch=80
+train_loss=2.2887
+val_loss=2.2914
+train_perplexity=9.8618
+val_perplexity=9.8884
+train_val_gap=0.0027
+overfit_warning=ok
+sample:
+AI f d mere.
+Goribodingif besmoringid go ulins.
+Sthed priod th.
+Sbint e anom.
+Itwis muay d orp ited souenge ske.
+Smen old i
+
+epoch=100
+train_loss=2.2838
+val_loss=2.2974
+train_perplexity=9.8141
+val_perplexity=9.9485
+train_val_gap=0.0136
+overfit_warning=ok
+sample:
+AI t stray k a t, cefos is rimoourexpresene, oatinisivannogis lt bun muthetrpactrenge st te bopefioumer rinseshaprextlplerc
+
+epoch=120
+train_loss=2.2820
+val_loss=2.3049
+train_perplexity=9.7963
+val_perplexity=10.0231
+train_val_gap=0.0229
+overfit_warning=ok
+sample:
+AI smer beacrandang t.
+Vll picucande tiog oront te r irend d rk.
+A we, mod iopus s cke mea llamard s, mane thenstiomiontine
+
+epoch=140
+train_loss=2.2810
+val_loss=2.3110
+train_perplexity=9.7869
+val_perplexity=10.0846
+train_val_gap=0.0300
+overfit_warning=ok
+sample:
+AI agory cl t e monean iond s lok merext nchorimecroethes c, l t rseg bl utarext onor ulp.
+It at indime thonst d plioafighe
+
+epoch=160
+train_loss=2.2800
+val_loss=2.3150
+train_perplexity=9.7770
+val_perplexity=10.1252
+train_val_gap=0.0350
+overfit_warning=ok
+sample:
+AI de.
+IDin l g C aratar dallelse f s an elllelinmelencknd tuton en and pe f e cor gachict.
+Thnttalonsmusichinsavickeachy g
+
+epoch=180
+train_loss=2.2799
+val_loss=2.3176
+train_perplexity=9.7754
+val_perplexity=10.1509
+train_val_gap=0.0377
+overfit_warning=ok
+sample:
+AI refingend dene w t, adisssfereanginimps.
+Ge catrismarg lthelshe me ond bulratrdowodastene ithalend b ncin henachel prokf
+
+epoch=200
+train_loss=2.2798
+val_loss=2.3195
+train_perplexity=9.7745
+val_perplexity=10.1707
+train_val_gap=0.0397
+overfit_warning=ok
+sample:
+AI spre doditis wrshe thathesyerkewinteegt mat zelpa n tshone rdy tatad shen at roksexplyice ing ed tat t blorant pling vai

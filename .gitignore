@@ -1,10 +1,26 @@
+# Python environments and caches
 .venv/
 .pytest_cache/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.egg-info/
 
+# Local environment files
+.env
+.env.*
+
+# Temporary and generated artifacts
 temp/*
 !temp/.gitkeep
+.temp/
+logs/*.log
+
+# Model artifacts (keep metadata/json tracked)
 models/*.pt
+models/*.onnx
+
+# Editor/OS noise
+.DS_Store
+Thumbs.db

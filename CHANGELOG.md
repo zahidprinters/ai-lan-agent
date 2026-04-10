@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Phase 4 action routing foundation with strict JSON action schema validation, allowlist-based policy checks, and audit logging
+- Drafted formal Phase 4.5 embodied neural agency design for llama-cpp local reasoning, embodied perception, voice, and memory integration
 - Trusted ingestion pipeline for external text sources with normalization, dedupe, trust/quality scoring, merged corpus output, and JSON reporting
 - Local memory layer with SQLite-backed persistence, conversation summaries, and retrieval API plus CLI utility
 - Prompt-context builder that merges memory retrieval and ingested corpus snippets, exposed through policy-gated actions (`memory.search`, `context.build`)

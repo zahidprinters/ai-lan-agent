@@ -40,6 +40,7 @@ AI Lan is evolving from a local text model toolkit into a safe, tool-using AI ag
 The repository now includes a layered architecture scaffold (`core/`, `agents/`, `tools/`, `memory/`, `safety/`, `router/`, `learning/`, `runtime/`, `api/`) and should be migrated incrementally without breaking current stable paths.
 The next major addition is embodied AI: CPU-first screen capture, OCR, offline speech recognition, offline speech output, and local reasoning.
 If you need a real skills/app reference for voice commands and plugin packaging, study `OpenVoiceOS`.
+The formal design starting point for this slice is `docs/superpowers/specs/2026-04-10-embodied-neural-agency-design.md`.
 
 When evaluating upstream code, prefer official repos and docs from `docs/OPEN_SOURCE_REFERENCE.md`, then wrap the selected dependency behind the local facades instead of importing framework internals directly into the runtime.
 Keep Phase 4 and Phase 5 intake narrow: one framework per capability, tests first, and only the shortest useful stack for the current milestone.

@@ -3,9 +3,14 @@
 System Validation Utility for AI Lan.
 Verifies that all core dependencies, hardware acceleration (CUDA/MPS),
 and model backends (PyTorch/ONNX) are correctly installed and functional.
+
+Pass --phase4 to also validate the optional Phase 4 stack
+(Playwright, Tavily, Tesseract, ADB, scrcpy).
 """
 
 import sys
+import shutil
+import argparse
 import torch
 import platform
 from pathlib import Path
@@ -18,6 +23,75 @@ ensure_repo_root()
 def print_result(check: str, success: bool, message: str) -> None:
     status = "OK" if success else "FAIL"
     print(f" [{status}] {check.ljust(25)} : {message}")
+
+
+def validate_phase4() -> int:
+    """Validate optional Phase 4 tool stack."""
+    print("AI Lan Phase 4 Tool Validator")
+    print("=" * 50)
+    failures = 0
+
+    # Playwright
+    try:
+        from playwright.sync_api import sync_playwright  # type: ignore[import-untyped]
+        import playwright
+        print_result("Playwright", True, f"v{playwright.__version__}")
+    except ImportError as exc:
+        print_result("Playwright", False, str(exc))
+        failures += 1
+
+    # Tavily
+    try:
+        import tavily  # type: ignore[import-untyped]
+        print_result("Tavily SDK", True, "installed")
+    except ImportError as exc:
+        print_result("Tavily SDK", False, str(exc))
+        failures += 1
+
+    # pytesseract
+    try:
+        import pytesseract  # type: ignore[import-untyped]
+        print_result("pytesseract", True, "installed")
+    except ImportError as exc:
+        print_result("pytesseract", False, str(exc))
+        failures += 1
+
+    # Tesseract binary
+    tess_paths = [
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+    ]
+    tess_on_path = shutil.which("tesseract")
+    tess_file: str | None = next((p for p in tess_paths if Path(p).exists()), None)
+    if tess_on_path or tess_file:
+        loc = tess_on_path or tess_file
+        print_result("Tesseract binary", True, str(loc))
+    else:
+        print_result("Tesseract binary", False, "not found on PATH or default install path")
+        failures += 1
+
+    # ADB
+    adb_loc = shutil.which("adb")
+    if adb_loc:
+        print_result("adb", True, adb_loc)
+    else:
+        print_result("adb", False, "not found on PATH — run: winget install --id Google.PlatformTools")
+        failures += 1
+
+    # scrcpy
+    scrcpy_loc = shutil.which("scrcpy")
+    if scrcpy_loc:
+        print_result("scrcpy", True, scrcpy_loc)
+    else:
+        print_result("scrcpy", False, "not found on PATH — run: winget install --id Genymobile.scrcpy")
+        failures += 1
+
+    print("=" * 50)
+    if failures == 0:
+        print("[SUCCESS] All Phase 4 tools are installed and ready.")
+    else:
+        print(f"[WARN] {failures} Phase 4 tool(s) missing. See above.")
+    return 0 if failures == 0 else 1
 
 
 def validate() -> int:
@@ -97,4 +171,10 @@ def validate() -> int:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="AI Lan installation validator")
+    parser.add_argument("--phase4", action="store_true", help="Validate optional Phase 4 stack")
+    args = parser.parse_args()
+
+    if args.phase4:
+        raise SystemExit(validate_phase4())
     raise SystemExit(validate())

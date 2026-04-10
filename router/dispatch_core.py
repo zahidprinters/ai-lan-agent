@@ -15,6 +15,8 @@ from safety.policy_engine import evaluate_action_policy
 from tools.android.adb import launch_app, list_devices
 from tools.android.input import swipe_screen, tap_screen
 from tools.android.screen import capture_screenshot
+from tools.android.scrcpy import start_mirror
+from tools.perception.ocr import run_ocr, run_ocr_from_screenshot
 from tools.perception.vision import capture_screen_text
 from tools.context_builder import build_prompt_context
 from tools.desktop.keyboard import type_text
@@ -25,6 +27,7 @@ from tools.system.host import (
     list_running_apps,
     open_app,
 )
+from tools.web.browser import browser_fetch
 from tools.web.search import run_search
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -118,6 +121,12 @@ TOOL_REGISTRY: dict[str, ToolSpec] = {
     "android.swipe": ToolSpec(swipe_screen, ("x1", "y1", "x2", "y2"), ("duration_ms", "device_id")),
     "android.capture_screenshot": ToolSpec(capture_screenshot, (), ("output_path", "device_id")),
     "pc.inspect_screen": ToolSpec(capture_screen_text, ()),
+    "web.browser_fetch": ToolSpec(browser_fetch, ("url",), ("screenshot_path", "timeout_ms")),
+    "pc.ocr_image": ToolSpec(run_ocr, ("image_path",)),
+    "pc.ocr_screen": ToolSpec(run_ocr_from_screenshot, ()),
+    "android.scrcpy_mirror": ToolSpec(
+        start_mirror, (), ("device_id", "max_bitrate", "max_fps", "no_control")
+    ),
 }
 
 
@@ -164,6 +173,8 @@ def dispatch_agent_action(
     payload: str | dict[str, object] | AgentAction,
     *,
     confirmed: bool = False,
+    dry_run: bool = False,
+    log_to_audit: bool = True,
 ) -> ActionExecutionResult:
     action = payload if isinstance(payload, AgentAction) else parse_agent_action(payload)
 
@@ -175,7 +186,8 @@ def dispatch_agent_action(
             observation=None,
             policy_reason=policy.reason,
         )
-        append_action_audit_log(action, result)
+        if log_to_audit:
+            append_action_audit_log(action, result)
         return result
 
     validate_action_args(action)
@@ -187,7 +199,23 @@ def dispatch_agent_action(
             observation=None,
             policy_reason=policy.reason,
         )
-        append_action_audit_log(action, result)
+        if log_to_audit:
+            append_action_audit_log(action, result)
+        return result
+
+    if dry_run:
+        result = ActionExecutionResult(
+            status="dry_run",
+            action=action.action,
+            observation={
+                "would_execute": True,
+                "args": action.args,
+                "confirmed": confirmed,
+            },
+            policy_reason=policy.reason,
+        )
+        if log_to_audit:
+            append_action_audit_log(action, result)
         return result
 
     tool_spec = TOOL_REGISTRY[action.action]
@@ -198,5 +226,6 @@ def dispatch_agent_action(
         observation=observation,
         policy_reason=policy.reason,
     )
-    append_action_audit_log(action, result)
+    if log_to_audit:
+        append_action_audit_log(action, result)
     return result

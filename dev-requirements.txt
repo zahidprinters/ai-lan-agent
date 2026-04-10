@@ -1,4 +1,5 @@
 -r requirements.txt
+# Runtime pins above include the current optional Phase 4 browser/search stack.
 pytest
 black
 mypy

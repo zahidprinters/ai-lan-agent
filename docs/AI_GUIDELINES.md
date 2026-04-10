@@ -40,7 +40,7 @@ AI Lan is a **Windows-first, CPU-optimized, and agent-centric** workspace.
 - Never promote placeholder artifacts in offline-learning or model-registry workflows.
 
 ### 4. External Code Intake
-- Use [docs/OPEN_SOURCE_REFERENCE.md](docs/OPEN_SOURCE_REFERENCE.md) as the curated shortlist before adopting any new upstream project.
+- Use [OPEN_SOURCE_REFERENCE.md](OPEN_SOURCE_REFERENCE.md) as the curated shortlist before adopting any new upstream project.
 - Prefer official upstream repos and documentation over blog posts, forks, or random snippets.
 - Check the upstream license, maintenance activity, and install footprint before wiring the dependency into the runtime.
 - Keep external integrations behind local facades in `core/`, `agents/`, `tools/`, `memory/`, or `learning/`.
@@ -60,7 +60,7 @@ When implementing new tools or actions:
 2.  **Define Policy:** Add it to `actions/policy.py` (Identify if it needs confirmation).
 3.  **Implement Stub:** Write a safe, read-only stub in `tools/` first.
 4.  **Register:** Add to `TOOL_REGISTRY` in `actions/router.py`.
-5.  **Adopt Upstream Carefully:** Match the selected capability against [docs/OPEN_SOURCE_REFERENCE.md](docs/OPEN_SOURCE_REFERENCE.md), then integrate one upstream project at a time behind the local interface.
+5.  **Adopt Upstream Carefully:** Match the selected capability against [OPEN_SOURCE_REFERENCE.md](OPEN_SOURCE_REFERENCE.md), then integrate one upstream project at a time behind the local interface.
 
 ---
 

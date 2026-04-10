@@ -6,6 +6,18 @@ This document defines the target layered architecture for AI Lan and the migrati
 
 ```text
 ai-lan/
+├── .github/
+│   ├── ISSUE_TEMPLATE/
+│   │   ├── bug_report.yml
+│   │   └── feature_request.yml
+│   ├── workflows/
+│   │   └── ci.yml
+│   ├── agents/
+│   ├── instructions/
+│   ├── prompts/
+│   ├── PULL_REQUEST_TEMPLATE.md
+│   ├── SECURITY.md
+│   └── copilot-instructions.md
 ├── core/
 │   ├── model/
 │   │   ├── transformer.py
@@ -152,7 +164,7 @@ Start and harden this path first:
 ## Migration Note
 
 The new structure is scaffolded without deleting the current implementation modules. Existing production paths under actions/, tools/, training/, and scripts/ continue to work while migration proceeds incrementally.
-Use [docs/OPEN_SOURCE_REFERENCE.md](docs/OPEN_SOURCE_REFERENCE.md) as the upstream shortlist for any new `agents/`, `tools/`, `memory/`, or `learning/` integration, and keep the selected dependency behind the repository's own facades.
+Use [OPEN_SOURCE_REFERENCE.md](OPEN_SOURCE_REFERENCE.md) as the upstream shortlist for any new `agents/`, `tools/`, `memory/`, or `learning/` integration, and keep the selected dependency behind the repository's own facades.
 
 ## Embodied AI Package Split
 

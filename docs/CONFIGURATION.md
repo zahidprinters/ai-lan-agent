@@ -62,6 +62,18 @@ You can override any individual setting by setting its corresponding environment
 - **`AI_LAN_TRACE`**: Enable line-level variable tracing (`0`/`1`).
 - **`AI_LAN_PROFILE`**: Enable timing and memory profiling (`0`/`1`).
 - **`AI_LAN_DEBUG_LOGFILE`**: Optional path for sentinel logs.
+- **`AI_LAN_TRACE_STDOUT`**: Mirror trace output to console (`0`/`1`) when trace is enabled.
+
+`training/config.py` now centralizes these toggles in `ProjectConfig.debug` (`DebugSettings`) while preserving the existing compatibility fields (`debug_trace`, `debug_profile`).
+
+### Policy Runtime Config
+
+- **`AI_LAN_POLICY_CONFIG_PATH`**: Optional path override for router action policy config (defaults to `config/policies.yaml`).
+	The policy file supports `allow_actions`, `deny_actions`, and `require_confirmation` lists.
+
+### External Service Keys (Optional)
+
+- **`TAVILY_API_KEY`**: API key for live Tavily search integration in the optional Phase 4 web-search stack.
 
 ---
 
@@ -81,7 +93,7 @@ Managed automatically but overrideable:
 
 ## Last Updated
 
-2026-04-04
+2026-04-10
 
 ---
 

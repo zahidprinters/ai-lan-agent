@@ -1,8 +1,34 @@
 policy:
+  allow_actions:
+    - web.search
+    - web.browser_fetch
+    - memory.search
+    - context.build
+    - pc.get_system_status
+    - pc.list_running_apps
+    - pc.list_workspace_files
+    - pc.read_clipboard
+    - pc.inspect_screen
+    - pc.ocr_image
+    - pc.ocr_screen
+    - pc.type_text
+    - pc.open_app
+    - android.list_devices
+    - android.launch_app
+    - android.tap
+    - android.swipe
+    - android.capture_screenshot
+    - android.scrcpy_mirror
+  deny_actions:
+    - pc.execute_shell
+    - pc.move_mouse
   require_confirmation:
     - pc.type_text
     - pc.open_app
     - android.launch_app
     - android.tap
     - android.swipe
+    - android.capture_screenshot
+    - android.scrcpy_mirror
+    - web.browser_fetch
 

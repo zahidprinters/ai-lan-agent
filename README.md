@@ -136,7 +136,40 @@ See [docs/DEBUGGING_GUIDE.md](docs/DEBUGGING_GUIDE.md).
 - Base runtime dependencies are in [requirements.txt](requirements.txt).
 - Development and optional experiment tracking dependencies are in [dev-requirements.txt](dev-requirements.txt).
 - Optional experiment extras are declared in [pyproject.toml](pyproject.toml) under `project.optional-dependencies.experiment`.
+- Optional Phase 4 Python extras are declared in [pyproject.toml](pyproject.toml) under `project.optional-dependencies.phase4`.
 - ONNX inference/export runtime is pinned in base dependencies (`onnxruntime==1.20.1`).
+
+### Optional Phase 4 Setup (Windows)
+
+This is the shortest safe stack from `docs/OPEN_SOURCE_REFERENCE.md`: Playwright + Tavily + Tesseract + ADB/scrcpy.
+
+```powershell
+# Python packages (already pinned in requirements.txt)
+python -m pip install -r requirements.txt
+
+# Playwright browser runtime
+python -m playwright install chromium
+
+# System tools
+winget install --id UB-Mannheim.TesseractOCR -e --accept-package-agreements --accept-source-agreements
+winget install --id Google.PlatformTools -e --accept-package-agreements --accept-source-agreements
+winget install --id Genymobile.scrcpy -e --accept-package-agreements --accept-source-agreements
+```
+
+Optional search key (needed only for live Tavily search APIs):
+
+```powershell
+$env:TAVILY_API_KEY = "<your_api_key>"
+```
+
+Quick verification:
+
+```powershell
+python -m playwright --version
+tesseract --version
+adb version
+scrcpy --version
+```
 
 ## Workspace Cleanliness Policy
 

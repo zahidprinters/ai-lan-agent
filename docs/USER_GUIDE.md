@@ -102,12 +102,51 @@ Once that works, upgrade selectively with `whisper.cpp`, `Coqui TTS`, `EasyOCR`,
 
 ### 📍 Phase 4/5 Expansion Note
 
-If you are extending AI Lan beyond the current user workflows, start from [docs/OPEN_SOURCE_REFERENCE.md](docs/OPEN_SOURCE_REFERENCE.md) and keep to one project per capability.
+If you are extending AI Lan beyond the current user workflows, start from [OPEN_SOURCE_REFERENCE.md](OPEN_SOURCE_REFERENCE.md) and keep to one project per capability.
 The shortest safe Phase 4 path is `Playwright` + `Tavily` + `Tesseract` + `ADB`/`scrcpy` behind the router.
 The shortest safe Phase 4.5 path is `mss`/`OpenCV` + `Tesseract` + `Vosk` + `pyttsx3` + `llama.cpp`.
 The shortest safe Phase 5 path is `Chroma` or `Qdrant` plus `PEFT` + `LoRA` + `QLoRA` + `TRL`.
 
+Optional Phase 4 install commands (Windows-first):
+
+```powershell
+python -m pip install -r requirements.txt
+python -m playwright install chromium
+winget install --id UB-Mannheim.TesseractOCR -e --accept-package-agreements --accept-source-agreements
+winget install --id Google.PlatformTools -e --accept-package-agreements --accept-source-agreements
+winget install --id Genymobile.scrcpy -e --accept-package-agreements --accept-source-agreements
+```
+
+If you use Tavily live web search, set:
+
+```powershell
+$env:TAVILY_API_KEY = "<your_api_key>"
+```
+
+Quick checks:
+
+```powershell
+python -m playwright --version
+tesseract --version
+adb version
+scrcpy --version
+```
+
 If you are touching export, evaluation, generation, or training resume code, keep checkpoint metadata as the source of truth first and use the shared loaders that already do this correctly.
+
+### 📍 Audit Replay (Dry Run)
+
+Use action audit replay to evaluate how current policy/router logic would handle historical requests without executing side effects.
+
+```powershell
+python scripts/replay_audit.py --input temp/action_audit.jsonl --output temp/benchmarks/audit_replay_report.json
+```
+
+Optional: force replay to treat all actions as confirmed (useful for "what-if" policy checks):
+
+```powershell
+python scripts/replay_audit.py --assume-confirmed
+```
 
 ---
 

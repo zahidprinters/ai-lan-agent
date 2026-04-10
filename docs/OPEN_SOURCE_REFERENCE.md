@@ -193,3 +193,26 @@ If you want a focused build path instead of many tools at once:
 11. Coding-app references: `OpenHands`, `Aider`, `Continue`, and `Open Interpreter`
 
 This keeps the project aligned with the layered architecture while leaving room to grow safely.
+
+## Windows Install Snapshot (Validated)
+
+Current optional Phase 4 stack validated in this workspace:
+
+- Python packages: `playwright==1.58.0`, `tavily-python==0.7.23`, `pytesseract==0.3.13`
+- System tools: `Tesseract OCR`, `ADB` (Android Platform-Tools), `scrcpy`
+
+Commands:
+
+```powershell
+python -m pip install -r requirements.txt
+python -m playwright install chromium
+winget install --id UB-Mannheim.TesseractOCR -e --accept-package-agreements --accept-source-agreements
+winget install --id Google.PlatformTools -e --accept-package-agreements --accept-source-agreements
+winget install --id Genymobile.scrcpy -e --accept-package-agreements --accept-source-agreements
+```
+
+If you use Tavily live search, set:
+
+```powershell
+$env:TAVILY_API_KEY = "<your_api_key>"
+```

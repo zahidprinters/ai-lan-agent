@@ -1,7 +1,13 @@
-﻿"""Web search adapters and tool wrapper."""
+﻿"""Web search adapters and tool wrapper.
+
+Priority:
+1. Tavily (``TAVILY_API_KEY`` env var) — structured search results with snippets.
+2. DuckDuckGo Instant Answer JSON — no API key required, fallback.
+"""
 
 from __future__ import annotations
 
+import os
 from urllib.parse import quote_plus
 from typing import Any, cast
 
@@ -9,13 +15,36 @@ from debug_utils import sentinel
 
 from tools.base.tool import Tool
 
-# DuckDuckGo JSON endpoint is used in Phase 4 to avoid API key requirements.
+# DuckDuckGo JSON endpoint — used as no-key fallback.
 DDG_API_URL = "https://api.duckduckgo.com/?q={}&format=json"
 
 
-@sentinel
-def search_web(query: str, max_results: int = 5) -> list[dict[str, str]]:
-    print(f"--- SEARCHING WEB FOR: '{query}' ---")
+def _tavily_search(query: str, max_results: int) -> list[dict[str, str]] | None:
+    """Try a Tavily search.  Returns None when the library or key is missing."""
+    api_key = os.getenv("TAVILY_API_KEY", "").strip()
+    if not api_key:
+        return None
+    try:
+        from tavily import TavilyClient  # type: ignore[import-untyped]
+
+        client = TavilyClient(api_key=api_key)
+        response = client.search(query, max_results=max_results)
+        results: list[dict[str, str]] = []
+        for item in response.get("results", []):
+            results.append(
+                {
+                    "Title": str(item.get("title", "")),
+                    "Snippet": str(item.get("content", "")),
+                    "URL": str(item.get("url", "")),
+                }
+            )
+        return results or None
+    except Exception:
+        return None
+
+
+def _ddg_search(query: str, max_results: int) -> list[dict[str, str]]:
+    """DuckDuckGo Instant Answer JSON fallback."""
     try:
         import requests  # type: ignore[import-untyped]
 
@@ -44,25 +73,31 @@ def search_web(query: str, max_results: int = 5) -> list[dict[str, str]]:
                     }
                 )
 
-        if not results:
-            return [
-                {
-                    "Title": "Search Status",
-                    "Snippet": f"Search for '{query}' executed, no specific summary found.",
-                    "URL": "n/a",
-                }
-            ]
-
-        return results
-    except Exception as exc:
-        print(f"[ERROR] Web search tool failed: {exc}")
-        return [
+        return results or [
             {
-                "Title": "Search Error",
-                "Snippet": f"Search failed for '{query}': {exc}",
+                "Title": "Search Status",
+                "Snippet": f"Search for '{query}' executed, no specific summary found.",
                 "URL": "n/a",
             }
         ]
+    except Exception as exc:
+        return [
+            {
+                "Title": "Search Error",
+                "Snippet": f"DDG search failed for '{query}': {exc}",
+                "URL": "n/a",
+            }
+        ]
+
+
+@sentinel
+def search_web(query: str, max_results: int = 5) -> list[dict[str, str]]:
+    """Search the web.  Uses Tavily when TAVILY_API_KEY is set; DDG otherwise."""
+    print(f"--- SEARCHING WEB FOR: '{query}' ---")
+    tavily_results = _tavily_search(query, max_results)
+    if tavily_results is not None:
+        return tavily_results
+    return _ddg_search(query, max_results)
 
 
 class WebSearchTool(Tool):

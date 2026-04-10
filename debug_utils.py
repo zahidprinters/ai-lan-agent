@@ -17,6 +17,43 @@ from pathlib import Path
 P = ParamSpec("P")
 R = TypeVar("R")
 
+_SENSITIVE_NAME_TOKENS = {
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "api_key",
+    "apikey",
+    "auth",
+    "credential",
+    "clipboard",
+    "pii",
+    "email",
+    "phone",
+}
+
+
+def _sanitize_trace_value(name: str, value: object) -> str:
+    """Return a safe, length-limited representation for trace logging."""
+    lowered_name = name.lower()
+    if any(token in lowered_name for token in _SENSITIVE_NAME_TOKENS):
+        return "<masked>"
+
+    try:
+        value_repr = repr(value)
+    except Exception:
+        return "<unrepresentable>"
+
+    lowered_value = value_repr.lower()
+    if any(token in lowered_value for token in _SENSITIVE_NAME_TOKENS):
+        return "<masked>"
+    if "bearer " in lowered_value or "sk-" in lowered_value:
+        return "<masked>"
+
+    if len(value_repr) > 100:
+        return value_repr[:97] + "..."
+    return value_repr
+
 
 def ensure_project_temp(root: Path) -> Path:
     """Ensures the project temp directory exists."""
@@ -68,9 +105,7 @@ def sentinel_trace_func(frame: FrameType, event: str, arg: object) -> Any:
         logger = _setup_logger()
         for name, value in vars.items():
             try:
-                val_repr = repr(value)
-                if len(val_repr) > 100:
-                    val_repr = val_repr[:97] + "..."
+                val_repr = _sanitize_trace_value(name, value)
                 msg = f"[TRACE] line {line_no}: {name} = {val_repr}"
                 logger.debug(msg)
                 # Only print to stdout if explicitly requested to avoid terminal flooding

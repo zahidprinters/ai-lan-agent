@@ -24,6 +24,9 @@ All notable changes to this project will be documented in this file.
 - Added dataset cleaning script (`scripts/clean_dataset.py`) and PowerShell wrapper (`scripts/clean_dataset.ps1`)
 - Integrated dataset cleaning as a menu/dashboard action (`clean_dataset`) in `main.ps1`
 - Cleaning removes empty lines and duplicate lines, outputs `input_cleaned.txt`
+- Optional Phase 4 setup commands and verification flow in docs for Playwright + Tavily + Tesseract + ADB/scrcpy on Windows
+- Policy-config tests and debug-sanitization tests covering YAML policy loading, fallback behavior, and masked sentinel trace output
+- Added audit replay dry-run workflow (`scripts/replay_audit.py`) to simulate historical action requests against current router/policy behavior without executing side effects
 
 ### Changed
 
@@ -33,6 +36,12 @@ All notable changes to this project will be documented in this file.
 - Standardized a canonical 2026-04-05 implementation sequence across roadmap/status/handoff docs (Phase 4.1 framework lock -> 4.2 adapter hardening -> 4.3 eval gates -> 4.5 embodied loop -> 5.x memory/learning/orchestration), including explicit entry/exit gates for each stage
 - Reorganized dependency guidance to distinguish runtime requirements from optional experiment tracking dependencies
 - Clarified test observability defaults (debug on by default, trace/profile opt-in)
+- Pinned optional Phase 4 Python dependencies in `requirements.txt` and added `project.optional-dependencies.phase4` in `pyproject.toml`
+- Updated `README.md`, `docs/USER_GUIDE.md`, `docs/CONFIGURATION.md`, and `docs/OPEN_SOURCE_REFERENCE.md` with Phase 4 install commands and `TAVILY_API_KEY` configuration guidance
+- `safety/policy_engine.py` now loads `allow_actions`, `deny_actions`, and `require_confirmation` from `config/policies.yaml` with safe default fallbacks
+- `training/config.py` now exposes centralized `ProjectConfig.debug` settings (`DebugSettings`) while keeping compatibility fields (`debug_trace`, `debug_profile`)
+- `debug_utils.py` now masks sensitive trace variable names/content before logging line-level sentinel traces
+- Updated `docs/PROJECT_STATUS.md` to reflect that Phase 4.1 safety freeze is effectively implemented
 
 ### Fixed
 

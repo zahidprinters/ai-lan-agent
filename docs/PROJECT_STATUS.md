@@ -2,7 +2,7 @@
 
 **Project Lead:** Nadeem Abbas  
 **Status:** Active development (post Phase 3 stabilization)  
-**Last Update:** April 6, 2026
+**Last Update:** April 10, 2026
 
 ## Architecture Snapshot
 
@@ -26,8 +26,11 @@ AI Lan uses a modular layout with direct package folders (not a single `ai_lan.*
 - ONNX export and dynamic quantization scripts, with quantized checkpoints treated as PyTorch inference-only artifacts.
 - Installation validation that checks ONNX tooling and exits nonzero when required packages are missing.
 - Sentinel observability (`AI_LAN_DEBUG`, `AI_LAN_TRACE`, `AI_LAN_PROFILE`).
+- Sentinel trace sanitization: sensitive variable names and token-like values are masked in trace logs before output.
 - Unit test suite passing after cleanup and compatibility fixes.
 - Phase 4 action-routing foundation: strict action schema parsing, policy-gated dispatch, and JSONL audit logging.
+- Phase 4.1 safety freeze is effectively active: allow/deny/confirmation policy is enforced in router dispatch and now loaded from `config/policies.yaml` (with safe defaults).
+- Audit replay capability: dry-run action replay can evaluate historical JSONL audit requests under current policy/router logic without triggering tool side effects.
 - Trusted ingestion pipeline foundation: source loading, normalization, dedupe, trust/quality scoring, merged corpus output, and JSON reporting.
 - Local memory layer foundation: SQLite-backed memory store, conversation summaries, and deterministic retrieval API.
 - Context assembly foundation: prompt-context builder combining memory retrieval and ingestion snippets, now exposed through policy-gated router actions.
@@ -71,9 +74,8 @@ These are retained by design and are not duplicate/legacy remnants.
 
 ## Next Priorities
 
-1. **Phase 4.1:** lock one framework per capability and freeze safe defaults (confirmation-on-write + full audit logging).
-2. **Phase 4.2:** harden PC/Android/ingestion adapters from safe stubs to production-safe allowlisted implementations.
-3. **Phase 4.3:** enforce offline + online-style evaluation gates (tool success, refusal quality, latency) in CI.
-4. **Phase 4.5:** implement the CPU-first embodied loop (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`, `llama.cpp`) behind existing router/policy controls.
-5. **Phase 5.1:** integrate one persistent memory backend (`Chroma` or `Qdrant`) with explicit retention/user-control boundaries.
-6. **Phase 5.2+:** ship nightly offline learning with canary promotion gates, model registry rollback, and orchestration hardening when workload scale requires it.
+1. **Phase 4.2:** harden PC/Android/ingestion adapters from safe stubs to production-safe allowlisted implementations.
+2. **Phase 4.3:** enforce offline + online-style evaluation gates (tool success, refusal quality, latency) in CI.
+3. **Phase 4.5:** implement the CPU-first embodied loop (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`, `llama.cpp`) behind existing router/policy controls.
+4. **Phase 5.1:** integrate one persistent memory backend (`Chroma` or `Qdrant`) with explicit retention/user-control boundaries.
+5. **Phase 5.2+:** ship nightly offline learning with canary promotion gates, model registry rollback, and orchestration hardening when workload scale requires it.

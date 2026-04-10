@@ -369,7 +369,7 @@ The router returns an `ActionExecutionResult` which the model reads as its next 
 - `android.list_devices`: read-only Android device discovery action.
 - `android.launch_app` / `android.tap` / `android.swipe` / `android.capture_screenshot`: confirmation-gated Android adapter actions.
 
-Future tool additions should be selected from [docs/OPEN_SOURCE_REFERENCE.md](docs/OPEN_SOURCE_REFERENCE.md), wrapped behind the local router and safety layers, and covered by tests before they reach the live path.
+Future tool additions should be selected from [OPEN_SOURCE_REFERENCE.md](OPEN_SOURCE_REFERENCE.md), wrapped behind the local router and safety layers, and covered by tests before they reach the live path.
 
 ---
 

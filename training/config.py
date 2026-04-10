@@ -12,6 +12,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 @dataclass(frozen=True)
+class DebugSettings:
+    debug_enabled: bool = False
+    trace_enabled: bool = False
+    profile_enabled: bool = False
+    trace_stdout_enabled: bool = False
+
+
+@dataclass(frozen=True)
 class ProjectConfig:
     model_type: str = "char_mlp"
     data_path: Path = ROOT / "data" / "input.txt"
@@ -51,6 +59,7 @@ class ProjectConfig:
     device: str = "cpu"
     debug_trace: bool = False
     debug_profile: bool = False
+    debug: DebugSettings = DebugSettings()
     sleep_mode_hour: int = 3  # 3:00 AM
     auto_promote: bool = True
     action_audit_path: str | None = None
@@ -142,6 +151,12 @@ def load_config() -> ProjectConfig:
     device = (
         os.getenv("AI_LAN_DEVICE", "cuda" if torch.cuda.is_available() else "cpu").strip().lower()
     )
+    debug_settings = DebugSettings(
+        debug_enabled=os.getenv("AI_LAN_DEBUG", "0") == "1",
+        trace_enabled=os.getenv("AI_LAN_TRACE", "0") == "1",
+        profile_enabled=os.getenv("AI_LAN_PROFILE", "0") == "1",
+        trace_stdout_enabled=os.getenv("AI_LAN_TRACE_STDOUT", "0") == "1",
+    )
 
     return ProjectConfig(
         model_type=model_type,
@@ -190,8 +205,9 @@ def load_config() -> ProjectConfig:
         dropout=float(get_profiled_env("AI_LAN_DROPOUT", "0.0", float)),
         stochastic_depth=float(get_profiled_env("AI_LAN_STOCHASTIC_DEPTH", "0.0", float)),
         patience=patience,
-        debug_trace=os.getenv("AI_LAN_TRACE", "0") == "1",
-        debug_profile=os.getenv("AI_LAN_PROFILE", "0") == "1",
+        debug_trace=debug_settings.trace_enabled,
+        debug_profile=debug_settings.profile_enabled,
+        debug=debug_settings,
         sleep_mode_hour=int(os.getenv("AI_LAN_SLEEP_MODE_HOUR", "3")),
         auto_promote=os.getenv("AI_LAN_AUTO_PROMOTE", "1") == "1",
         action_audit_path=os.getenv("AI_LAN_ACTION_AUDIT_PATH"),

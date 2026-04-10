@@ -83,3 +83,22 @@ def test_config_profile_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AI_LAN_EPOCHS", "99")
     config = load_config()
     assert config.epochs == 99
+
+
+@pytest.mark.unit
+@sentinel
+def test_config_exposes_debug_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AI_LAN_DEBUG", "1")
+    monkeypatch.setenv("AI_LAN_TRACE", "1")
+    monkeypatch.setenv("AI_LAN_PROFILE", "0")
+    monkeypatch.setenv("AI_LAN_TRACE_STDOUT", "1")
+
+    config = load_config()
+
+    assert config.debug.debug_enabled is True
+    assert config.debug.trace_enabled is True
+    assert config.debug.profile_enabled is False
+    assert config.debug.trace_stdout_enabled is True
+    # Backward compatibility fields still mirror centralized settings.
+    assert config.debug_trace is True
+    assert config.debug_profile is False

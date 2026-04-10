@@ -1,6 +1,6 @@
 
 param(
-    [ValidateSet('dashboard', 'setup', 'check', 'train', 'trainbigram', 'generate', 'generatebigram', 'compare', 'runs', 'reindex', 'test', 'datareport', 'clean', 'clean_dataset', 'chat', 'chat_web', 'models', 'memory', 'context', 'logs', 'ops')]
+    [ValidateSet('dashboard', 'setup', 'check', 'phase4_check', 'train', 'trainbigram', 'generate', 'generatebigram', 'compare', 'runs', 'reindex', 'test', 'datareport', 'clean', 'clean_dataset', 'chat', 'chat_web', 'models', 'memory', 'context', 'logs', 'ops')]
     [string]$Action = 'dashboard',
     [ValidateSet('all', 'unit', 'integration')]
     [string]$Suite = 'all',
@@ -127,6 +127,7 @@ function Get-ActionSection {
     switch ($SelectedAction) {
         'setup' { return 'Workspace' }
         'check' { return 'Workspace' }
+        'phase4_check' { return 'Workspace' }
         'chat' { return 'Workspace' }
         'chat_web' { return 'Workspace' }
         'train' { return 'Training' }
@@ -288,6 +289,7 @@ function Show-Menu {
     Write-MenuGroup -Title 'Workspace'
     Write-MenuRow -LeftText (Write-MenuEntry -Number '1' -Label 'Setup environment') -RightText (Write-MenuEntry -Number '3' -Label 'CLI chat interface')
     Write-MenuRow -LeftText (Write-MenuEntry -Number '2' -Label 'Health check') -RightText (Write-MenuEntry -Number '4' -Label 'Web chat interface')
+    Write-MenuRow -LeftText (Write-MenuEntry -Number '30' -Label 'Phase 4 tool check')
     Write-MenuGroup -Title 'Training'
     Write-MenuRow -LeftText (Write-MenuEntry -Number '5' -Label 'Train model') -RightText (Write-MenuEntry -Number '7' -Label 'Show project runs')
     Write-MenuRow -LeftText (Write-MenuEntry -Number '6' -Label 'Compare checkpoints') -RightText (Write-MenuEntry -Number '8' -Label 'Show all runs')
@@ -357,6 +359,7 @@ function Get-ActionDisplayName {
     switch ($SelectedAction) {
         'setup' { return 'Setup environment' }
         'check' { return 'Health check' }
+        'phase4_check' { return 'Phase 4 tool check' }
         'train' { return 'Train model' }
         'trainbigram' { return 'Train bigram baseline' }
         'generate' { return 'Generate text' }
@@ -412,6 +415,7 @@ function Invoke-Action {
     switch ($SelectedAction) {
         'setup' { return (Invoke-ProjectScript -ScriptPath (Join-Path $root 'scripts\setup.ps1') -LogPath $LogPath) }
         'check' { return (Invoke-ProjectScript -ScriptPath (Join-Path $root 'scripts\check.ps1') -LogPath $LogPath) }
+        'phase4_check' { return (Invoke-ProjectScript -ScriptPath (Join-Path $root 'scripts\validate_installation.py') -ScriptArgs @('--phase4') -LogPath $LogPath) }
         'train' { return (Invoke-ProjectScript -ScriptPath (Join-Path $root 'scripts\train.ps1') -LogPath $LogPath) }
         'trainbigram' { return (Invoke-ProjectScript -ScriptPath (Join-Path $root 'scripts\train_bigram.ps1') -LogPath $LogPath) }
         'generate' { return (Invoke-ProjectScript -ScriptPath (Join-Path $root 'scripts\generate.ps1') -LogPath $LogPath) }
@@ -563,6 +567,7 @@ function Start-InteractiveDashboard {
             '27' { $code = Invoke-ManagedAction -SelectedAction 'test' -SelectedSuite 'all' }
             '28' { continue }
             '29' { $code = Invoke-ManagedAction -SelectedAction 'clean' }
+            '30' { $code = Invoke-ManagedAction -SelectedAction 'phase4_check' }
             'd' { $env:AI_LAN_DEBUG = if ($env:AI_LAN_DEBUG -eq '1') { '0' } else { '1' }; continue }
             't' { $env:AI_LAN_TRACE = if ($env:AI_LAN_TRACE -eq '1') { '0' } else { '1' }; continue }
             'p' { $env:AI_LAN_PROFILE = if ($env:AI_LAN_PROFILE -eq '1') { '0' } else { '1' }; continue }

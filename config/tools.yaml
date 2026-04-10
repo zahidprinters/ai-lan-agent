@@ -1,6 +1,18 @@
 tools:
   web.search:
     enabled: true
+  web.browser_fetch:
+    enabled: true
+    requires_confirmation: true
   pc.list_workspace_files:
     enabled: true
+  pc.inspect_screen:
+    enabled: true
+  pc.ocr_image:
+    enabled: true
+  pc.ocr_screen:
+    enabled: true
+  android.scrcpy_mirror:
+    enabled: true
+    requires_confirmation: true
 

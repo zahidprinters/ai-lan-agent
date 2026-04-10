@@ -321,6 +321,13 @@ For selected side-effect actions, the router also injects verification metadata 
 ### `scripts/model_registry.py`
 
 - Provides model registry/versioning and rollback CLI workflows.
+- `activate --version <version>` enforces the quality promotion guardrail before changing the active model.
+- Guardrail inputs come from `config/settings.yaml` and per-version benchmark artifacts under `runs/quality/`.
+
+### `scripts/benchmark_quality.py`
+
+- Writes machine-readable quality benchmark artifacts for a model/version under `runs/quality/`.
+- Accepts either an explicit `--score` or a metrics JSON file containing `quality_score`.
 
 ### `scripts/list_runs.py`
 

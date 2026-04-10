@@ -68,6 +68,15 @@ python training/generate.py
 python -m pytest tests -q --disable-warnings --ignore=tests/integration
 ```
 
+### Benchmark And Promote A Candidate Model
+
+```powershell
+python scripts/benchmark_quality.py --model models/char_model.pt --version candidate-v1 --score 0.82
+python scripts/model_registry.py --settings config/settings.yaml --quality-dir runs/quality activate --version candidate-v1
+```
+
+The registry activation step enforces the quality benchmark artifact for the target version and blocks promotion if the score is missing, below the configured minimum, or below the configured baseline model.
+
 ### Run Layered Runtime Demo
 
 ```powershell

@@ -74,7 +74,7 @@ To move from basic functionality to production-grade reliability, every in-fligh
 
 1. **Reflection Layer (Self-Correction):** ReAct agents must inspect failed observations and attempt bounded recovery strategies rather than stalling.
 2. **State Verification (Trust but Verify):** Side-effect actions should include verification probes so the agent's internal state matches host/device reality.
-3. **Automated Guardrail Benchmarking:** Model promotion must be blocked when standard quality and tool-selection benchmarks regress versus baseline.
+3. **Automated Guardrail Benchmarking:** Model promotion must be blocked when standard quality and tool-selection benchmarks regress versus baseline. The current reliability slice persists per-version quality artifacts in `runs/quality/` and blocks registry activation on missing or regressed scores.
 4. **Dynamic Safety Policy:** Safety level should adapt to runtime/perception context, with stronger confirmation requirements in sensitive contexts.
 5. **Deterministic Dry-Run Replay:** Policy/router updates must be replay-validated against historical audit logs before rollout.
 
@@ -200,4 +200,4 @@ Technical polish for this overlay:
 
 ## Last Updated
 
-2026-04-05
+2026-04-10

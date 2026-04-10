@@ -1,4 +1,6 @@
 project_name: AI Lan
 mode: safe
 default_device: cpu
+quality_guardrail_min_score: 0.75
+quality_guardrail_baseline_model: ""
 

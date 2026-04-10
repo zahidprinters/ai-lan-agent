@@ -15,6 +15,7 @@ from training.model_registry import (  # noqa: E402
     get_active_model,
     init_registry,
     list_registered_models,
+    promote_model,
     register_model,
     rollback_to_version,
     set_active_model,
@@ -42,6 +43,8 @@ def record_model_entry(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Model registry and rollback helper.")
     parser.add_argument("--registry", type=Path, default=None)
+    parser.add_argument("--settings", type=Path, default=None)
+    parser.add_argument("--quality-dir", type=Path, default=None)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     register_parser = subparsers.add_parser("register")
@@ -94,7 +97,12 @@ def main() -> None:
         return
 
     if args.command == "activate":
-        activated_payload = set_active_model(args.version, registry)
+        activated_payload = promote_model(
+            args.version,
+            registry_path=registry,
+            settings_path=args.settings,
+            quality_dir=args.quality_dir,
+        )
         print(json.dumps(activated_payload, indent=2, ensure_ascii=True))
         return
 

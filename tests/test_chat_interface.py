@@ -361,3 +361,69 @@ def test_run_chat_cli_closes_session_on_exit(monkeypatch: Any) -> None:
 
     assert code == 0
     assert fake_session.closed is True
+
+
+def test_chat_session_control_command_help() -> None:
+    session = ChatSession()
+    reply = session.handle_message("/control")
+    assert "Control Center Commands" in reply
+    assert "/policy show" in reply
+
+
+def test_chat_session_env_set_show_and_unset() -> None:
+    session = ChatSession()
+
+    set_reply = session.handle_message("/env set AI_LAN_TEST_FLAG enabled")
+    assert "Environment updated" in set_reply
+
+    show_reply = session.handle_message("/env show AI_LAN_TEST_")
+    parsed = json.loads(show_reply)
+    assert parsed["values"]["AI_LAN_TEST_FLAG"] == "enabled"
+
+    unset_reply = session.handle_message("/env unset AI_LAN_TEST_FLAG")
+    assert "cleared" in unset_reply
+
+
+def test_chat_session_settings_set_and_show(tmp_path: Path, monkeypatch: Any) -> None:
+    settings_path = tmp_path / "settings.yaml"
+    settings_path.write_text("project_name: \"AI Lan\"\n", encoding="utf-8")
+    monkeypatch.setenv("AI_LAN_SETTINGS_PATH", str(settings_path))
+
+    session = ChatSession()
+    set_reply = session.handle_message("/settings set dynamic_safety_enabled true")
+    assert "Settings updated" in set_reply
+
+    show_reply = session.handle_message("/settings show")
+    payload = json.loads(show_reply)
+    assert payload["values"]["dynamic_safety_enabled"] is True
+
+
+def test_chat_session_policy_add_and_remove(tmp_path: Path, monkeypatch: Any) -> None:
+    policy_path = tmp_path / "policies.yaml"
+    policy_path.write_text(
+        "\n".join(
+            [
+                "policy:",
+                "  allow_actions:",
+                "    - web.search",
+                "  deny_actions:",
+                "    - pc.execute_shell",
+                "  require_confirmation:",
+                "    - pc.type_text",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AI_LAN_POLICY_CONFIG_PATH", str(policy_path))
+
+    session = ChatSession()
+    add_reply = session.handle_message("/policy add allow pc.get_system_status")
+    assert "Policy updated" in add_reply
+
+    show_reply = session.handle_message("/policy show")
+    payload = json.loads(show_reply)
+    assert "pc.get_system_status" in payload["allow_actions"]
+
+    remove_reply = session.handle_message("/policy remove allow pc.get_system_status")
+    assert "Policy updated" in remove_reply

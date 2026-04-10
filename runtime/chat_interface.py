@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import importlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -16,7 +17,11 @@ from tools.memory_store import get_memory_db_path, store_conversation_summary
 
 CHAT_HELP_TEXT = """Commands:
   /help              Show this help text
+    /control           Show command/control center help
   /actions           Show supported natural-language actions
+    /policy ...        View or edit policy lists (allow/deny/confirm)
+    /settings ...      View or edit config/settings.yaml keys
+    /env ...           View or set runtime environment variables
   /json { ... }      Send a raw action payload JSON
   /confirm           Confirm the last pending high-risk action
   /reject            Reject and clear the last pending action
@@ -41,6 +46,24 @@ Natural examples:
 """
 
 
+CONTROL_HELP_TEXT = """Control Center Commands:
+    /control
+    /policy show
+    /policy add <allow|deny|confirm> <action>
+    /policy remove <allow|deny|confirm> <action>
+    /settings show
+    /settings set <key> <value>
+    /env show [prefix]
+    /env set <NAME> <VALUE>
+    /env unset <NAME>
+
+Notes:
+    - /policy edits config/policies.yaml and reloads policy runtime in-process.
+    - /settings edits config/settings.yaml for persistent behavior defaults.
+    - /env commands affect only this running chat process/session.
+"""
+
+
 ACTIONS_HELP_TEXT = """Supported natural-language actions:
   search <query>             -> web.search
   memory <query>             -> memory.search
@@ -58,6 +81,118 @@ ACTIONS_HELP_TEXT = """Supported natural-language actions:
 
 DEFAULT_SESSION_PATH = Path("temp") / "chat_sessions" / "latest.json"
 _SHORT_TERM_MAX_ITEMS = 40
+_POLICY_GROUP_MAP = {
+    "allow": "allow_actions",
+    "deny": "deny_actions",
+    "confirm": "require_confirmation",
+}
+
+
+def _resolve_policy_path() -> Path:
+    configured = os.getenv("AI_LAN_POLICY_CONFIG_PATH", "").strip()
+    if configured:
+        return Path(configured)
+    return Path("config") / "policies.yaml"
+
+
+def _resolve_settings_path() -> Path:
+    configured = os.getenv("AI_LAN_SETTINGS_PATH", "").strip()
+    if configured:
+        return Path(configured)
+    return Path("config") / "settings.yaml"
+
+
+def _parse_policy_lists(raw_text: str) -> dict[str, list[str]]:
+    parsed: dict[str, list[str]] = {
+        "allow_actions": [],
+        "deny_actions": [],
+        "require_confirmation": [],
+    }
+    active: str | None = None
+    for raw_line in raw_text.splitlines():
+        line = raw_line.split("#", 1)[0].rstrip()
+        if not line.strip():
+            continue
+        stripped = line.strip()
+        if stripped.endswith(":"):
+            key = stripped[:-1].strip()
+            active = key if key in parsed else None
+            continue
+        if stripped.startswith("- ") and active is not None:
+            value = stripped[2:].strip()
+            if value:
+                parsed[active].append(value)
+    return parsed
+
+
+def _format_policy_lists(parsed: dict[str, list[str]]) -> str:
+    lines = ["policy:"]
+    for key in ("allow_actions", "deny_actions", "require_confirmation"):
+        lines.append(f"  {key}:")
+        for action in sorted(set(parsed.get(key, []))):
+            lines.append(f"    - {action}")
+    return "\n".join(lines) + "\n"
+
+
+def _read_policy_lists(path: Path) -> dict[str, list[str]]:
+    if not path.exists():
+        return {"allow_actions": [], "deny_actions": [], "require_confirmation": []}
+    return _parse_policy_lists(path.read_text(encoding="utf-8"))
+
+
+def _write_policy_lists(path: Path, parsed: dict[str, list[str]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(_format_policy_lists(parsed), encoding="utf-8")
+
+
+def _coerce_scalar(value: str) -> object:
+    normalized = value.strip()
+    if not normalized:
+        return ""
+    lowered = normalized.lower()
+    if lowered in {"true", "false"}:
+        return lowered == "true"
+    if lowered in {"1", "0"}:
+        return lowered == "1"
+    try:
+        if any(char in normalized for char in {".", "e", "E"}):
+            return float(normalized)
+        return int(normalized)
+    except ValueError:
+        return normalized.strip('"').strip("'")
+
+
+def _read_settings_values(path: Path) -> dict[str, object]:
+    if not path.exists():
+        return {}
+    values: dict[str, object] = {}
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.split("#", 1)[0].rstrip()
+        if not line or ":" not in line:
+            continue
+        key, raw_value = line.split(":", 1)
+        values[key.strip()] = _coerce_scalar(raw_value)
+    return values
+
+
+def _format_setting_value(value: object) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    return f'"{str(value)}"'
+
+
+def _write_settings_values(path: Path, values: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = [f"{key}: {_format_setting_value(values[key])}" for key in sorted(values)]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _reload_policy_runtime() -> None:
+    import safety.policy_engine as policy_engine
+
+    importlib.reload(policy_engine)
 
 
 def _make_payload(
@@ -689,6 +824,21 @@ class ChatSession:
         if text == "/help":
             self._append_turn("assistant", CHAT_HELP_TEXT)
             return CHAT_HELP_TEXT
+        if text == "/control":
+            self._append_turn("assistant", CONTROL_HELP_TEXT)
+            return CONTROL_HELP_TEXT
+        if text.startswith("/policy"):
+            reply = self._handle_policy_command(text)
+            self._append_turn("assistant", reply)
+            return reply
+        if text.startswith("/settings"):
+            reply = self._handle_settings_command(text)
+            self._append_turn("assistant", reply)
+            return reply
+        if text.startswith("/env"):
+            reply = self._handle_env_command(text)
+            self._append_turn("assistant", reply)
+            return reply
         if text == "/actions":
             self._append_turn("assistant", ACTIONS_HELP_TEXT)
             return ACTIONS_HELP_TEXT
@@ -829,6 +979,133 @@ class ChatSession:
         self._append_turn("assistant", rendered)
         self._record_summary(text, rendered, result=result, plan=self.last_plan)
         return rendered
+
+    def _handle_policy_command(self, text: str) -> str:
+        parts = text.split(maxsplit=3)
+        if len(parts) == 1 or (len(parts) == 2 and parts[1] == "show"):
+            path = _resolve_policy_path()
+            parsed = _read_policy_lists(path)
+            return json.dumps(
+                {
+                    "policy_path": str(path),
+                    "allow_actions": sorted(parsed.get("allow_actions", [])),
+                    "deny_actions": sorted(parsed.get("deny_actions", [])),
+                    "require_confirmation": sorted(parsed.get("require_confirmation", [])),
+                },
+                ensure_ascii=True,
+                indent=2,
+            )
+
+        if len(parts) < 4:
+            return "Usage: /policy add|remove <allow|deny|confirm> <action>"
+
+        operation = parts[1].strip().lower()
+        group_alias = parts[2].strip().lower()
+        action_name = parts[3].strip().lower()
+        if operation not in {"add", "remove"}:
+            return "Policy operation must be add or remove."
+        group = _POLICY_GROUP_MAP.get(group_alias)
+        if group is None:
+            return "Policy group must be one of: allow, deny, confirm."
+        if not action_name:
+            return "Action name cannot be empty."
+
+        path = _resolve_policy_path()
+        parsed = _read_policy_lists(path)
+        existing = set(parsed.get(group, []))
+        if operation == "add":
+            existing.add(action_name)
+        else:
+            existing.discard(action_name)
+        parsed[group] = sorted(existing)
+        _write_policy_lists(path, parsed)
+        _reload_policy_runtime()
+
+        return (
+            f"Policy updated at {path}: {operation} {action_name} in {group}. "
+            "Changes apply to new router policy checks in this session."
+        )
+
+    def _handle_settings_command(self, text: str) -> str:
+        parts = text.split(maxsplit=3)
+        path = _resolve_settings_path()
+        values = _read_settings_values(path)
+
+        if len(parts) == 1 or (len(parts) == 2 and parts[1] == "show"):
+            return json.dumps(
+                {
+                    "settings_path": str(path),
+                    "values": values,
+                },
+                ensure_ascii=True,
+                indent=2,
+                default=str,
+            )
+
+        if len(parts) < 4 or parts[1].strip().lower() != "set":
+            return "Usage: /settings show OR /settings set <key> <value>"
+
+        key = parts[2].strip()
+        raw_value = parts[3].strip()
+        if not key:
+            return "Settings key cannot be empty."
+
+        values[key] = _coerce_scalar(raw_value)
+        _write_settings_values(path, values)
+        return f"Settings updated at {path}: {key}={values[key]!r}"
+
+    def _handle_env_command(self, text: str) -> str:
+        parts = text.split(maxsplit=3)
+        if len(parts) == 1 or (len(parts) == 2 and parts[1].strip().lower() == "show"):
+            prefix = "AI_LAN_"
+            env_view = {k: v for k, v in os.environ.items() if k.startswith(prefix)}
+            return json.dumps(
+                {
+                    "scope": "current_process",
+                    "filter_prefix": prefix,
+                    "values": dict(sorted(env_view.items())),
+                },
+                ensure_ascii=True,
+                indent=2,
+            )
+
+        command = parts[1].strip().lower() if len(parts) >= 2 else ""
+        if command == "show":
+            prefix = parts[2].strip() if len(parts) >= 3 else "AI_LAN_"
+            env_view = {k: v for k, v in os.environ.items() if k.startswith(prefix)}
+            return json.dumps(
+                {
+                    "scope": "current_process",
+                    "filter_prefix": prefix,
+                    "values": dict(sorted(env_view.items())),
+                },
+                ensure_ascii=True,
+                indent=2,
+            )
+
+        if command == "set":
+            if len(parts) < 4:
+                return "Usage: /env set <NAME> <VALUE>"
+            name = parts[2].strip()
+            value = parts[3]
+            if not name:
+                return "Environment variable name cannot be empty."
+            os.environ[name] = value
+            return (
+                f"Environment updated for current session: {name}={value}. "
+                "Use /settings set for persistent project defaults."
+            )
+
+        if command == "unset":
+            if len(parts) < 3:
+                return "Usage: /env unset <NAME>"
+            name = parts[2].strip()
+            if not name:
+                return "Environment variable name cannot be empty."
+            os.environ.pop(name, None)
+            return f"Environment variable cleared for current session: {name}"
+
+        return "Usage: /env show [prefix] OR /env set <NAME> <VALUE> OR /env unset <NAME>"
 
 
 def run_chat_cli() -> int:

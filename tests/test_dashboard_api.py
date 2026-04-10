@@ -98,6 +98,9 @@ def test_dashboard_state_includes_runs_models_memory_and_logs(tmp_path: Path, mo
     monkeypatch.setenv("AI_LAN_RUNS_DIR", str(runs_dir))
     monkeypatch.setenv("AI_LAN_DATA_PATH", str(data_path))
     monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(audit_path))
+    monkeypatch.setenv("AI_LAN_STT_ENABLED", "1")
+    monkeypatch.setenv("AI_LAN_TTS_ENABLED", "0")
+    monkeypatch.setenv("AI_LAN_PERCEPTION_ENABLED", "1")
 
     session = ChatSession(memory_db_path=memory_db, merged_corpus_path=merged_path)
     session.perception_snapshot = PerceptionSnapshot(
@@ -121,6 +124,13 @@ def test_dashboard_state_includes_runs_models_memory_and_logs(tmp_path: Path, mo
     assert state["session"]["perception_snapshot"]["summary"] == "Outlook inbox visible with 14 unread messages."
     assert state["ops"]["paths"]["memory_db_path"] == str(memory_db)
     assert state["ops"]["perception"]["summary"] == "Outlook inbox visible with 14 unread messages."
+    assert state["control"]["policy_path"]
+    assert state["control"]["settings_path"]
+    assert "allow_actions" in state["control"]["policy"]
+    assert state["control"]["capabilities"]["mic"]["enabled"] is True
+    assert state["control"]["capabilities"]["speaker"]["enabled"] is False
+    assert state["control"]["capabilities"]["camera"]["enabled"] is True
+    assert "/control" in state["control"]["quick_commands"]
     assert state["health"]["status"] == "ok"
     assert "cpu" in state["health"]
     assert "memory" in state["health"]

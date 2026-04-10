@@ -299,6 +299,7 @@ function safeState(state) {
     models: objectValue(data.models),
     logs: objectValue(data.logs),
     ops: objectValue(data.ops),
+    control: objectValue(data.control),
     health: objectValue(data.health),
   };
 }
@@ -522,13 +523,36 @@ function renderOverview(state) {
 }
 
 function renderChat(state) {
-  const { session } = safeState(state);
+  const { session, control } = safeState(state);
   const turns = arrayValue(session.turns);
   const pendingPayload = String(session.pending_payload_json || "");
   const lastResult = session.last_result_json || "No result yet.";
   const lastContext = session.last_context_json || "No context yet.";
   const shortTerm = session.short_term_context || "No short-term context.";
   const pendingPayloadBody = safeJsonBlock(pendingPayload, "No pending payload.");
+  const quickCommands = arrayValue(control.quick_commands);
+  const policy = objectValue(control.policy);
+  const settings = objectValue(control.settings);
+  const envValues = objectValue(control.environment);
+  const capabilities = objectValue(control.capabilities);
+
+  function capabilityButton(name, details) {
+    const enabled = Boolean(details?.enabled);
+    const toggleCommand = details?.env_key && details.env_key.startsWith("AI_LAN_")
+      ? `/env set ${details.env_key} ${enabled ? "0" : "1"}`
+      : "";
+    const tone = enabled ? "good" : "ghost";
+    return `
+      <div class="command">
+        <div class="command__head">
+          <h3 class="command__title">${escapeHtml(name)}</h3>
+          <span class="badge badge--${enabled ? "good" : "ghost"}">${enabled ? "Enabled" : "Disabled"}</span>
+        </div>
+        <p class="command__body">${escapeHtml(String(details?.description || ""))}</p>
+        ${toggleCommand ? `<button type="button" class="btn btn--small btn--${escapeHtml(tone)}" data-control-command="${escapeHtml(toggleCommand)}">${icon("spark")}<span>${enabled ? "Disable" : "Enable"}</span></button>` : ""}
+      </div>
+    `;
+  }
 
   return `
     <section class="grid grid--chat">
@@ -572,7 +596,78 @@ function renderChat(state) {
         ${sectionCard(
           "Quick commands",
           "Useful local commands for the chat shell.",
-          `<div class="btn-group">${["/help", "/actions", "/history", "/last", "/save", "/load"].map((command) => `<button type="button" class="btn btn--ghost btn--small" data-chat-command="${escapeHtml(command)}">${icon("terminal")}<span>${escapeHtml(command)}</span></button>`).join("")}</div>`,
+          `<div class="btn-group">${["/help", "/actions", "/history", "/last", "/save", "/load", "/control", ...quickCommands].map((command) => `<button type="button" class="btn btn--ghost btn--small" data-chat-command="${escapeHtml(command)}">${icon("terminal")}<span>${escapeHtml(command)}</span></button>`).join("")}</div>`,
+        )}
+        ${sectionCard(
+          "Control center",
+          "Edit policy, settings, and environment values directly from web chat.",
+          `
+            <div class="info-grid">
+              ${infoCard("Policy path", escapeHtml(control.policy_path || "Unknown"))}
+              ${infoCard("Settings path", escapeHtml(control.settings_path || "Unknown"))}
+              ${infoCard("Allow actions", escapeHtml(formatNumber(arrayValue(policy.allow_actions).length)))}
+              ${infoCard("AI_LAN env vars", escapeHtml(formatNumber(Object.keys(envValues).length)))}
+            </div>
+            <form class="composer" data-role="policy-form">
+              <div class="composer__row">
+                <select class="input" data-role="policy-operation" aria-label="Policy operation">
+                  <option value="add">add</option>
+                  <option value="remove">remove</option>
+                </select>
+                <select class="input" data-role="policy-group" aria-label="Policy group">
+                  <option value="allow">allow</option>
+                  <option value="deny">deny</option>
+                  <option value="confirm">confirm</option>
+                </select>
+                <input class="input" data-role="policy-action" placeholder="Action name (example: pc.ocr_screen)" aria-label="Policy action name" />
+                <button class="btn btn--green" type="submit">${icon("check")}<span>Apply</span></button>
+              </div>
+              <div class="btn-group">
+                <button class="btn btn--ghost btn--small" type="button" data-control-command="/policy show">${icon("search")}<span>Show policy</span></button>
+              </div>
+            </form>
+            <form class="composer" data-role="settings-form">
+              <div class="composer__row">
+                <input class="input" data-role="settings-key" placeholder="Setting key" aria-label="Settings key" />
+                <input class="input" data-role="settings-value" placeholder="Value (true, false, number, string)" aria-label="Settings value" />
+                <button class="btn btn--green" type="submit">${icon("check")}<span>Set</span></button>
+                <button class="btn btn--ghost" type="button" data-control-command="/settings show">${icon("search")}<span>Show</span></button>
+              </div>
+            </form>
+            <form class="composer" data-role="env-form">
+              <div class="composer__row">
+                <select class="input" data-role="env-operation" aria-label="Environment operation">
+                  <option value="set">set</option>
+                  <option value="unset">unset</option>
+                  <option value="show">show</option>
+                </select>
+                <input class="input" data-role="env-key" placeholder="Env key or prefix" aria-label="Environment key" />
+                <input class="input" data-role="env-value" placeholder="Value (used for set)" aria-label="Environment value" />
+                <button class="btn btn--green" type="submit">${icon("check")}<span>Run</span></button>
+              </div>
+              <div class="btn-group">
+                <button class="btn btn--ghost btn--small" type="button" data-control-command="/env show AI_LAN_">${icon("search")}<span>Show AI_LAN_ env</span></button>
+              </div>
+            </form>
+          `,
+        )}
+        ${sectionCard(
+          "Mic, speaker, cam, OCR",
+          "Quick toggles and helper prompts for embodied capabilities.",
+          `
+            <div class="command-grid">
+              ${Object.entries(capabilities).map(([name, details]) => capabilityButton(name, details)).join("")}
+            </div>
+            <div class="btn-group">
+              <button class="btn btn--ghost btn--small" type="button" data-chat-command="inspect current screen and summarize important text">${icon("context")}<span>Screen summary</span></button>
+              <button class="btn btn--ghost btn--small" type="button" data-chat-command="run OCR on current screen">${icon("search")}<span>OCR screen</span></button>
+              <button class="btn btn--ghost btn--small" type="button" data-chat-command="show current voice and perception capability status">${icon("spark")}<span>Capability status</span></button>
+            </div>
+            <div class="section">
+              ${sectionCard("Policy snapshot", "Current allow/deny/confirmation lists.", jsonBlock(policy))}
+              ${sectionCard("Settings snapshot", "Current settings values from disk.", jsonBlock(settings))}
+            </div>
+          `,
         )}
       </aside>
     </section>
@@ -1171,6 +1266,81 @@ function bindPageActions(route) {
     viewEl.querySelectorAll("[data-action='refresh-chat']").forEach((button) => {
       button.addEventListener("click", () => loadDashboard());
     });
+
+    viewEl.querySelectorAll("[data-chat-command]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const command = button.getAttribute("data-chat-command") || "";
+        sendMessage(command);
+      });
+    });
+
+    viewEl.querySelectorAll("[data-control-command]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const command = button.getAttribute("data-control-command") || "";
+        sendMessage(command);
+      });
+    });
+
+    const policyForm = viewEl.querySelector('[data-role="policy-form"]');
+    if (policyForm) {
+      policyForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const operation = String(policyForm.querySelector('[data-role="policy-operation"]')?.value || "").trim();
+        const group = String(policyForm.querySelector('[data-role="policy-group"]')?.value || "").trim();
+        const actionName = String(policyForm.querySelector('[data-role="policy-action"]')?.value || "").trim();
+        if (!actionName) {
+          alert("Policy action name is required.");
+          return;
+        }
+        sendMessage(`/policy ${operation} ${group} ${actionName}`);
+      });
+    }
+
+    const settingsForm = viewEl.querySelector('[data-role="settings-form"]');
+    if (settingsForm) {
+      settingsForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const key = String(settingsForm.querySelector('[data-role="settings-key"]')?.value || "").trim();
+        const value = String(settingsForm.querySelector('[data-role="settings-value"]')?.value || "").trim();
+        if (!key) {
+          alert("Settings key is required.");
+          return;
+        }
+        if (!value) {
+          alert("Settings value is required.");
+          return;
+        }
+        sendMessage(`/settings set ${key} ${value}`);
+      });
+    }
+
+    const envForm = viewEl.querySelector('[data-role="env-form"]');
+    if (envForm) {
+      envForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const operation = String(envForm.querySelector('[data-role="env-operation"]')?.value || "").trim();
+        const key = String(envForm.querySelector('[data-role="env-key"]')?.value || "").trim();
+        const value = String(envForm.querySelector('[data-role="env-value"]')?.value || "").trim();
+
+        if (operation === "show") {
+          sendMessage(key ? `/env show ${key}` : "/env show AI_LAN_");
+          return;
+        }
+        if (!key) {
+          alert("Environment key is required.");
+          return;
+        }
+        if (operation === "set") {
+          if (!value) {
+            alert("Environment value is required for set.");
+            return;
+          }
+          sendMessage(`/env set ${key} ${value}`);
+          return;
+        }
+        sendMessage(`/env unset ${key}`);
+      });
+    }
   }
 
   if (memoryForm && memoryInput) {

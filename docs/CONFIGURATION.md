@@ -70,6 +70,8 @@ You can override any individual setting by setting its corresponding environment
 
 - **`AI_LAN_POLICY_CONFIG_PATH`**: Optional path override for router action policy config (defaults to `config/policies.yaml`).
   The policy file supports `allow_actions`, `deny_actions`, and `require_confirmation` lists.
+- **`AI_LAN_SETTINGS_PATH`**: Optional path override for runtime settings (defaults to `config/settings.yaml`).
+  CLI control-center settings commands (`/settings show`, `/settings set`) read and write this file.
 - **`AI_LAN_ANDROID_ALLOW_SIDE_EFFECTS`**: Enable Android ADB side effects (`0`/`1`). Keep disabled by default.
 - **`AI_LAN_ANDROID_ALLOWED_PACKAGES`**: Comma-separated allowlist for Android package launches. `android.launch_app` stays blocked until the target package is listed here.
 - **`AI_LAN_ANDROID_ALLOWED_DEVICE_IDS`**: Optional comma-separated allowlist for Android device IDs. When set, side-effect Android actions must include an explicit `device_id` from this list.

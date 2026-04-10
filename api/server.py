@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import sys
 import ctypes
 from dataclasses import dataclass
@@ -11,7 +12,13 @@ from pathlib import Path
 from typing import Any
 
 from runtime.dashboard_http import DashboardHttpConfig, DashboardRouteSet, build_dashboard_handler
-from runtime.chat_interface import ChatSession
+from runtime.chat_interface import (
+    ChatSession,
+    _read_policy_lists,
+    _read_settings_values,
+    _resolve_policy_path,
+    _resolve_settings_path,
+)
 from runtime.context import build_runtime_context
 from training.checkpoints import build_sorted_summaries
 from training.config import ProjectConfig, load_config
@@ -255,6 +262,61 @@ def build_ops_payload(app: DashboardApp) -> dict[str, Any]:
     }
 
 
+def _coerce_env_flag(name: str) -> bool:
+    return os.getenv(name, "0").strip() == "1"
+
+
+def build_control_payload(app: DashboardApp) -> dict[str, Any]:
+    policy_path = _resolve_policy_path()
+    settings_path = _resolve_settings_path()
+    env_values = {
+        key: value for key, value in sorted(os.environ.items()) if key.startswith("AI_LAN_")
+    }
+    policy = _read_policy_lists(policy_path)
+    settings = _read_settings_values(settings_path)
+    capabilities = {
+        "mic": {
+            "enabled": _coerce_env_flag("AI_LAN_STT_ENABLED"),
+            "env_key": "AI_LAN_STT_ENABLED",
+            "description": "Offline speech-to-text listener (Vosk).",
+        },
+        "speaker": {
+            "enabled": _coerce_env_flag("AI_LAN_TTS_ENABLED"),
+            "env_key": "AI_LAN_TTS_ENABLED",
+            "description": "Offline text-to-speech output.",
+        },
+        "camera": {
+            "enabled": _coerce_env_flag("AI_LAN_PERCEPTION_ENABLED"),
+            "env_key": "AI_LAN_PERCEPTION_ENABLED",
+            "description": "Perception loop and screen summary capture.",
+        },
+        "ocr": {
+            "enabled": bool(shutil.which("tesseract")),
+            "env_key": "TESSERACT_IN_PATH",
+            "description": "OCR tool availability for screen/image text extraction.",
+        },
+    }
+
+    return {
+        "policy_path": str(policy_path),
+        "settings_path": str(settings_path),
+        "policy": {
+            "allow_actions": sorted(policy.get("allow_actions", [])),
+            "deny_actions": sorted(policy.get("deny_actions", [])),
+            "require_confirmation": sorted(policy.get("require_confirmation", [])),
+        },
+        "settings": settings,
+        "environment": env_values,
+        "capabilities": capabilities,
+        "quick_commands": [
+            "/control",
+            "/policy show",
+            "/settings show",
+            "/env show AI_LAN_",
+        ],
+    }
+
+
 def _build_cpu_pressure_payload() -> dict[str, Any]:
     cpu_count = os.cpu_count() or 1
     if hasattr(os, "getloadavg"):
@@ -413,6 +475,7 @@ def build_dashboard_state(
         "models": build_models_payload(app.config),
         "logs": build_log_payload(limit=log_limit),
         "ops": build_ops_payload(app),
+        "control": build_control_payload(app),
         "health": build_health_payload(app),
     }
 
@@ -493,6 +556,7 @@ __all__ = [
     "build_health_payload",
     "build_context_payload",
     "build_dashboard_state",
+    "build_control_payload",
     "build_dashboard_routes",
     "build_handler",
     "build_log_payload",

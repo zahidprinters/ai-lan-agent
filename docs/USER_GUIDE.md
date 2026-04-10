@@ -106,6 +106,41 @@ Voice mode quick start:
 python scripts/launch.py --mode voice
 ```
 
+CLI control center quick start:
+
+```powershell
+python scripts/chat_cli.py
+```
+
+Inside chat mode, use these commands to inspect or update behavior without leaving the session:
+
+- `/control` shows all control-center commands.
+- `/policy show` prints active allow/deny/confirmation action lists.
+- `/policy add <allow|deny|confirm> <action_name>` updates policy lists in the active policy file and reloads policy runtime.
+- `/policy remove <allow|deny|confirm> <action_name>` removes an action from a policy list and reloads policy runtime.
+- `/settings show [prefix]` prints values from the active `config/settings.yaml` file (or path override).
+- `/settings set <key> <value>` writes a scalar value to settings (`true`/`false`, numbers, and quoted/unquoted strings are supported).
+- `/env show [prefix]` prints current process environment values, optionally filtered by prefix.
+- `/env set <KEY> <VALUE>` sets a process environment variable for the active chat process.
+- `/env unset <KEY>` clears a process environment variable from the active chat process.
+
+Policy and settings commands persist changes to disk. Environment commands affect only the running process session and do not edit `.env` files.
+
+Web control center quick start:
+
+```powershell
+python scripts/chat_web.py
+```
+
+Open the dashboard chat page and use the new **Control center** section to manage the same controls without typing every command manually.
+
+- Policy editor: add/remove actions from allow, deny, and confirmation lists.
+- Settings editor: set and review values in `config/settings.yaml` (or `AI_LAN_SETTINGS_PATH`).
+- Environment editor: show/set/unset `AI_LAN_*` environment values for the active runtime process.
+- Capability panel: one-click toggles for mic (STT), speaker (TTS), camera/perception loop, and OCR availability visibility.
+
+The web chat command buttons and form submissions send the same slash commands used by CLI chat, so behavior remains consistent between CLI and web runtime surfaces.
+
 In CLI and voice chat modes, the local planner can now take a small bounded action-observation loop before replying, but any write-like action still stops for confirmation.
 Planner tool selection is grounded in a structured tool schema generated from the router registry, so the model sees available actions, arguments, and confirmation hints instead of only raw tool names.
 If perception is enabled, the latest OCR/screen summary is kept in session state and included in the planner's live runtime context.

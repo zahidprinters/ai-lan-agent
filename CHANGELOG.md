@@ -50,6 +50,8 @@ All notable changes to this project will be documented in this file.
 - RL-06 reliability slice: local-brain (`llama_cpp`) planning now degrades immediately to classic generation on runtime/model failures and includes debug-safe fallback reason metadata
 - RL-07 reliability slice: dashboard/API now provide health telemetry (`/api/health` and `/health`) including CPU pressure proxy, RAM usage snapshot, and model confidence summary
 - Phase 4.3 eval-gate slice: `scripts/benchmark_tools.py` now supports strict threshold enforcement and CI runs a conditional strict benchmark gate for router/safety and benchmark harness changes
+- CLI chat control-center commands: added `/control`, `/policy`, `/settings`, and `/env` for in-session policy inspection/editing, runtime settings updates, and process environment management
+- Web dashboard chat now includes a Control Center panel with policy/settings/env editors, quick command buttons, and mic/speaker/camera/OCR capability toggles to match CLI control workflows
 
 ### Changed
 

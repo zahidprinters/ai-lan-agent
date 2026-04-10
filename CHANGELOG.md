@@ -49,6 +49,7 @@ All notable changes to this project will be documented in this file.
 - RL-05 reliability slice: audit replay now emits deterministic `matched` / `diverged` / `skipped` summaries, supports strict nonzero exits, and is wired into CI for router/policy changes
 - RL-06 reliability slice: local-brain (`llama_cpp`) planning now degrades immediately to classic generation on runtime/model failures and includes debug-safe fallback reason metadata
 - RL-07 reliability slice: dashboard/API now provide health telemetry (`/api/health` and `/health`) including CPU pressure proxy, RAM usage snapshot, and model confidence summary
+- Phase 4.3 eval-gate slice: `scripts/benchmark_tools.py` now supports strict threshold enforcement and CI runs a conditional strict benchmark gate for router/safety and benchmark harness changes
 
 ### Changed
 

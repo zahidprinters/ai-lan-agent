@@ -47,3 +47,11 @@
 - Local health dashboard command:
   - `python -m pytest tests/test_dashboard_api.py -q --disable-warnings`
 - Expected behavior: `/api/state` includes `health` payload and `/api/health` reports CPU pressure proxy, RAM usage, and model confidence summary when available.
+
+## Eval Benchmark Gate
+
+- Router/safety and benchmark-harness changes should run the strict benchmark gate before merge.
+- Local strict benchmark command:
+  - `python scripts/benchmark_tools.py --output temp/benchmarks/local_tool_benchmark.json --strict --min-tool-success 0.66 --min-refusal-quality 0.90 --max-latency-p95 2500`
+- Strict mode exits nonzero when any threshold fails.
+- CI runs this gate when router/safety or benchmark harness files change.

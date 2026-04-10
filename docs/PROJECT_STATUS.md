@@ -79,7 +79,7 @@ These are retained by design and are not duplicate/legacy remnants.
 ## Next Priorities
 
 1. **Phase 4.2:** harden PC/Android/ingestion adapters from safe stubs to production-safe allowlisted implementations.
-2. **Phase 4.3:** enforce offline + online-style evaluation gates (tool success, refusal quality, latency) in CI.
+2. **Phase 4.3:** initial strict benchmark gate is now wired in CI for tool success/refusal quality/latency thresholds; continue expanding coverage and real-trace depth.
 3. **Phase 4.4:** reliability ticket pack complete; continue hardening integration and observability depth for production operations.
 4. **Phase 4.5:** implement the CPU-first embodied loop (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`, `llama.cpp`) behind existing router/policy controls, including context-aware dynamic safety upgrades for sensitive screens.
 5. **Phase 5.1:** integrate one persistent memory backend (`Chroma` or `Qdrant`) with explicit retention/user-control boundaries.

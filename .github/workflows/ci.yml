@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       replay_gate: ${{ steps.filter.outputs.replay_gate }}
+      eval_gate: ${{ steps.filter.outputs.eval_gate }}
     steps:
     - uses: actions/checkout@v4
     - uses: dorny/paths-filter@v3
@@ -23,6 +24,12 @@ jobs:
             - 'scripts/replay_audit.py'
             - 'tests/test_audit_replay.py'
             - 'tests/fixtures/replay/**'
+            - '.github/workflows/ci.yml'
+          eval_gate:
+            - 'router/**'
+            - 'safety/**'
+            - 'scripts/benchmark_tools.py'
+            - 'tests/test_benchmark_harness.py'
             - '.github/workflows/ci.yml'
 
   test:
@@ -63,3 +70,22 @@ jobs:
     - name: Run strict replay gate
       run: |
         python scripts/replay_audit.py --input tests/fixtures/replay/strict_pass.jsonl --output temp/benchmarks/ci_replay_report.json --strict
+
+  eval-gate:
+    needs: changes
+    if: needs.changes.outputs.eval_gate == 'true'
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements.txt
+        python -m pip install -r dev-requirements.txt
+    - name: Run strict benchmark eval gate
+      run: |
+        python scripts/benchmark_tools.py --output temp/benchmarks/ci_tool_benchmark.json --strict --min-tool-success 0.66 --min-refusal-quality 0.90 --max-latency-p95 2500

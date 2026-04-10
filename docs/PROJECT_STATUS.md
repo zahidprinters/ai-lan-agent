@@ -85,3 +85,7 @@ These are retained by design and are not duplicate/legacy remnants.
 - Automated Guardrail Benchmarking
 - Dynamic Safety Policy (Context-Aware)
 - Deterministic Dry-Run Replay
+
+Implementation ticket pack:
+
+- `docs/superpowers/todos/2026-04-10-phase-4-4-reliability-tickets.md`

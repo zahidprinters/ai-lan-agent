@@ -8,6 +8,7 @@ ensure_repo_root()
 
 from api.server import run_api_server
 from runtime.chat_interface import run_chat_cli
+from runtime.voice_chat_interface import run_voice_chat_cli
 from runtime.web_chat_interface import run_web_chat
 
 
@@ -18,7 +19,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--mode",
-        choices=("cli", "web", "api"),
+        choices=("cli", "voice", "web", "api"),
         default="cli",
         help="Which interface to start.",
     )
@@ -32,6 +33,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.mode == "cli":
         return run_chat_cli()
+    if args.mode == "voice":
+        return run_voice_chat_cli()
     if args.mode == "web":
         return run_web_chat(host=args.host, port=args.port)
     if args.mode == "api":

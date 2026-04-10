@@ -100,6 +100,21 @@ If you want the lightest embodied setup for a CPU-only machine, start with:
 
 Once that works, upgrade selectively with `whisper.cpp`, `Coqui TTS`, `EasyOCR`, or `Ultralytics` only if the extra cost is justified.
 
+Voice mode quick start:
+
+```powershell
+python scripts/launch.py --mode voice
+```
+
+Recommended toggles:
+
+```powershell
+$env:AI_LAN_STT_ENABLED = "1"
+$env:AI_LAN_TTS_ENABLED = "1"
+# Optional Vosk model location
+$env:AI_LAN_VOSK_MODEL_PATH = "temp/vosk-model"
+```
+
 ### 📍 Phase 4/5 Expansion Note
 
 If you are extending AI Lan beyond the current user workflows, start from [OPEN_SOURCE_REFERENCE.md](OPEN_SOURCE_REFERENCE.md) and keep to one project per capability.

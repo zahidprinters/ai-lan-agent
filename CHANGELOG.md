@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 
 - Phase 4 action routing foundation with strict JSON action schema validation, allowlist-based policy checks, and audit logging
 - Initial Phase 4.5 implementation slice: local reasoning facade (`core/inference/local_reasoning.py`) and runtime perception loop (`runtime/perception_loop.py`)
+- Voice/STT runtime slice: offline speech listener facade (`tools/perception/audio/stt.py`), voice chat runtime entrypoint (`runtime/voice_chat_interface.py`), and launcher/script wiring (`scripts/launch.py --mode voice`, `scripts/voice_chat.py`)
 - Drafted formal Phase 4.5 embodied neural agency design for llama-cpp local reasoning, embodied perception, voice, and memory integration
 - Trusted ingestion pipeline for external text sources with normalization, dedupe, trust/quality scoring, merged corpus output, and JSON reporting
 - Local memory layer with SQLite-backed persistence, conversation summaries, and retrieval API plus CLI utility
@@ -30,6 +31,7 @@ All notable changes to this project will be documented in this file.
 - Policy-config tests and debug-sanitization tests covering YAML policy loading, fallback behavior, and masked sentinel trace output
 - Added audit replay dry-run workflow (`scripts/replay_audit.py`) to simulate historical action requests against current router/policy behavior without executing side effects
 - Added focused tests for local-brain backend fallback/selection and perception loop snapshot lifecycle
+- Added voice runtime tests for STT fallback path and voice CLI loop behavior
 
 ### Changed
 
@@ -48,6 +50,7 @@ All notable changes to this project will be documented in this file.
 - `agents/react/controller.py` now supports `AI_LAN_REASONING_BACKEND=llama_cpp` with deterministic fallback to classic generation when local-brain runtime/model is unavailable
 - `training/config.py` now includes typed Phase 4.5 settings for local reasoning backend, llama-cpp runtime tuning, perception loop controls, and memory backend pathing
 - Updated `docs/CONFIGURATION.md` with Phase 4.5 environment variable reference for local brain and embodied runtime controls
+- Updated `README.md` and `docs/USER_GUIDE.md` with voice-mode launch and STT/TTS setup guidance
 
 ### Fixed
 

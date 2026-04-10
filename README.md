@@ -82,6 +82,7 @@ Unified launcher:
 
 ```powershell
 python scripts/launch.py --mode cli
+python scripts/launch.py --mode voice
 python scripts/launch.py --mode web
 python scripts/launch.py --mode api
 ```

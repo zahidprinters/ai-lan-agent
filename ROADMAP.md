@@ -42,6 +42,10 @@ This sequence is the implementation order to follow one step at a time.
 
   Add offline eval datasets for tool selection, argument quality, and safety behavior. Add online-style telemetry checks (latency, refusal quality, action success) on real traces. **Exit gate:** benchmark harness in CI with pass/fail thresholds and regression guardrails.
 
+1. **Phase 4.4: Reliability + Verification Layer**
+
+  Add reflection-aware retries in the ReAct controller, post-action state verification for side-effect tools, and deterministic dry-run replay as a required change-safety gate. **Exit gate:** no infinite-loop regressions in controller tests, verified state checks for selected side-effect actions, and replay parity report for policy/router changes.
+
 1. **Phase 4.5: Embodied Runtime (CPU-first)**
 
   Build `mss`/`OpenCV` + `Tesseract` + `Vosk` + `pyttsx3` + `llama.cpp` loop behind the same router/policy layer. Keep perception in facades first; migrate internals to dedicated packages only after stability. **Exit gate:** end-to-end embodied loop demo with bounded latency and confirmation gates preserved.
@@ -52,7 +56,7 @@ This sequence is the implementation order to follow one step at a time.
 
 1. **Phase 5.2: Offline Learning Pipeline + Model Promotion**
 
-  Build nightly dataset builder and reward scoring from approved interaction traces. Enforce canary eval and model registry promotion/rollback gates before activation. **Exit gate:** nightly run artifacts and blocked promotion on failed canary metrics.
+  Build nightly dataset builder and reward scoring from approved interaction traces. Enforce canary eval and model registry promotion/rollback gates before activation, including automated guardrail quality benchmarking against baseline prompts. **Exit gate:** nightly run artifacts and blocked promotion on failed canary metrics.
 
 1. **Phase 5.3: Orchestration + Operations Hardening**
 
@@ -63,6 +67,22 @@ This sequence is the implementation order to follow one step at a time.
 - Agent-eval best practice supports an explicit offline -> online evaluation lifecycle before broader autonomy rollout.
 - Vector memory guidance supports starting with one backend and adding distributed/multitenant tuning only after stable retrieval quality.
 - Orchestration guidance supports beginning with minimal local scheduling and introducing distributed components only when scale/security boundaries require it.
+
+### Production-Grade Reliability Overlay (Strategic Pillars)
+
+To move from basic functionality to production-grade reliability, every in-flight phase should include these pillars:
+
+1. **Reflection Layer (Self-Correction):** ReAct agents must inspect failed observations and attempt bounded recovery strategies rather than stalling.
+2. **State Verification (Trust but Verify):** Side-effect actions should include verification probes so the agent's internal state matches host/device reality.
+3. **Automated Guardrail Benchmarking:** Model promotion must be blocked when standard quality and tool-selection benchmarks regress versus baseline.
+4. **Dynamic Safety Policy:** Safety level should adapt to runtime/perception context, with stronger confirmation requirements in sensitive contexts.
+5. **Deterministic Dry-Run Replay:** Policy/router updates must be replay-validated against historical audit logs before rollout.
+
+Technical polish for this overlay:
+
+- **Graceful Degradation:** If local-brain runtime fails, fall back immediately to deterministic planner mode.
+- **Telemetry Sanitization:** Scrub sensitive values from trace/log artifacts before persistence.
+- **Health Dashboard:** Add a system-health view for thermal pressure, RAM, and model confidence signals.
 
 ---
 
@@ -120,6 +140,9 @@ This sequence is the implementation order to follow one step at a time.
 - [x] **Audit Logging:** Persist every action request/result for reproducibility and rollback analysis.
 - [x] **Policy Engine (Foundation):** Enforce deny/allow rules by tool/action and execution context.
 - [ ] **Evaluation Harness:** Add benchmarks for tool success rate, latency, and safety refusal quality.
+- [ ] **Reflection Controller:** Add bounded self-correction in ReAct loops when a tool result fails or is inconsistent.
+- [ ] **Action State Verification:** Add follow-up verification tools/checks for selected side-effect actions (for example app launch confirmation).
+- [ ] **Deterministic Replay Gate:** Require dry-run replay checks against `action_audit.jsonl` for router/policy changes.
 
 ---
 
@@ -145,6 +168,8 @@ This sequence is the implementation order to follow one step at a time.
 - [ ] **CPU Inference Service:** Add a local LLM runner with quantized models and bounded context windows.
 - [ ] **Latency Benchmarks:** Measure end-to-end response time for vision, speech, and agent loops on low-end CPUs.
 - [ ] **Safety Gates:** Keep all embodied actions behind router/policy checks and explicit confirmation where needed.
+- [ ] **Dynamic Context Safety:** Use perception context to automatically elevate safety levels for sensitive screens and data.
+- [ ] **Health Dashboard Signals:** Expose runtime health telemetry (CPU pressure, RAM headroom, confidence) for embodied operations.
 
 ---
 
@@ -165,6 +190,7 @@ This sequence is the implementation order to follow one step at a time.
 - [ ] **Reward Model v1:** Score outputs/actions on usefulness, correctness, and safety.
 - [ ] **Offline Fine-Tune Job:** Add scheduled local fine-tuning pipeline with checkpoint gating.
 - [ ] **Canary Evaluation:** Require benchmark pass before promoting nightly model to active use.
+- [ ] **Guardrail Benchmark Suite:** Run fixed quality/tool-selection prompt sets and block promotion on regression.
 - [ ] **Model Registry:** Add semantic versioning and rollback metadata for each promoted model.
 - [ ] **User Preference Memory:** Persist personalized style/task preferences with explicit opt-in controls.
 - [ ] **Hardware Control Expansion:** Add camera/mic/speaker/screen modules behind strict permissions.

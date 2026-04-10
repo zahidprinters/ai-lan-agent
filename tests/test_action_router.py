@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import subprocess
 
 import pytest
 
 from router import dispatch_core as action_router
-from router import router as layered_router
 from router.router import parse_and_dispatch
 from router.schema import ActionSchemaError, parse_agent_action
 from router.dispatch_core import dispatch_agent_action
@@ -118,7 +118,6 @@ def test_parse_and_dispatch_returns_structured_router_result(
         return [{"Title": query, "Snippet": "ok", "URL": "local"}]
 
     monkeypatch.setattr("router.dispatch_core.run_search", fake_search_web)
-    monkeypatch.setitem(layered_router.LAYERED_TOOL_HANDLERS, "web.search", fake_search_web)
     monkeypatch.setitem(
         action_router.TOOL_REGISTRY,
         "web.search",
@@ -289,7 +288,56 @@ def test_dispatch_agent_action_android_requires_confirmation(
 
     assert pending.status == "confirmation_required"
     assert confirmed.status == "executed"
-    assert confirmed.observation["status"] in {"blocked_safe_mode", "ok", "failed"}
+    assert confirmed.observation["status"] in {"blocked_safe_mode", "blocked_policy", "ok", "failed"}
+
+
+def test_dispatch_agent_action_android_launch_app_blocks_without_allowlist(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(tmp_path / "audit.jsonl"))
+    monkeypatch.setenv("AI_LAN_ANDROID_ALLOW_SIDE_EFFECTS", "1")
+    monkeypatch.delenv("AI_LAN_ANDROID_ALLOWED_PACKAGES", raising=False)
+
+    result = dispatch_agent_action(
+        {
+            "thought": "Launch mobile app.",
+            "action": "android.launch_app",
+            "args": {"package_name": "com.example.app"},
+            "safety_level": "medium",
+        },
+        confirmed=True,
+    )
+
+    assert result.status == "executed"
+    assert result.observation["status"] == "blocked_policy"
+    assert "AI_LAN_ANDROID_ALLOWED_PACKAGES" in result.observation["detail"]
+
+
+def test_dispatch_agent_action_android_launch_app_runs_for_allowlisted_package(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(tmp_path / "audit.jsonl"))
+    monkeypatch.setenv("AI_LAN_ANDROID_ALLOW_SIDE_EFFECTS", "1")
+    monkeypatch.setenv("AI_LAN_ANDROID_ALLOWED_PACKAGES", "com.example.app")
+
+    def fake_run_adb(command: list[str], *, text: bool = True) -> subprocess.CompletedProcess[str]:
+        assert command[-1] == "com.example.app"
+        return subprocess.CompletedProcess(command, 0, stdout="Starting: Intent", stderr="")
+
+    monkeypatch.setattr("tools.android.adb.run_adb_command", fake_run_adb)
+
+    result = dispatch_agent_action(
+        {
+            "thought": "Launch mobile app.",
+            "action": "android.launch_app",
+            "args": {"package_name": "com.example.app"},
+            "safety_level": "medium",
+        },
+        confirmed=True,
+    )
+
+    assert result.status == "executed"
+    assert result.observation["status"] == "ok"
 
 
 def test_dispatch_agent_action_android_list_devices_low_risk(

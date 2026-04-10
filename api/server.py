@@ -139,6 +139,8 @@ def build_memory_payload(
             limit=limit,
             kind=kind,
             db_path=session.memory_db_path,
+            memory_backend=session.memory_backend,
+            chroma_path=session.chroma_path,
         )
         if resolved_query
         else []
@@ -147,6 +149,8 @@ def build_memory_payload(
         "query": resolved_query,
         "kind": kind,
         "db_path": str(session.memory_db_path),
+        "memory_backend": session.memory_backend,
+        "chroma_path": str(session.chroma_path),
         "recent_count": len(recent),
         "query_hit_count": len(query_hits),
         "recent": [
@@ -171,14 +175,27 @@ def build_context_payload(
     snippet_limit: int = 5,
 ) -> dict[str, Any]:
     resolved_query = _resolve_query(session, query)
-    return build_runtime_context(
+    if (
+        session.last_context
+        and isinstance(session.last_context, dict)
+        and str(session.last_context.get("query", "")).strip() == resolved_query
+    ):
+        return session.last_context
+
+    context_payload = build_runtime_context(
         query=resolved_query,
         short_term_buffer=session.short_term_buffer,
         memory_limit=memory_limit,
         snippet_limit=snippet_limit,
         memory_db_path=session.memory_db_path,
+        memory_backend=session.memory_backend,
+        chroma_path=session.chroma_path,
+        perception_summary=(session.perception_snapshot.summary if session.perception_snapshot else None),
+        max_context_chars=session.runtime_context_max_chars,
         merged_corpus_path=session.merged_corpus_path,
     )
+    session.last_context = context_payload
+    return context_payload
 
 
 def build_log_payload(*, limit: int = 25) -> dict[str, Any]:
@@ -225,7 +242,13 @@ def build_ops_payload(app: DashboardApp) -> dict[str, Any]:
             "run_all_index_path": str(app.config.run_all_index_path),
             "memory_db_path": str(app.session.memory_db_path),
             "merged_corpus_path": str(app.session.merged_corpus_path),
+            "perception_enabled": app.session.perception_enabled,
         },
+        "perception": (
+            app.session.perception_snapshot.to_dict()
+            if app.session.perception_snapshot is not None
+            else None
+        ),
     }
 
 

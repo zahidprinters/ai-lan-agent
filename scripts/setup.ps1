@@ -1,4 +1,6 @@
-param()
+param(
+    [switch]$InstallExperimentExtras
+)
 
 $root = Split-Path -Parent $PSScriptRoot
 . (Join-Path $root 'scripts\utils.ps1')
@@ -32,6 +34,17 @@ $requirements = Join-Path $root 'requirements.txt'
 & $venvPython -m pip install -r $requirements
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $venvPython -m pip install -r $devRequirements
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+if ($InstallExperimentExtras) {
+    Write-Host '[INFO] Installing optional experiment extras...' -ForegroundColor Green
+    Push-Location $root
+    & $venvPython -m pip install '.[experiment]'
+    $installExtrasExit = $LASTEXITCODE
+    Pop-Location
+    if ($installExtrasExit -ne 0) { exit $installExtrasExit }
+}
+
 if ($LASTEXITCODE -eq 0) {
     Write-Host '[INFO] Environment setup completed successfully.' -ForegroundColor Green
 }

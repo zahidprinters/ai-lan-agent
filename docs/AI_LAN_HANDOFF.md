@@ -13,7 +13,6 @@
 - Context assembly is now connected: prompt context can be built from memory hits + ingestion corpus snippets via policy-gated actions.
 - Machine hardware baseline is now documented and scriptable for this small laptop setup (CPU-first, no discrete GPU).
 - Known intentional Phase 4 stubs remain:
-  - actions/react_loop.py
   - tools/web_search.py
   - tools/pc_control.py
 - Sentinel observability remains part of the documented architecture and developer workflow.

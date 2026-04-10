@@ -75,6 +75,9 @@ class ProjectConfig:
     llamacpp_gpu_layers: int = 0
     perception_enabled: bool = False
     perception_interval_sec: int = 10
+    perception_max_interval_sec: int = 30
+    perception_adaptive: bool = True
+    runtime_context_max_chars: int = 4000
     stt_enabled: bool = False
     tts_enabled: bool = False
     memory_backend: str = "none"
@@ -238,6 +241,9 @@ def load_config() -> ProjectConfig:
         llamacpp_gpu_layers=int(os.getenv("AI_LAN_LLAMACPP_GPU_LAYERS", "0")),
         perception_enabled=os.getenv("AI_LAN_PERCEPTION_ENABLED", "0") == "1",
         perception_interval_sec=int(os.getenv("AI_LAN_PERCEPTION_INTERVAL_SEC", "10")),
+        perception_max_interval_sec=int(os.getenv("AI_LAN_PERCEPTION_MAX_INTERVAL_SEC", "30")),
+        perception_adaptive=os.getenv("AI_LAN_PERCEPTION_ADAPTIVE", "1") == "1",
+        runtime_context_max_chars=int(os.getenv("AI_LAN_RUNTIME_CONTEXT_MAX_CHARS", "4000")),
         stt_enabled=os.getenv("AI_LAN_STT_ENABLED", "0") == "1",
         tts_enabled=os.getenv("AI_LAN_TTS_ENABLED", "0") == "1",
         memory_backend=os.getenv("AI_LAN_MEMORY_BACKEND", "none").strip().lower(),

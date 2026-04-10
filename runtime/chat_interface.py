@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,7 @@ from agents.react.agent import ReactAgent
 from agents.react.controller import NeuralActionController
 from memory.short_term.buffer import ShortTermBuffer
 from runtime.context import build_runtime_context
+from runtime.perception_loop import PerceptionLoop, PerceptionSnapshot
 from tools.context_builder import get_default_merged_corpus_path
 from tools.memory_store import get_memory_db_path, store_conversation_summary
 
@@ -77,6 +79,37 @@ def _json_text(payload: object) -> str:
 
 def _should_store_message(text: str) -> bool:
     return not text.startswith("/") or text.startswith("/json ")
+
+
+def _close_session(session: object) -> None:
+    closer = getattr(session, "close", None)
+    if callable(closer):
+        closer()
+
+
+def _get_neural_max_steps() -> int:
+    raw_value = os.getenv("AI_LAN_REACT_MAX_STEPS", "3").strip()
+    try:
+        parsed = int(raw_value)
+    except ValueError:
+        return 3
+    return min(max(parsed, 1), 5)
+
+
+def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
+    raw = os.getenv(name, str(default)).strip()
+    try:
+        parsed = int(raw)
+    except ValueError:
+        return default
+    return max(minimum, parsed)
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def parse_natural_action(message: str) -> dict[str, object] | None:
@@ -247,6 +280,47 @@ class ChatSession:
     )
     memory_db_path: Path = field(default_factory=get_memory_db_path)
     merged_corpus_path: Path = field(default_factory=get_default_merged_corpus_path)
+    memory_backend: str = field(
+        default_factory=lambda: os.getenv("AI_LAN_MEMORY_BACKEND", "none").strip().lower()
+    )
+    chroma_path: Path = field(
+        default_factory=lambda: Path(os.getenv("AI_LAN_CHROMA_PATH", "temp/chroma"))
+    )
+    perception_enabled: bool = field(
+        default_factory=lambda: os.getenv("AI_LAN_PERCEPTION_ENABLED", "0") == "1"
+    )
+    perception_interval_sec: int = field(
+        default_factory=lambda: _env_int("AI_LAN_PERCEPTION_INTERVAL_SEC", 10)
+    )
+    perception_max_interval_sec: int = field(
+        default_factory=lambda: _env_int("AI_LAN_PERCEPTION_MAX_INTERVAL_SEC", 30)
+    )
+    perception_adaptive: bool = field(
+        default_factory=lambda: _env_bool("AI_LAN_PERCEPTION_ADAPTIVE", True)
+    )
+    runtime_context_max_chars: int = field(
+        default_factory=lambda: _env_int("AI_LAN_RUNTIME_CONTEXT_MAX_CHARS", 4000, minimum=256)
+    )
+    perception_snapshot: PerceptionSnapshot | None = None
+    perception_loop: PerceptionLoop | None = field(default=None, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        if not self.perception_enabled:
+            return
+        try:
+            self.perception_loop = PerceptionLoop(
+                interval_sec=self.perception_interval_sec,
+                max_interval_sec=self.perception_max_interval_sec,
+                adaptive=self.perception_adaptive,
+                on_snapshot=self._handle_perception_snapshot,
+            )
+        except TypeError:
+            # Compatibility path for lightweight test doubles and legacy loop constructors.
+            self.perception_loop = PerceptionLoop(
+                interval_sec=self.perception_interval_sec,
+                on_snapshot=self._handle_perception_snapshot,
+            )
+        self.perception_loop.start()
 
     def _append_turn(self, role: str, message: str) -> None:
         normalized_message = message.strip()
@@ -254,6 +328,14 @@ class ChatSession:
             return
         self.turns.append({"role": role, "message": normalized_message})
         self.short_term_buffer.add(message=normalized_message, role=role)
+
+    def _handle_perception_snapshot(self, snapshot: PerceptionSnapshot) -> None:
+        self.perception_snapshot = snapshot
+
+    def close(self) -> None:
+        if self.perception_loop is not None:
+            self.perception_loop.stop()
+            self.perception_loop = None
 
     def _run_payload(
         self, payload: dict[str, object], *, confirmed: bool = False
@@ -277,10 +359,80 @@ class ChatSession:
                 query=query,
                 short_term_buffer=self.short_term_buffer,
                 memory_db_path=self.memory_db_path,
+                memory_backend=self.memory_backend,
+                chroma_path=self.chroma_path,
+                perception_summary=(self.perception_snapshot.summary if self.perception_snapshot else None),
+                max_context_chars=self.runtime_context_max_chars,
                 merged_corpus_path=self.merged_corpus_path,
             )
         except Exception as exc:
             return {"query": query, "error": str(exc)}
+
+    def _run_neural_controller(self, text: str) -> str | None:
+        action_results: list[tuple[dict[str, object], dict[str, Any]]] = []
+
+        def observe_action(payload: dict[str, object]) -> str:
+            result = self._run_payload(payload, confirmed=False)
+            self.last_result = result
+            action_results.append((payload, result))
+            return format_router_result(result)
+
+        turns = self.controller.plan_iterative(
+            message=text,
+            max_steps=_get_neural_max_steps(),
+            runtime_context=self.last_context,
+            recent_turns=self.turns[-8:],
+            recent_thoughts=self.agent.state.thoughts[-8:],
+            recent_observations=self.agent.state.observations[-8:],
+            observe_action=observe_action,
+        )
+        if not turns:
+            return None
+
+        final_turn = turns[-1]
+        if final_turn.mode == "reply" and final_turn.reply_text:
+            self._store_plan(
+                source=final_turn.source,
+                mode="reply",
+                reply_text=final_turn.reply_text,
+                raw_text=final_turn.raw_text,
+            )
+            self._append_turn("assistant", final_turn.reply_text)
+            result_payload: dict[str, Any] = {
+                "status": "chat",
+                "action": str(action_results[-1][1].get("action", "none")) if action_results else "none",
+                "source": final_turn.source,
+                "step_count": len(turns),
+            }
+            self._record_summary(text, final_turn.reply_text, result=result_payload, plan=self.last_plan)
+            return final_turn.reply_text
+
+        if action_results:
+            payload, result = action_results[-1]
+            self._store_plan(
+                source=final_turn.source,
+                mode="action",
+                action=str(payload.get("action", "")),
+                raw_text=final_turn.raw_text,
+            )
+            if result.get("status") == "confirmation_required":
+                self.pending_payload = payload
+                self.pending_user_text = text
+                rendered = (
+                    f"{format_router_result(result)}\n"
+                    "This action needs confirmation. Use /confirm to execute or /reject to cancel."
+                )
+                self._append_turn("assistant", rendered)
+                return rendered
+
+            self.pending_payload = None
+            self.pending_user_text = None
+            rendered = format_router_result(result)
+            self._append_turn("assistant", rendered)
+            self._record_summary(text, rendered, result=result, plan=self.last_plan)
+            return rendered
+
+        return None
 
     def _store_plan(
         self,
@@ -350,6 +502,8 @@ class ChatSession:
                 assistant_text=assistant_text,
                 metadata=metadata,
                 db_path=self.memory_db_path,
+                memory_backend=self.memory_backend,
+                chroma_path=self.chroma_path,
             )
         except Exception:
             return
@@ -371,6 +525,16 @@ class ChatSession:
             "last_plan": self.last_plan,
             "memory_db_path": str(self.memory_db_path),
             "merged_corpus_path": str(self.merged_corpus_path),
+            "memory_backend": self.memory_backend,
+            "chroma_path": str(self.chroma_path),
+            "perception_enabled": self.perception_enabled,
+            "perception_interval_sec": self.perception_interval_sec,
+            "perception_max_interval_sec": self.perception_max_interval_sec,
+            "perception_adaptive": self.perception_adaptive,
+            "runtime_context_max_chars": self.runtime_context_max_chars,
+            "perception_snapshot": (
+                self.perception_snapshot.to_dict() if self.perception_snapshot is not None else None
+            ),
         }
         target.write_text(
             json.dumps(payload, ensure_ascii=True, indent=2, default=str), encoding="utf-8"
@@ -419,6 +583,14 @@ class ChatSession:
 
         memory_db_obj = payload_obj.get("memory_db_path")
         merged_corpus_obj = payload_obj.get("merged_corpus_path")
+        memory_backend_obj = payload_obj.get("memory_backend")
+        chroma_path_obj = payload_obj.get("chroma_path")
+        perception_enabled_obj = payload_obj.get("perception_enabled")
+        perception_interval_obj = payload_obj.get("perception_interval_sec")
+        perception_max_interval_obj = payload_obj.get("perception_max_interval_sec")
+        perception_adaptive_obj = payload_obj.get("perception_adaptive")
+        runtime_context_max_chars_obj = payload_obj.get("runtime_context_max_chars")
+        perception_snapshot_obj = payload_obj.get("perception_snapshot")
 
         self.turns = parsed_turns
         self.pending_payload = pending_obj if isinstance(pending_obj, dict) else None
@@ -432,6 +604,30 @@ class ChatSession:
             self.memory_db_path = Path(memory_db_obj)
         if isinstance(merged_corpus_obj, str) and merged_corpus_obj.strip():
             self.merged_corpus_path = Path(merged_corpus_obj)
+        if isinstance(memory_backend_obj, str) and memory_backend_obj.strip():
+            self.memory_backend = memory_backend_obj.strip().lower()
+        if isinstance(chroma_path_obj, str) and chroma_path_obj.strip():
+            self.chroma_path = Path(chroma_path_obj)
+        if isinstance(perception_enabled_obj, bool):
+            self.perception_enabled = perception_enabled_obj
+        if isinstance(perception_interval_obj, int):
+            self.perception_interval_sec = perception_interval_obj
+        if isinstance(perception_max_interval_obj, int):
+            self.perception_max_interval_sec = perception_max_interval_obj
+        if isinstance(perception_adaptive_obj, bool):
+            self.perception_adaptive = perception_adaptive_obj
+        if isinstance(runtime_context_max_chars_obj, int):
+            self.runtime_context_max_chars = runtime_context_max_chars_obj
+        if isinstance(perception_snapshot_obj, dict):
+            timestamp = str(perception_snapshot_obj.get("timestamp", "")).strip()
+            summary = str(perception_snapshot_obj.get("summary", "")).strip()
+            source = str(perception_snapshot_obj.get("source", "screen_ocr")).strip() or "screen_ocr"
+            if timestamp and summary:
+                self.perception_snapshot = PerceptionSnapshot(
+                    timestamp=timestamp,
+                    summary=summary,
+                    source=source,
+                )
         self._reset_short_term_buffer()
         return target
 
@@ -459,6 +655,16 @@ class ChatSession:
             "turns": recent_turns,
             "short_term_context": self.short_term_buffer.to_context_text(limit=limit),
             "memory_db_path": str(self.memory_db_path),
+            "memory_backend": self.memory_backend,
+            "chroma_path": str(self.chroma_path),
+            "perception_enabled": self.perception_enabled,
+            "perception_interval_sec": self.perception_interval_sec,
+            "perception_max_interval_sec": self.perception_max_interval_sec,
+            "perception_adaptive": self.perception_adaptive,
+            "runtime_context_max_chars": self.runtime_context_max_chars,
+            "perception_snapshot": (
+                self.perception_snapshot.to_dict() if self.perception_snapshot is not None else None
+            ),
             "merged_corpus_path": str(self.merged_corpus_path),
         }
 
@@ -572,37 +778,9 @@ class ChatSession:
                     action=str(payload.get("action", "")),
                 )
             else:
-                turn = self.controller.plan(
-                    message=text,
-                    runtime_context=self.last_context,
-                    recent_turns=self.turns[-8:],
-                    recent_thoughts=self.agent.state.thoughts[-8:],
-                    recent_observations=self.agent.state.observations[-8:],
-                )
-                if turn is not None:
-                    if turn.mode == "reply" and turn.reply_text:
-                        self._store_plan(
-                            source=turn.source,
-                            mode="reply",
-                            reply_text=turn.reply_text,
-                            raw_text=turn.raw_text,
-                        )
-                        self._append_turn("assistant", turn.reply_text)
-                        self._record_summary(
-                            text,
-                            turn.reply_text,
-                            result={"status": "chat", "action": "none", "source": turn.source},
-                            plan=self.last_plan,
-                        )
-                        return turn.reply_text
-                    if turn.mode == "action" and turn.action_payload is not None:
-                        payload = turn.action_payload
-                        self._store_plan(
-                            source=turn.source,
-                            mode="action",
-                            action=str(payload.get("action", "")),
-                            raw_text=turn.raw_text,
-                        )
+                neural_reply = self._run_neural_controller(text)
+                if neural_reply is not None:
+                    return neural_reply
 
         if payload is None:
             fallback = fallback_reply(text)
@@ -648,19 +826,22 @@ def run_chat_cli() -> int:
     print("AI Lan Chat Interface (CLI)")
     print("Type /help for commands. Type /quit to exit.")
 
-    while True:
-        try:
-            user_input = input("you> ").strip()
-        except (EOFError, KeyboardInterrupt):
-            print("\nExiting chat.")
-            return 0
+    try:
+        while True:
+            try:
+                user_input = input("you> ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print("\nExiting chat.")
+                return 0
 
-        if user_input in {"/quit", "/exit"}:
-            print("Exiting chat.")
-            return 0
+            if user_input in {"/quit", "/exit"}:
+                print("Exiting chat.")
+                return 0
 
-        reply = session.handle_message(user_input)
-        print("ai> " + reply.replace("\n", "\nai> "))
+            reply = session.handle_message(user_input)
+            print("ai> " + reply.replace("\n", "\nai> "))
+    finally:
+        _close_session(session)
 
 
 __all__ = [

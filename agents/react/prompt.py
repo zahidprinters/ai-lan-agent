@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from agents.react.tool_schema import format_model_tool_schema
+
 SYSTEM_PROMPT = "You are AI Lan. Think safely, act minimally, and log every tool call."
 OUTPUT_RULES = (
     'Return one JSON object only. Use {"mode":"action","thought":"...","action":"...","args":{...},"safety_level":"low"} '
@@ -42,7 +44,7 @@ def build_react_prompt(
             runtime_context.get("assembled_context") or runtime_context.get("context_text") or ""
         )
 
-    tools_text = ", ".join(sorted(tool_names or [])) if tool_names else "(none)"
+    tools_text = format_model_tool_schema(tool_names)
     thoughts_text = (
         "\n".join(f"- {thought}" for thought in (recent_thoughts or [])[-8:]) or "(none)"
     )
@@ -52,10 +54,10 @@ def build_react_prompt(
 
     sections = [
         SYSTEM_PROMPT,
-        "Use the tool list and recent context to decide whether to reply or act.",
+        "Use the tool schema and recent context to decide whether to reply or act.",
         "Prefer memory.search and context.build for internal knowledge queries.",
         "Prefer web.search for current external information.",
-        "Use only the available tool names.",
+        "Use only tools marked as allowed in the schema.",
         _format_block("Available tools:", tools_text),
         _format_block("Recent turns:", _format_turns(recent_turns)),
         _format_block("Recent thoughts:", thoughts_text),

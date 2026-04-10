@@ -58,6 +58,8 @@ def _memory_search_tool(
     min_score: float = 0.05,
     kind: str | None = None,
     db_path: str | None = None,
+    memory_backend: str | None = None,
+    chroma_path: str | None = None,
 ) -> list[dict[str, object]]:
     hits = retrieve_relevant_memories(
         query=query,
@@ -65,6 +67,8 @@ def _memory_search_tool(
         min_score=min_score,
         kind=kind,
         db_path=Path(db_path) if db_path else None,
+        memory_backend=memory_backend,
+        chroma_path=Path(chroma_path) if chroma_path else None,
     )
     return [hit.to_dict() for hit in hits]
 
@@ -77,6 +81,8 @@ def _context_build_tool(
     min_score: float = 0.05,
     memory_kind: str | None = None,
     db_path: str | None = None,
+    memory_backend: str | None = None,
+    chroma_path: str | None = None,
     merged_corpus_path: str | None = None,
 ) -> dict[str, object]:
     return build_prompt_context(
@@ -86,6 +92,8 @@ def _context_build_tool(
         min_score=min_score,
         memory_kind=memory_kind,
         memory_db_path=Path(db_path) if db_path else None,
+        memory_backend=memory_backend,
+        chroma_path=Path(chroma_path) if chroma_path else None,
         merged_corpus_path=Path(merged_corpus_path) if merged_corpus_path else None,
     )
 
@@ -93,7 +101,9 @@ def _context_build_tool(
 TOOL_REGISTRY: dict[str, ToolSpec] = {
     "web.search": ToolSpec(run_search, ("query",), ("max_results",)),
     "memory.search": ToolSpec(
-        _memory_search_tool, ("query",), ("limit", "min_score", "kind", "db_path")
+        _memory_search_tool,
+        ("query",),
+        ("limit", "min_score", "kind", "db_path", "memory_backend", "chroma_path"),
     ),
     "context.build": ToolSpec(
         _context_build_tool,
@@ -104,6 +114,8 @@ TOOL_REGISTRY: dict[str, ToolSpec] = {
             "min_score",
             "memory_kind",
             "db_path",
+            "memory_backend",
+            "chroma_path",
             "merged_corpus_path",
         ),
     ),

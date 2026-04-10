@@ -69,7 +69,12 @@ You can override any individual setting by setting its corresponding environment
 ### Policy Runtime Config
 
 - **`AI_LAN_POLICY_CONFIG_PATH`**: Optional path override for router action policy config (defaults to `config/policies.yaml`).
-	The policy file supports `allow_actions`, `deny_actions`, and `require_confirmation` lists.
+  The policy file supports `allow_actions`, `deny_actions`, and `require_confirmation` lists.
+- **`AI_LAN_ANDROID_ALLOW_SIDE_EFFECTS`**: Enable Android ADB side effects (`0`/`1`). Keep disabled by default.
+- **`AI_LAN_ANDROID_ALLOWED_PACKAGES`**: Comma-separated allowlist for Android package launches. `android.launch_app` stays blocked until the target package is listed here.
+- **`AI_LAN_ANDROID_ALLOWED_DEVICE_IDS`**: Optional comma-separated allowlist for Android device IDs. When set, side-effect Android actions must include an explicit `device_id` from this list.
+
+Android screenshot captures are also constrained to paths under `temp/` to keep device artifacts inside the project scratch area.
 
 ### External Service Keys (Optional)
 
@@ -84,11 +89,20 @@ You can override any individual setting by setting its corresponding environment
 - **`AI_LAN_LLAMACPP_GPU_LAYERS`**: GPU layer offload count (`0` for CPU-only).
 - **`AI_LAN_PERCEPTION_ENABLED`**: Enable background perception loop (`0`/`1`).
 - **`AI_LAN_PERCEPTION_INTERVAL_SEC`**: Perception sampling interval in seconds.
+- **`AI_LAN_PERCEPTION_MAX_INTERVAL_SEC`**: Maximum interval cap for adaptive perception backoff.
+- **`AI_LAN_PERCEPTION_ADAPTIVE`**: Enable adaptive backoff when screen summary is unchanged (`0`/`1`).
+- **`AI_LAN_RUNTIME_CONTEXT_MAX_CHARS`**: Character budget used to cap each runtime-context section.
+
+When enabled, the latest compact OCR/screen summary is stored in session state and injected into runtime context for the planner.
+Adaptive perception reduces idle CPU load by increasing sample interval when the screen summary stays unchanged.
+
 - **`AI_LAN_STT_ENABLED`**: Enable speech-to-text runtime wiring (`0`/`1`).
 - **`AI_LAN_TTS_ENABLED`**: Enable text-to-speech runtime wiring (`0`/`1`).
 - **`AI_LAN_VOSK_MODEL_PATH`**: Local path to Vosk model directory used by offline STT listener.
 - **`AI_LAN_MEMORY_BACKEND`**: Memory backend selector (`none` or `chroma`).
 - **`AI_LAN_CHROMA_PATH`**: Local storage path for Chroma backend.
+
+When `AI_LAN_MEMORY_BACKEND=chroma`, runtime context retrieval and memory search use ChromaDB first for vector scoring and automatically fall back to the local JSON vector index if Chroma is unavailable.
 
 ---
 

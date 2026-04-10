@@ -1,10 +1,9 @@
 ---
-description: "Use when editing router, safety, or action-dispatch code in this repo. Covers policy checks, confirmation rules, schema-first changes, audit logging, and legacy compatibility across router/, safety/, and actions/."
+description: "Use when editing router, safety, or action-dispatch code in this repo. Covers policy checks, confirmation rules, schema-first changes, audit logging, and legacy compatibility across router/ and safety/."
 name: "Router And Safety"
 applyTo:
 	- "router/**/*.py"
 	- "safety/**/*.py"
-	- "actions/**/*.py"
 ---
 # Router And Safety Guidelines
 

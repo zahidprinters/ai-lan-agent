@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sqlite3
 from dataclasses import asdict, dataclass
@@ -10,11 +11,13 @@ from pathlib import Path
 from debug_utils import sentinel
 
 from memory.long_term.embeddings import cosine_similarity, embed_text
+from memory.long_term.chroma_store import chroma_upsert, query_chroma_vector_scores
 from memory.long_term.vector_store import get_vector_store
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MEMORY_DB = ROOT / "temp" / "memory" / "memory_store.sqlite3"
 TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_]+")
+SUPPORTED_MEMORY_BACKENDS = {"none", "chroma"}
 
 
 @dataclass(frozen=True)
@@ -43,6 +46,22 @@ class MemoryHit:
 @sentinel
 def get_memory_db_path(db_path: Path | None = None) -> Path:
     return db_path or DEFAULT_MEMORY_DB
+
+
+@sentinel
+def resolve_memory_backend(memory_backend: str | None = None) -> str:
+    selected = (memory_backend or os.getenv("AI_LAN_MEMORY_BACKEND", "none")).strip().lower()
+    if selected not in SUPPORTED_MEMORY_BACKENDS:
+        return "none"
+    return selected
+
+
+@sentinel
+def resolve_chroma_path(chroma_path: Path | None = None) -> Path | None:
+    if chroma_path is not None:
+        return chroma_path
+    configured = os.getenv("AI_LAN_CHROMA_PATH", "").strip()
+    return Path(configured) if configured else None
 
 
 @sentinel
@@ -103,6 +122,8 @@ def add_memory_entry(
     content: str,
     metadata: dict[str, object] | None = None,
     db_path: Path | None = None,
+    memory_backend: str | None = None,
+    chroma_path: Path | None = None,
 ) -> MemoryEntry:
     if not kind.strip():
         raise ValueError("Memory kind must be non-empty.")
@@ -146,6 +167,14 @@ def add_memory_entry(
     except Exception:
         pass
 
+    if resolve_memory_backend(memory_backend) == "chroma":
+        chroma_upsert(
+            key=str(memory_id),
+            text=f"{summary}\n{content}",
+            metadata={"kind": kind.strip().lower(), **metadata_payload},
+            chroma_path=resolve_chroma_path(chroma_path),
+        )
+
     return MemoryEntry(
         memory_id=memory_id,
         kind=kind.strip().lower(),
@@ -163,6 +192,8 @@ def store_conversation_summary(
     assistant_text: str,
     metadata: dict[str, object] | None = None,
     db_path: Path | None = None,
+    memory_backend: str | None = None,
+    chroma_path: Path | None = None,
 ) -> MemoryEntry:
     content = f"User: {user_text.strip()}\n" f"Assistant: {assistant_text.strip()}"
     merged_metadata = {"source": "conversation", **(metadata or {})}
@@ -171,6 +202,8 @@ def store_conversation_summary(
         content=content,
         metadata=merged_metadata,
         db_path=db_path,
+        memory_backend=memory_backend,
+        chroma_path=chroma_path,
     )
 
 
@@ -192,6 +225,8 @@ def retrieve_relevant_memories(
     min_score: float = 0.05,
     kind: str | None = None,
     db_path: Path | None = None,
+    memory_backend: str | None = None,
+    chroma_path: Path | None = None,
 ) -> list[MemoryHit]:
     init_memory_store(db_path)
     query_tokens = set(tokenize_text(query))
@@ -200,15 +235,25 @@ def retrieve_relevant_memories(
 
     query_embedding = embed_text(query)
     vector_score_map: dict[int, float] = {}
-    try:
-        vector_store = get_vector_store(db_path)
-        vector_score_map = {
-            int(hit.key): hit.score
-            for hit in vector_store.query_hits(query, limit=max(limit * 4, 20), min_score=0.0)
-            if str(hit.key).strip().isdigit()
-        }
-    except Exception:
-        vector_score_map = {}
+    backend = resolve_memory_backend(memory_backend)
+    if backend == "chroma":
+        vector_score_map = query_chroma_vector_scores(
+            query=query,
+            limit=max(limit * 4, 20),
+            min_score=0.0,
+            chroma_path=resolve_chroma_path(chroma_path),
+        )
+
+    if not vector_score_map:
+        try:
+            vector_store = get_vector_store(db_path)
+            vector_score_map = {
+                int(hit.key): hit.score
+                for hit in vector_store.query_hits(query, limit=max(limit * 4, 20), min_score=0.0)
+                if str(hit.key).strip().isdigit()
+            }
+        except Exception:
+            vector_score_map = {}
 
     sql = "SELECT id, kind, content, summary, tokens_json, metadata_json, created_at FROM memories"
     params: tuple[object, ...] = ()

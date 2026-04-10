@@ -7,15 +7,25 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added `docs/SECURITY_POLICY.md` documenting safe mode, confirmation gates, audit logging, and local machine protection rules for tool use
+- Added `scripts/install_system_deps.ps1` to install and verify Tesseract OCR, Android Platform Tools, and scrcpy on Windows
+- One-command resource audit workflow: `scripts/regenerate_resource_inventory.py` plus `scripts/audit_resources.ps1` now regenerate the local resource inventory and Python package snapshot automatically
 - Phase 4 action routing foundation with strict JSON action schema validation, allowlist-based policy checks, and audit logging
 - Initial Phase 4.5 implementation slice: local reasoning facade (`core/inference/local_reasoning.py`) and runtime perception loop (`runtime/perception_loop.py`)
 - Voice/STT runtime slice: offline speech listener facade (`tools/perception/audio/stt.py`), voice chat runtime entrypoint (`runtime/voice_chat_interface.py`), and launcher/script wiring (`scripts/launch.py --mode voice`, `scripts/voice_chat.py`)
+- Memory backend slice: optional ChromaDB facade (`memory/long_term/chroma_store.py`) with runtime retrieval wiring through chat/context/API paths and automatic fallback to local vector scoring
+- Bounded neural ReAct loop in chat/runtime: the local planner can now execute a low-risk action, observe the result, and continue to a final reply with step-budget and repeated-action suppression
+- Model-facing tool schema layer: the planner prompt now receives structured tool descriptions, arg contracts, confirmation hints, and risk labels derived from the router registry
+- Live perception context wiring: chat/runtime sessions can now keep the latest OCR perception snapshot in session state and inject it into assembled planner context when perception is enabled
+- Runtime cleanup hardening: CLI and voice chat now close session resources on exit, and dashboard/API state now exposes the current live perception snapshot consistently
+- Runtime performance optimization: adaptive perception backoff for unchanged screens, bounded runtime-context section sizes, and dashboard context reuse to reduce repeated high-cost context assembly
 - Drafted formal Phase 4.5 embodied neural agency design for llama-cpp local reasoning, embodied perception, voice, and memory integration
 - Trusted ingestion pipeline for external text sources with normalization, dedupe, trust/quality scoring, merged corpus output, and JSON reporting
 - Local memory layer with SQLite-backed persistence, conversation summaries, and retrieval API plus CLI utility
 - Prompt-context builder that merges memory retrieval and ingested corpus snippets, exposed through policy-gated actions (`memory.search`, `context.build`)
 - Hardware profiling baseline: added machine profile doc and refresh script to keep CPU-first settings aligned with actual local hardware
 - Safe adapter expansion: added low-risk PC read-only actions and first Android adapter surface behind allowlist + confirmation + safe-mode gating
+- Phase 4.2 Android adapter hardening: app launches now require explicit package allowlists, side-effect actions can be restricted to known device IDs, and Android screenshots are constrained to `temp/`
 - Added benchmark harness for tool success/safety/latency metrics and scaffolded offline learning + model registry/rollback workflow
 - Focused tests for action schema parsing, router dispatch, policy rejection, and ReAct payload execution
 - Unit tests for experiment profile selection and environment variable override in config
@@ -35,6 +45,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Default environment setup no longer installs experiment tracking packages automatically; `wandb` and `mlflow` are now opt-in via `python -m pip install .[experiment]` so the active `.venv` can stay conflict-free
+- Updated base packaging pin to `packaging==24.2` to align with `pyproject-api==1.7.1`
 - Refreshed project documentation for accuracy and consistency: `README.md`, `docs/API_REFERENCE.md`, `docs/PROJECT_STATUS.md`, and `docs/ARCHITECTURE.md`
 - Expanded the curated upstream reference and roadmap guidance across `docs/OPEN_SOURCE_REFERENCE.md`, `ROADMAP.md`, `project_plan.md`, `docs/AI_GUIDELINES.md`, `docs/AI_CONTEXT.md`, `docs/AI_LAN_HANDOFF.md`, `docs/USER_GUIDE.md`, `docs/CONTRIBUTING.md`, and `docs/PROJECT_STRUCTURE.md`
 - Added embodied AI guidance for CPU-first vision, speech, and local reasoning across the roadmap and docs

@@ -106,14 +106,25 @@ Voice mode quick start:
 python scripts/launch.py --mode voice
 ```
 
+In CLI and voice chat modes, the local planner can now take a small bounded action-observation loop before replying, but any write-like action still stops for confirmation.
+Planner tool selection is grounded in a structured tool schema generated from the router registry, so the model sees available actions, arguments, and confirmation hints instead of only raw tool names.
+If perception is enabled, the latest OCR/screen summary is kept in session state and included in the planner's live runtime context.
+That same summary is visible through the dashboard/API state views, and chat sessions now stop background perception resources cleanly when the CLI exits.
+For CPU-friendly runtime handling, perception sampling now backs off automatically when the visible screen summary is unchanged, and runtime context sections are capped by a configurable character budget.
+
 Recommended toggles:
 
 ```powershell
 $env:AI_LAN_STT_ENABLED = "1"
 $env:AI_LAN_TTS_ENABLED = "1"
+$env:AI_LAN_MEMORY_BACKEND = "chroma"
 # Optional Vosk model location
 $env:AI_LAN_VOSK_MODEL_PATH = "temp/vosk-model"
+# Optional Chroma path
+$env:AI_LAN_CHROMA_PATH = "temp/chroma"
 ```
+
+If Chroma is not available at runtime, AI Lan falls back to the local vector index automatically.
 
 ### 📍 Phase 4/5 Expansion Note
 
@@ -132,6 +143,12 @@ winget install --id Google.PlatformTools -e --accept-package-agreements --accept
 winget install --id Genymobile.scrcpy -e --accept-package-agreements --accept-source-agreements
 ```
 
+Or use the project installer wrapper:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/install_system_deps.ps1
+```
+
 If you use Tavily live web search, set:
 
 ```powershell
@@ -145,6 +162,15 @@ python -m playwright --version
 tesseract --version
 adb version
 scrcpy --version
+```
+
+For a machine-local inventory of the active virtual environment, temp caches, downloaded models, external tools, URLs, and phase-to-resource mapping, see [RESOURCE_INVENTORY.md](RESOURCE_INVENTORY.md).
+For tool-use safety, confirmation gates, audit logging, and local file/system protection rules, see [SECURITY_POLICY.md](SECURITY_POLICY.md).
+
+To regenerate that inventory and refresh the package snapshot automatically on this machine, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/audit_resources.ps1
 ```
 
 If you are touching export, evaluation, generation, or training resume code, keep checkpoint metadata as the source of truth first and use the shared loaders that already do this correctly.

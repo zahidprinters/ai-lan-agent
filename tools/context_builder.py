@@ -83,6 +83,8 @@ def build_prompt_context(
     min_score: float = 0.05,
     memory_kind: str | None = None,
     memory_db_path: Path | None = None,
+    memory_backend: str | None = None,
+    chroma_path: Path | None = None,
     merged_corpus_path: Path | None = None,
 ) -> dict[str, Any]:
     memory_hits = retrieve_relevant_memories(
@@ -91,6 +93,8 @@ def build_prompt_context(
         min_score=min_score,
         kind=memory_kind,
         db_path=get_memory_db_path(memory_db_path),
+        memory_backend=memory_backend,
+        chroma_path=chroma_path,
     )
     snippet_hits = retrieve_corpus_snippets(
         query=query,

@@ -28,6 +28,17 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional path to the SQLite memory store. Defaults to temp/memory/memory_store.sqlite3.",
     )
+    parser.add_argument(
+        "--backend",
+        default=None,
+        help="Optional memory backend override (none or chroma).",
+    )
+    parser.add_argument(
+        "--chroma-path",
+        type=Path,
+        default=None,
+        help="Optional Chroma persistence path when backend is set to chroma.",
+    )
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -67,6 +78,8 @@ def main() -> None:
             content=args.content,
             metadata=json.loads(args.metadata),
             db_path=db_path,
+            memory_backend=args.backend,
+            chroma_path=args.chroma_path,
         )
         print(f"added memory_id={entry.memory_id} kind={entry.kind}")
         return
@@ -77,6 +90,8 @@ def main() -> None:
             assistant_text=args.assistant,
             metadata=json.loads(args.metadata),
             db_path=db_path,
+            memory_backend=args.backend,
+            chroma_path=args.chroma_path,
         )
         print(f"added conversation memory_id={entry.memory_id}")
         return
@@ -88,6 +103,8 @@ def main() -> None:
             min_score=args.min_score,
             kind=args.kind,
             db_path=db_path,
+            memory_backend=args.backend,
+            chroma_path=args.chroma_path,
         )
         print(json.dumps([hit.to_dict() for hit in hits], indent=2, ensure_ascii=True))
         return

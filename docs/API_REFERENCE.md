@@ -152,53 +152,6 @@ This document provides a detailed breakdown of the functions, classes, and modul
 
 ---
 
-## 🤖 Module: `actions/action_schema.py`
-
-### `AgentAction` (Dataclass)
-
-- **Description:** Strict Phase 4 function-calling payload model.
-- **Fields:** `thought`, `action`, `args`, `safety_level`.
-
-### `parse_agent_action(payload) -> AgentAction`
-
-- **Description:** Validates and normalizes JSON or dict action payloads into an `AgentAction`.
-- **Validation:** Rejects unknown fields, missing fields, invalid arg containers, and unsupported safety levels.
-
----
-
-## 🛡️ Module: `actions/policy.py`
-
-### `PolicyDecision` (Dataclass)
-
-- **Description:** Represents the allow, deny, or confirmation-required outcome for a requested action.
-
-### `evaluate_action_policy(action: AgentAction) -> PolicyDecision`
-
-- **Description:** Applies the current Phase 4 allowlist, denylist, and confirmation rules before execution.
-
----
-
-## 🚦 Module: `actions/router.py`
-
-### `dispatch_agent_action(payload, confirmed=False) -> ActionExecutionResult`
-
-- **Description:** Deterministic action router for Phase 4 tools.
-- **Behavior:** Parses the action payload, applies policy checks, validates arguments against the registered tool signature, dispatches to the tool handler, and records an audit log entry.
-
-### `append_action_audit_log(action, result) -> None`
-
-- **Description:** Writes JSONL audit records for action requests and their execution outcomes.
-
----
-
-## 🔁 Module: `actions/react_loop.py`
-
-### `orchestrate_react_payload(action_payload, confirmed=False) -> dict`
-
-- **Description:** Bridges ReAct payloads into the deterministic tool router and returns the structured execution result.
-
----
-
 ## 🌐 Module: `tools/web_ingest.py`
 
 ### `IngestionSource` (Dataclass)
@@ -269,6 +222,7 @@ This document provides a detailed breakdown of the functions, classes, and modul
 ### `launch_app(...)`, `tap_screen(...)`, `swipe_screen(...)`, `capture_screenshot(...)`
 
 - **Description:** Android control adapters behind policy confirmation and safe-mode gating.
+- **Phase 4.2 Guards:** `launch_app(...)` requires `AI_LAN_ANDROID_ALLOWED_PACKAGES`; side-effect Android actions can be pinned with `AI_LAN_ANDROID_ALLOWED_DEVICE_IDS`; `capture_screenshot(...)` only writes under `temp/`.
 
 ---
 
@@ -289,7 +243,7 @@ The model generates a "Thought" and an "Action" in JSON format:
 ### 2. The Dispatch (Router)
 The `Action Router` receives the payload and:
 - **Validates:** Checks if `pc.get_system_status` exists and args match.
-- **Authorizes:** Checks `actions/policy.py`. Read-only actions are allowed immediately; write actions (like `pc.open_app`) return `status: "confirmation_required"`.
+- **Authorizes:** Checks `safety/policy_engine.py`. Read-only actions are allowed immediately; write actions (like `pc.open_app`) return `status: "confirmation_required"`.
 - **Executes:** Calls the underlying Python tool.
 
 ### 3. The Observation (Output)

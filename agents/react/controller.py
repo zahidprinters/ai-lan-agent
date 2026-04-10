@@ -5,15 +5,17 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, Callable
 
 from agents.react.prompt import build_react_prompt
+from agents.react.tool_schema import build_model_tool_schema
 from core.inference.generate import generate_text
 from core.inference.local_reasoning import generate_structured_response
 from router.dispatch_core import TOOL_REGISTRY
 from router.schema import ActionSchemaError, parse_agent_action
 
 DEFAULT_TOOL_NAMES = tuple(sorted(TOOL_REGISTRY))
+DEFAULT_TOOL_SCHEMA = tuple(item.name for item in build_model_tool_schema())
 
 
 def _env_flag(name: str, default: bool = True) -> bool:
@@ -38,6 +40,12 @@ class PlannedTurn:
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
+
+
+def _action_signature(action_payload: dict[str, object] | None) -> str:
+    if not action_payload:
+        return ""
+    return json.dumps(action_payload, ensure_ascii=True, sort_keys=True)
 
 
 def _extract_json_object(text: str) -> dict[str, Any] | None:
@@ -155,7 +163,7 @@ class NeuralActionController:
             recent_turns=recent_turns,
             recent_thoughts=recent_thoughts,
             recent_observations=recent_observations,
-            tool_names=tool_names or DEFAULT_TOOL_NAMES,
+            tool_names=tool_names or DEFAULT_TOOL_SCHEMA or DEFAULT_TOOL_NAMES,
         )
         generated = ""
         if self.reasoning_backend == "llama_cpp":
@@ -186,15 +194,19 @@ class NeuralActionController:
         max_steps: int = 5,
         runtime_context: dict[str, Any] | None = None,
         recent_turns: list[dict[str, str]] | None = None,
+        recent_thoughts: list[str] | None = None,
+        recent_observations: list[str] | None = None,
         tool_names: list[str] | tuple[str, ...] | None = None,
+        observe_action: Callable[[dict[str, object]], str] | None = None,
     ) -> list[PlannedTurn]:
-        """Runs the ReAct loop for multiple steps until a reply is generated or max_steps is reached."""
+        """Run a bounded ReAct loop until a reply is produced or guardrails stop planning."""
         if not self.enabled:
             return []
 
         results: list[PlannedTurn] = []
-        thoughts: list[str] = []
-        observations: list[str] = []
+        thoughts: list[str] = list(recent_thoughts or [])[-8:]
+        observations: list[str] = list(recent_observations or [])[-8:]
+        seen_actions: set[str] = set()
 
         for _ in range(max_steps):
             turn = self.plan(
@@ -209,27 +221,25 @@ class NeuralActionController:
             if turn is None:
                 break
 
-            results.append(turn)
-
             if turn.mode == "reply":
+                results.append(turn)
                 break
 
             if turn.mode == "action" and turn.action_payload:
-                thoughts.append(str(turn.action_payload.get("thought", "")))
-                # In a real scenario, the caller would execute the action and provide the observation.
-                # For the iterative loop within the controller, we might need a way to get observations.
-                # If we don't have an executor here, we might just stop or expect observations to be
-                # provided in the next iteration if this were called externally.
-                # However, the plan says: "It should loop up to max_steps, calling plan() each time
-                # and incorporating observations into the next prompt context"
-                # This implies some form of execution happens or is mocked.
+                signature = _action_signature(turn.action_payload)
+                if signature in seen_actions:
+                    break
+                seen_actions.add(signature)
 
-                # For now, if it's an action, we might need to wait for an observation.
-                # But the test mocks plan() to return an action then a reply directly.
-                # If plan() is called again without an observation, the model might repeat itself.
-                # Let's assume for now the loop continues and plan() is responsible for deciding
-                # what to do next based on the (possibly empty) observations.
-                pass
+                results.append(turn)
+                thoughts.append(str(turn.action_payload.get("thought", "")))
+
+                if observe_action is not None:
+                    observation = observe_action(turn.action_payload).strip() or "(no observation)"
+                    observations.append(observation)
+                continue
+
+            break
 
         return results
 

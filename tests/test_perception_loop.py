@@ -36,3 +36,34 @@ def test_perception_background_start_stop(monkeypatch: pytest.MonkeyPatch) -> No
 
     assert loop.is_running is False
     assert received, "Expected at least one snapshot callback"
+
+
+@pytest.mark.unit
+def test_perception_adaptive_interval_backs_off_when_screen_unchanged(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "runtime.perception_loop.capture_screen_text",
+        lambda: "unchanged screen summary",
+    )
+
+    loop = PerceptionLoop(interval_sec=2, max_interval_sec=8, adaptive=True)
+    first = loop.collect_once()
+    second = loop.collect_once()
+
+    assert first.summary == second.summary
+    assert loop.current_interval_sec > 2
+
+
+@pytest.mark.unit
+def test_perception_adaptive_interval_resets_on_content_change(monkeypatch: pytest.MonkeyPatch) -> None:
+    outputs = iter(["screen one", "screen one", "screen two"])
+    monkeypatch.setattr("runtime.perception_loop.capture_screen_text", lambda: next(outputs))
+
+    loop = PerceptionLoop(interval_sec=2, max_interval_sec=8, adaptive=True)
+    loop.collect_once()
+    loop.collect_once()
+    assert loop.current_interval_sec > 2
+
+    loop.collect_once()
+    assert loop.current_interval_sec == 2

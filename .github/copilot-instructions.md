@@ -9,7 +9,7 @@
 
 ## Architecture
 - Treat the repository as a layered system: `agents/` handles reasoning, `router/` handles action dispatch, `safety/` handles policy decisions, `memory/` handles retrieval/state, `runtime/` exposes user-facing session surfaces, and `training/` remains the stable model/training path.
-- The newer layered scaffold coexists with legacy paths under `actions/`, `tools/`, `training/`, and `scripts/`. Extend incrementally and preserve compatibility instead of assuming Phase 4 is fully wired.
+- The newer layered scaffold coexists with legacy paths under `tools/`, `training/`, and `scripts/`. Extend incrementally and preserve compatibility instead of assuming Phase 4 is fully wired.
 - Follow the separation documented in `docs/PROJECT_STRUCTURE.md` and `docs/ARCHITECTURE.md`: agents think, tools act, memory remembers, safety controls.
 - Route behavior changes through the owning layer rather than cross-layer shortcuts (for example, avoid embedding policy logic in tool execution code).
 
@@ -39,7 +39,7 @@
 - Treat model promotion and rollback as guarded workflows; avoid manual registry edits when helper APIs already exist.
 
 ## High-Risk Areas
-- `router/`, `safety/`, `actions/`: policy, confirmation, and dispatch correctness.
+- `router/`, `safety/`: policy, confirmation, and dispatch correctness.
 - `scripts/replay_audit.py`: audit decision replay correctness and deterministic comparison logic.
 - `training/checkpoints.py`, `training/model_registry.py`, `scripts/model_registry.py`: artifact metadata, normalization, and promotion safety.
 - `runtime/`, `api/`, `scripts/launch.py`: user-facing workflow and route behavior.

@@ -102,3 +102,29 @@ def test_config_exposes_debug_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     # Backward compatibility fields still mirror centralized settings.
     assert config.debug_trace is True
     assert config.debug_profile is False
+
+
+@pytest.mark.unit
+@sentinel
+def test_config_reads_perception_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AI_LAN_PERCEPTION_ENABLED", "1")
+    monkeypatch.setenv("AI_LAN_PERCEPTION_INTERVAL_SEC", "7")
+
+    config = load_config()
+
+    assert config.perception_enabled is True
+    assert config.perception_interval_sec == 7
+
+
+@pytest.mark.unit
+@sentinel
+def test_config_reads_runtime_optimization_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AI_LAN_PERCEPTION_MAX_INTERVAL_SEC", "45")
+    monkeypatch.setenv("AI_LAN_PERCEPTION_ADAPTIVE", "0")
+    monkeypatch.setenv("AI_LAN_RUNTIME_CONTEXT_MAX_CHARS", "2048")
+
+    config = load_config()
+
+    assert config.perception_max_interval_sec == 45
+    assert config.perception_adaptive is False
+    assert config.runtime_context_max_chars == 2048

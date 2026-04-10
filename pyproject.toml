@@ -21,6 +21,7 @@ experiment = [
 phase4 = [
   "playwright==1.58.0",
   "tavily-python==0.7.23",
+  "chromadb==0.5.23",
 ]
 vision = [
   "mss==10.1.0",

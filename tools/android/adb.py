@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from debug_utils import sentinel
 
-from tools.android._common import adb_base_command, allow_side_effects, run_adb_command
+from tools.android._common import (
+    adb_base_command,
+    allow_side_effects,
+    run_adb_command,
+    validate_allowed_device,
+    validate_allowed_package,
+)
 
 
 @sentinel
@@ -43,6 +49,14 @@ def launch_app(
             "status": "blocked_safe_mode",
             "detail": "Set AI_LAN_ANDROID_ALLOW_SIDE_EFFECTS=1 to enable adb side effects.",
         }
+
+    device_violation = validate_allowed_device(device_id)
+    if device_violation is not None:
+        return device_violation
+
+    package_violation = validate_allowed_package(package_name)
+    if package_violation is not None:
+        return package_violation
 
     component = f"{package_name}/{activity}" if activity else package_name
     command = adb_base_command(device_id) + ["shell", "am", "start", "-n", component]

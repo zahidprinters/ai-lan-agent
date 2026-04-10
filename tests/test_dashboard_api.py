@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from api.server import build_dashboard_state, create_app
+from api.server import build_context_payload, build_dashboard_state, create_app
 from runtime.chat_interface import ChatSession
+from runtime.perception_loop import PerceptionSnapshot
 from tools.memory_store import add_memory_entry
 from training.config import load_config
 
@@ -99,6 +100,10 @@ def test_dashboard_state_includes_runs_models_memory_and_logs(tmp_path: Path, mo
     monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(audit_path))
 
     session = ChatSession(memory_db_path=memory_db, merged_corpus_path=merged_path)
+    session.perception_snapshot = PerceptionSnapshot(
+        timestamp="2026-04-10T00:00:00+00:00",
+        summary="Outlook inbox visible with 14 unread messages.",
+    )
     session.handle_message("hello")
 
     config = load_config()
@@ -112,4 +117,22 @@ def test_dashboard_state_includes_runs_models_memory_and_logs(tmp_path: Path, mo
     assert state["logs"]["audit_entries"]
     assert state["memory"]["query"] == "docs"
     assert state["context"]["query"] == "docs"
+    assert state["context"]["perception_summary"] == "Outlook inbox visible with 14 unread messages."
+    assert state["session"]["perception_snapshot"]["summary"] == "Outlook inbox visible with 14 unread messages."
     assert state["ops"]["paths"]["memory_db_path"] == str(memory_db)
+    assert state["ops"]["perception"]["summary"] == "Outlook inbox visible with 14 unread messages."
+
+
+def test_build_context_payload_reuses_cached_session_context(monkeypatch) -> None:
+    session = ChatSession()
+    session.last_context = {
+        "query": "status",
+        "assembled_context": "cached context",
+        "perception_summary": "(none)",
+        "retrieval": {},
+    }
+
+    monkeypatch.setattr("api.server.build_runtime_context", lambda **_: {"query": "fresh"})
+
+    context = build_context_payload(session, query="status")
+    assert context["assembled_context"] == "cached context"

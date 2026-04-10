@@ -39,6 +39,7 @@ AI Lan uses a modular layout with direct package folders (not a single `ai_lan.*
 - PowerShell dashboard parity: `main.ps1` now mirrors the dashboard categories and includes local Knowledge/System views for models, memory, context, logs, and ops.
 - Local dashboard views: `scripts/dashboard_views.py` renders the same Knowledge/System data directly from the CLI.
 - Safe adapter expansion (foundation): added read-only PC status/process actions and initial Android adapter surface with strict allowlist, confirmation gating, and safe-mode side-effect guard.
+- Phase 4.2 Android hardening slice: package launches now require an explicit package allowlist, optional device allowlists can pin side-effect actions to known ADB targets, and Android screenshot output is constrained to `temp/`.
 - Evaluation and autonomy scaffolding (foundation): added tool benchmark harness plus offline learning/model registry scaffolds.
 - Offline-learning promotion guardrail: placeholder candidate artifacts are blocked from model-registry promotion.
 - Embodied AI roadmap foundation: documented CPU-first vision, speech, and local reasoning shortlist plus future `perception/vision/` and `perception/audio/` package split.
@@ -57,10 +58,6 @@ AI Lan uses a modular layout with direct package folders (not a single `ai_lan.*
 
 The following modules remain early Phase 4 surfaces and are intentionally limited/safe by design:
 
-- `actions/react_loop.py`
-- `actions/action_schema.py`
-- `actions/policy.py`
-- `actions/router.py`
 - `tools/pc_control.py`
 
 These are retained by design and are not duplicate/legacy remnants.
@@ -68,7 +65,7 @@ These are retained by design and are not duplicate/legacy remnants.
 ## Placeholder and Compatibility Boundaries
 
 - Placeholder modules (future-facing): selected areas in `core/inference/`, `runtime/`, `tools/perception/`, `memory/long_term/`, and `learning/` are scaffolds for Phase 4/5 and may intentionally expose limited behavior.
-- Compatibility surfaces (migration-only): facades such as `actions/router.py`, `tools/web/fetch.py`, `tools/web/clean.py`, and `learning/registry/model_registry.py` remain to preserve import stability while internals move to package-layer implementations.
+- Compatibility surfaces (migration-only): facades such as `tools/web/fetch.py`, `tools/web/clean.py`, and `learning/registry/model_registry.py` remain to preserve import stability while internals move to package-layer implementations.
 - Active runtime surfaces (current source of truth): `api/`, `router/`, `tools/web/search.py`, `tools/memory_store.py`, `tools/web_ingest.py`, `safety/`, and the Phase 3 training stack under `training/` and `tokenizer/`.
 - Legacy snapshot has been retired from the active tree; historical migration context now lives in the repository history and docs.
 
@@ -76,6 +73,15 @@ These are retained by design and are not duplicate/legacy remnants.
 
 1. **Phase 4.2:** harden PC/Android/ingestion adapters from safe stubs to production-safe allowlisted implementations.
 2. **Phase 4.3:** enforce offline + online-style evaluation gates (tool success, refusal quality, latency) in CI.
-3. **Phase 4.5:** implement the CPU-first embodied loop (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`, `llama.cpp`) behind existing router/policy controls.
-4. **Phase 5.1:** integrate one persistent memory backend (`Chroma` or `Qdrant`) with explicit retention/user-control boundaries.
-5. **Phase 5.2+:** ship nightly offline learning with canary promotion gates, model registry rollback, and orchestration hardening when workload scale requires it.
+3. **Phase 4.4:** add production-grade reliability controls: reflection-based self-correction, post-action state verification, and deterministic dry-run replay gating for policy/router changes.
+4. **Phase 4.5:** implement the CPU-first embodied loop (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`, `llama.cpp`) behind existing router/policy controls, including context-aware dynamic safety upgrades for sensitive screens.
+5. **Phase 5.1:** integrate one persistent memory backend (`Chroma` or `Qdrant`) with explicit retention/user-control boundaries.
+6. **Phase 5.2+:** ship nightly offline learning with canary promotion gates, benchmark-regression blocking, model registry rollback, and orchestration hardening when workload scale requires it.
+
+## Strategic Reliability Pillars
+
+- Reflection Layer (Self-Correction)
+- State Verification (Trust but Verify)
+- Automated Guardrail Benchmarking
+- Dynamic Safety Policy (Context-Aware)
+- Deterministic Dry-Run Replay

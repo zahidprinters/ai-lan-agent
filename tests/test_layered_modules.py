@@ -62,7 +62,7 @@ def test_router_parse_and_dispatch_executes_low_risk(
     assert result["action"] == "pc.list_workspace_files"
 
 
-def test_router_legacy_fallback_for_non_layered_action(
+def test_router_dispatch_executes_memory_search(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(tmp_path / "audit.jsonl"))
@@ -155,3 +155,30 @@ def test_web_search_tool_requires_query() -> None:
     except ValueError:
         raised = True
     assert raised is True
+
+
+def test_runtime_context_truncates_sections_for_low_resource_mode(tmp_path: Path) -> None:
+    db_path = tmp_path / "memory.sqlite3"
+    merged = tmp_path / "merged.txt"
+    merged.write_text("typing confirmation policy guidance\n", encoding="utf-8")
+
+    add_memory_entry(
+        kind="notes",
+        content="Typing actions require confirmation under policy.",
+        metadata={"phase": 4},
+        db_path=db_path,
+    )
+
+    short_term = ShortTermBuffer()
+    short_term.add(role="user", message="x" * 500)
+
+    context = build_runtime_context(
+        query="typing confirmation policy",
+        short_term_buffer=short_term,
+        memory_db_path=db_path,
+        merged_corpus_path=merged,
+        max_context_chars=120,
+    )
+
+    assert context["short_term_context"].startswith("...")
+    assert "Perception Context:" in context["assembled_context"]

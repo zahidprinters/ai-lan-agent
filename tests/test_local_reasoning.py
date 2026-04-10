@@ -47,3 +47,52 @@ def test_controller_llama_backend_parses_model_json(monkeypatch: pytest.MonkeyPa
     assert turn is not None
     assert turn.mode == "reply"
     assert turn.reply_text == "from local brain"
+
+
+@pytest.mark.unit
+def test_controller_plan_iterative_uses_observations(monkeypatch: pytest.MonkeyPatch) -> None:
+    controller = NeuralActionController(enabled=True)
+
+    def fake_plan(**kwargs: object):
+        observations = kwargs.get("recent_observations") or []
+        if not observations:
+            return controller._parse_output(
+                '{"mode":"action","thought":"search memory","action":"memory.search","args":{"query":"typing safety"},"safety_level":"low"}'
+            )
+        return controller._parse_output('{"mode":"reply","response":"I found the memory guidance."}')
+
+    monkeypatch.setattr(controller, "plan", fake_plan)
+
+    seen_payloads: list[dict[str, object]] = []
+
+    turns = controller.plan_iterative(
+        message="check memory",
+        observe_action=lambda payload: seen_payloads.append(payload) or "memory hit observed",
+    )
+
+    assert len(turns) == 2
+    assert turns[0].mode == "action"
+    assert turns[1].mode == "reply"
+    assert turns[1].reply_text == "I found the memory guidance."
+    assert seen_payloads[0]["action"] == "memory.search"
+
+
+@pytest.mark.unit
+def test_controller_plan_iterative_stops_on_repeated_action(monkeypatch: pytest.MonkeyPatch) -> None:
+    controller = NeuralActionController(enabled=True)
+    repeated_turn = controller._parse_output(
+        '{"mode":"action","thought":"search memory","action":"memory.search","args":{"query":"typing safety"},"safety_level":"low"}'
+    )
+    assert repeated_turn is not None
+
+    monkeypatch.setattr(controller, "plan", lambda **_: repeated_turn)
+
+    observed: list[dict[str, object]] = []
+    turns = controller.plan_iterative(
+        message="check memory",
+        max_steps=4,
+        observe_action=lambda payload: observed.append(payload) or "same observation",
+    )
+
+    assert len(turns) == 1
+    assert observed

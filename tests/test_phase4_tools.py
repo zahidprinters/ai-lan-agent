@@ -151,6 +151,34 @@ class TestScrcpyFacade:
         assert "scrcpy" in result["detail"]
 
 
+class TestAndroidAdapterGuards:
+    def test_capture_screenshot_blocks_paths_outside_temp(self) -> None:
+        from tools.android.screen import capture_screenshot
+
+        result = capture_screenshot(output_path="models/android.png")
+        assert result["status"] == "blocked_policy"
+        assert "temp/" in result["detail"]
+
+    def test_tap_screen_blocks_negative_coordinates(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("AI_LAN_ANDROID_ALLOW_SIDE_EFFECTS", "1")
+        from tools.android.input import tap_screen
+
+        result = tap_screen(-1, 25)
+        assert result["status"] == "blocked_policy"
+
+    def test_swipe_screen_blocks_unapproved_device(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("AI_LAN_ANDROID_ALLOW_SIDE_EFFECTS", "1")
+        monkeypatch.setenv("AI_LAN_ANDROID_ALLOWED_DEVICE_IDS", "device-1")
+        from tools.android.input import swipe_screen
+
+        result = swipe_screen(1, 2, 3, 4, device_id="device-2")
+        assert result["status"] == "blocked_policy"
+
+
 # ---------------------------------------------------------------------------
 # router.dispatch_core — new tools registered and policy-gated
 # ---------------------------------------------------------------------------

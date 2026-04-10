@@ -71,3 +71,34 @@ def test_voice_chat_cli_uses_stt_when_available(
     assert code == 0
     assert "voice command" in out
     assert "ok:voice command" in out
+
+
+@pytest.mark.unit
+def test_voice_chat_cli_closes_session_on_exit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeConfig:
+        stt_enabled = False
+        tts_enabled = False
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def handle_message(self, message: str) -> str:
+            return f"echo:{message}"
+
+        def close(self) -> None:
+            self.closed = True
+
+    fake_session = FakeSession()
+    inputs = iter(["/quit"])
+
+    monkeypatch.setattr("runtime.voice_chat_interface.load_config", lambda: FakeConfig())
+    monkeypatch.setattr("runtime.voice_chat_interface.ChatSession", lambda: fake_session)
+    monkeypatch.setattr("builtins.input", lambda _='': next(inputs))
+
+    code = run_voice_chat_cli()
+
+    assert code == 0
+    assert fake_session.closed is True

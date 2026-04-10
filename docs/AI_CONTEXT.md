@@ -50,9 +50,18 @@ Keep Phase 4 and Phase 5 intake narrow: one framework per capability, tests firs
 1. **Phase 4.1:** lock one stack per capability from `docs/OPEN_SOURCE_REFERENCE.md` and keep policy defaults in safe mode.
 2. **Phase 4.2:** expand PC/Android adapters and ingestion connectors with strict allowlists and deterministic failures.
 3. **Phase 4.3:** add integration + benchmark gates (tool success, refusal quality, latency) and enforce thresholds.
-4. **Phase 4.5:** build the minimum embodied CPU stack (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`, `llama.cpp`) behind local facades and safety checks.
-5. **Phase 5.1:** integrate one persistent memory backend and verify retrieval quality under tests.
-6. **Phase 5.2+:** run offline learning with model-registry promotion/rollback gates, then add orchestration only when scale requires it.
+4. **Phase 4.4:** add reliability controls: reflection in ReAct loops, post-action state verification, and deterministic replay checks for policy/router changes.
+5. **Phase 4.5:** build the minimum embodied CPU stack (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`, `llama.cpp`) behind local facades and safety checks.
+6. **Phase 5.1:** integrate one persistent memory backend and verify retrieval quality under tests.
+7. **Phase 5.2+:** run offline learning with model-registry promotion/rollback gates plus benchmark-regression blocking, then add orchestration only when scale requires it.
+
+## Reliability Pillars (Production-Grade Overlay)
+
+- Reflection-based self-correction: avoid stalled loops after tool failures.
+- State verification: confirm side-effect outcomes with read-only probes.
+- Guardrail benchmarking: block candidate model promotion on quality regression.
+- Dynamic policy: elevate safety requirements using runtime/perception context.
+- Deterministic dry-run replay: validate new policy/router behavior against historical logs before rollout.
 
 ## Safety & Control Requirements
 

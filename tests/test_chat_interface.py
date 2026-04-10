@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import builtins
 from pathlib import Path
 from typing import Any
+from datetime import datetime, timezone
 
 from agents.react.controller import PlannedTurn
 from runtime.chat_interface import (
@@ -10,7 +12,9 @@ from runtime.chat_interface import (
     fallback_reply,
     format_router_result,
     parse_natural_action,
+    run_chat_cli,
 )
+from runtime.perception_loop import PerceptionSnapshot
 from tools.memory_store import add_memory_entry, get_recent_memories
 
 
@@ -187,3 +191,138 @@ def test_chat_session_uses_neural_controller_action(monkeypatch: Any) -> None:
     assert "status: executed" in reply
     assert session.last_plan is not None
     assert session.last_plan["action"] == "memory.search"
+
+
+def test_chat_session_runs_multi_step_neural_loop(monkeypatch: Any) -> None:
+    session = ChatSession()
+    monkeypatch.setattr(
+        session, "_build_context", lambda text: {"query": text, "assembled_context": "context"}
+    )
+
+    def fake_plan(**kwargs: Any) -> PlannedTurn | None:
+        observations = kwargs.get("recent_observations") or []
+        if not observations:
+            return PlannedTurn(
+                mode="action",
+                source="model",
+                action_payload={
+                    "thought": "Search memory for confirmation guidance.",
+                    "action": "memory.search",
+                    "args": {"query": "confirmation guidance"},
+                    "safety_level": "low",
+                },
+                raw_text='{"mode":"action"}',
+            )
+        return PlannedTurn(
+            mode="reply",
+            source="model",
+            reply_text="The latest guidance requires confirmation before typing.",
+            raw_text='{"mode":"reply"}',
+        )
+
+    monkeypatch.setattr(session.controller, "plan", fake_plan)
+
+    def fake_run(payload: dict[str, object], *, confirmed: bool = False) -> dict[str, Any]:
+        assert confirmed is False
+        return {
+            "status": "executed",
+            "action": str(payload.get("action", "")),
+            "policy_reason": "ok",
+            "observation": {"hits": [{"summary": "typing requires confirmation"}]},
+        }
+
+    monkeypatch.setattr(session, "_run_payload", fake_run)
+
+    reply = session.handle_message("please inspect the latest guidance")
+    assert reply == "The latest guidance requires confirmation before typing."
+    assert session.last_plan is not None
+    assert session.last_plan["mode"] == "reply"
+
+
+def test_chat_session_includes_perception_snapshot_in_context(monkeypatch: Any) -> None:
+    session = ChatSession()
+    session.perception_snapshot = PerceptionSnapshot(
+        timestamp=datetime.now(timezone.utc).isoformat(),
+        summary="Outlook inbox visible with 14 unread messages.",
+    )
+
+    context = session._build_context("what is on screen")
+
+    assert context["perception_summary"] == "Outlook inbox visible with 14 unread messages."
+    assert "Perception Context:" in context["assembled_context"]
+
+
+def test_chat_session_starts_perception_loop_when_enabled(monkeypatch: Any) -> None:
+    started: list[int] = []
+    stopped: list[int] = []
+
+    class FakeLoop:
+        def __init__(self, *, interval_sec: int, on_snapshot: Any) -> None:
+            self.interval_sec = interval_sec
+            self.on_snapshot = on_snapshot
+
+        def start(self) -> None:
+            started.append(self.interval_sec)
+            self.on_snapshot(
+                PerceptionSnapshot(
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    summary="VS Code and inbox visible",
+                )
+            )
+
+        def stop(self, timeout_sec: float = 2.0) -> None:
+            _ = timeout_sec
+            stopped.append(1)
+
+    monkeypatch.setenv("AI_LAN_PERCEPTION_ENABLED", "1")
+    monkeypatch.setenv("AI_LAN_PERCEPTION_INTERVAL_SEC", "7")
+    monkeypatch.setattr("runtime.chat_interface.PerceptionLoop", FakeLoop)
+
+    session = ChatSession()
+
+    assert started == [7]
+    assert session.perception_snapshot is not None
+    assert session.perception_snapshot.summary == "VS Code and inbox visible"
+
+    session.close()
+    assert stopped == [1]
+
+
+def test_chat_session_save_and_load_preserves_perception_snapshot(tmp_path: Path) -> None:
+    session = ChatSession()
+    session.perception_snapshot = PerceptionSnapshot(
+        timestamp=datetime.now(timezone.utc).isoformat(),
+        summary="Build failed window visible",
+    )
+
+    save_path = tmp_path / "session_with_perception.json"
+    session.save_session(str(save_path))
+
+    loaded = ChatSession()
+    loaded.load_session(str(save_path))
+
+    assert loaded.perception_snapshot is not None
+    assert loaded.perception_snapshot.summary == "Build failed window visible"
+
+
+def test_run_chat_cli_closes_session_on_exit(monkeypatch: Any) -> None:
+    class FakeSession:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def handle_message(self, message: str) -> str:
+            return f"echo:{message}"
+
+        def close(self) -> None:
+            self.closed = True
+
+    fake_session = FakeSession()
+    inputs = iter(["/quit"])
+
+    monkeypatch.setattr("runtime.chat_interface.ChatSession", lambda: fake_session)
+    monkeypatch.setattr(builtins, "input", lambda _='': next(inputs))
+
+    code = run_chat_cli()
+
+    assert code == 0
+    assert fake_session.closed is True

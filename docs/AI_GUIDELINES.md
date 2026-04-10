@@ -56,10 +56,10 @@ AI Lan is a **Windows-first, CPU-optimized, and agent-centric** workspace.
 ## 🔄 Interaction & ReAct Guidelines
 
 When implementing new tools or actions:
-1.  **Define Schema:** Add it to `actions/action_schema.py`.
-2.  **Define Policy:** Add it to `actions/policy.py` (Identify if it needs confirmation).
+1.  **Define Schema:** Add it to `router/schema.py`.
+2.  **Define Policy:** Add it to `safety/policy_engine.py` (identify if it needs confirmation).
 3.  **Implement Stub:** Write a safe, read-only stub in `tools/` first.
-4.  **Register:** Add to `TOOL_REGISTRY` in `actions/router.py`.
+4.  **Register:** Add to `TOOL_REGISTRY` in `router/dispatch_core.py`.
 5.  **Adopt Upstream Carefully:** Match the selected capability against [OPEN_SOURCE_REFERENCE.md](OPEN_SOURCE_REFERENCE.md), then integrate one upstream project at a time behind the local interface.
 
 ---

@@ -9,6 +9,7 @@ from typing import Any
 
 from agents.react.prompt import build_react_prompt
 from core.inference.generate import generate_text
+from core.inference.local_reasoning import generate_structured_response
 from router.dispatch_core import TOOL_REGISTRY
 from router.schema import ActionSchemaError, parse_agent_action
 
@@ -81,11 +82,22 @@ def _extract_action_payload(candidate: dict[str, Any]) -> dict[str, object] | No
 
 
 class NeuralActionController:
-    def __init__(self, *, enabled: bool | None = None, generation_length: int = 120) -> None:
+    def __init__(
+        self,
+        *,
+        enabled: bool | None = None,
+        generation_length: int = 120,
+        reasoning_backend: str | None = None,
+    ) -> None:
         self.enabled = (
             _env_flag("AI_LAN_NEURAL_CONTROLLER", default=True) if enabled is None else enabled
         )
         self.generation_length = generation_length
+        self.reasoning_backend = (
+            (reasoning_backend or os.getenv("AI_LAN_REASONING_BACKEND", "classic"))
+            .strip()
+            .lower()
+        )
 
     def _parse_output(self, raw_text: str) -> PlannedTurn | None:
         payload = _extract_json_object(raw_text)
@@ -145,9 +157,24 @@ class NeuralActionController:
             recent_observations=recent_observations,
             tool_names=tool_names or DEFAULT_TOOL_NAMES,
         )
-        generated = generate_text(
-            prompt, length=self.generation_length, temperature=0.2, top_k=20, top_p=0.9
-        )
+        generated = ""
+        if self.reasoning_backend == "llama_cpp":
+            generated = generate_structured_response(
+                prompt=prompt,
+                model_path=os.getenv("AI_LAN_LLAMACPP_MODEL_PATH", "").strip() or None,
+                max_tokens=self.generation_length,
+                temperature=0.2,
+                top_p=0.9,
+                context_window=int(os.getenv("AI_LAN_LLAMACPP_CTX", "4096")),
+                threads=int(os.getenv("AI_LAN_LLAMACPP_THREADS", "4")),
+                gpu_layers=int(os.getenv("AI_LAN_LLAMACPP_GPU_LAYERS", "0")),
+            )
+
+        # Deterministic fallback preserves existing behavior when local brain is unavailable.
+        if not generated.strip():
+            generated = generate_text(
+                prompt, length=self.generation_length, temperature=0.2, top_k=20, top_p=0.9
+            )
         if not generated.strip():
             return None
         return self._parse_output(generated)

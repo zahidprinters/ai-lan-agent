@@ -75,6 +75,20 @@ You can override any individual setting by setting its corresponding environment
 
 - **`TAVILY_API_KEY`**: API key for live Tavily search integration in the optional Phase 4 web-search stack.
 
+### Phase 4.5 Local Brain / Embodied Settings
+
+- **`AI_LAN_REASONING_BACKEND`**: Planner backend (`classic` or `llama_cpp`).
+- **`AI_LAN_LLAMACPP_MODEL_PATH`**: GGUF model path for local llama-cpp reasoning.
+- **`AI_LAN_LLAMACPP_CTX`**: Context window for llama-cpp runtime.
+- **`AI_LAN_LLAMACPP_THREADS`**: CPU thread count for llama-cpp.
+- **`AI_LAN_LLAMACPP_GPU_LAYERS`**: GPU layer offload count (`0` for CPU-only).
+- **`AI_LAN_PERCEPTION_ENABLED`**: Enable background perception loop (`0`/`1`).
+- **`AI_LAN_PERCEPTION_INTERVAL_SEC`**: Perception sampling interval in seconds.
+- **`AI_LAN_STT_ENABLED`**: Enable speech-to-text runtime wiring (`0`/`1`).
+- **`AI_LAN_TTS_ENABLED`**: Enable text-to-speech runtime wiring (`0`/`1`).
+- **`AI_LAN_MEMORY_BACKEND`**: Memory backend selector (`none` or `chroma`).
+- **`AI_LAN_CHROMA_PATH`**: Local storage path for Chroma backend.
+
 ---
 
 ## 📂 Project Paths

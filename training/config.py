@@ -68,6 +68,17 @@ class ProjectConfig:
     wake_word: str = "ai lan"
     voice_gender: str = "female"  # "male" or "female"
     voice_rate: int = 175
+    reasoning_backend: str = "classic"
+    llamacpp_model_path: Path | None = None
+    llamacpp_ctx: int = 4096
+    llamacpp_threads: int = 4
+    llamacpp_gpu_layers: int = 0
+    perception_enabled: bool = False
+    perception_interval_sec: int = 10
+    stt_enabled: bool = False
+    tts_enabled: bool = False
+    memory_backend: str = "none"
+    chroma_path: Path = ROOT / "temp" / "chroma"
 
 
 @sentinel
@@ -216,4 +227,19 @@ def load_config() -> ProjectConfig:
         wake_word=os.getenv("AI_LAN_WAKE_WORD", "ai lan").lower(),
         voice_gender=os.getenv("AI_LAN_VOICE_GENDER", "female").lower(),
         voice_rate=int(os.getenv("AI_LAN_VOICE_RATE", "175")),
+        reasoning_backend=os.getenv("AI_LAN_REASONING_BACKEND", "classic").strip().lower(),
+        llamacpp_model_path=(
+            Path(os.getenv("AI_LAN_LLAMACPP_MODEL_PATH"))
+            if os.getenv("AI_LAN_LLAMACPP_MODEL_PATH")
+            else None
+        ),
+        llamacpp_ctx=int(os.getenv("AI_LAN_LLAMACPP_CTX", "4096")),
+        llamacpp_threads=int(os.getenv("AI_LAN_LLAMACPP_THREADS", "4")),
+        llamacpp_gpu_layers=int(os.getenv("AI_LAN_LLAMACPP_GPU_LAYERS", "0")),
+        perception_enabled=os.getenv("AI_LAN_PERCEPTION_ENABLED", "0") == "1",
+        perception_interval_sec=int(os.getenv("AI_LAN_PERCEPTION_INTERVAL_SEC", "10")),
+        stt_enabled=os.getenv("AI_LAN_STT_ENABLED", "0") == "1",
+        tts_enabled=os.getenv("AI_LAN_TTS_ENABLED", "0") == "1",
+        memory_backend=os.getenv("AI_LAN_MEMORY_BACKEND", "none").strip().lower(),
+        chroma_path=Path(os.getenv("AI_LAN_CHROMA_PATH", str(ROOT / "temp" / "chroma"))),
     )

@@ -18,7 +18,7 @@ As of 2026-04-06, the repository also includes a layered architecture scaffold f
 - Inference with temperature, top-k, top-p, and KV-cache generation paths.
 - Deployment tools for ONNX export and dynamic quantization, with quantized checkpoints kept on the PyTorch inference path for now.
 - Normalized run summaries and compatibility indexes for legacy and nested report schemas.
-- Browser dashboard plus JSON state endpoints for route-based chat, overview, runs, models, memory, context, logs, and ops views.
+- Browser dashboard plus JSON state endpoints for route-based chat, overview, runs, models, memory, context, logs, ops, and health views.
 
 ## Project Layout
 
@@ -122,7 +122,7 @@ python scripts/chat_web.py
 ```
 
 Then open `http://127.0.0.1:8765/overview` in your browser.
-The dashboard now uses a local `web/` shell with subpages such as `/overview`, `/chat`, `/runs`, `/models`, `/memory`, `/context`, `/logs`, and `/ops`, all backed by the local JSON state API and local assets under `web/assets/`.
+The dashboard now uses a local `web/` shell with subpages such as `/overview`, `/chat`, `/runs`, `/models`, `/memory`, `/context`, `/logs`, `/ops`, and `/health`, all backed by the local JSON state API and local assets under `web/assets/`.
 
 ## Configuration
 

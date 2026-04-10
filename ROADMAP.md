@@ -75,14 +75,14 @@ To move from basic functionality to production-grade reliability, every in-fligh
 1. **Reflection Layer (Self-Correction):** ReAct agents must inspect failed observations and attempt bounded recovery strategies rather than stalling.
 2. **State Verification (Trust but Verify):** Side-effect actions should include verification probes so the agent's internal state matches host/device reality.
 3. **Automated Guardrail Benchmarking:** Model promotion must be blocked when standard quality and tool-selection benchmarks regress versus baseline. The current reliability slice persists per-version quality artifacts in `runs/quality/` and blocks registry activation on missing or regressed scores.
-4. **Dynamic Safety Policy:** Safety level should adapt to runtime/perception context, with stronger confirmation requirements in sensitive contexts.
+4. **Dynamic Safety Policy:** Safety level should adapt to runtime/perception context, with stronger confirmation requirements in sensitive contexts. The reliability layer now emits a `sensitive_context` signal from runtime context and applies strong-confirmation escalation for selected risky actions.
 5. **Deterministic Dry-Run Replay:** Policy/router updates must be replay-validated against historical audit logs before rollout.
 
 Technical polish for this overlay:
 
-- **Graceful Degradation:** If local-brain runtime fails, fall back immediately to deterministic planner mode.
+- **Graceful Degradation:** If local-brain runtime fails, fall back immediately to deterministic planner mode. This fallback is now implemented with debug-safe planner metadata describing the fallback reason.
 - **Telemetry Sanitization:** Scrub sensitive values from trace/log artifacts before persistence.
-- **Health Dashboard:** Add a system-health view for thermal pressure, RAM, and model confidence signals.
+- **Health Dashboard:** Add a system-health view for thermal pressure, RAM, and model confidence signals. This is now implemented through `/api/health` and the `/health` dashboard tab.
 
 ---
 
@@ -169,7 +169,7 @@ Technical polish for this overlay:
 - [ ] **Latency Benchmarks:** Measure end-to-end response time for vision, speech, and agent loops on low-end CPUs.
 - [ ] **Safety Gates:** Keep all embodied actions behind router/policy checks and explicit confirmation where needed.
 - [ ] **Dynamic Context Safety:** Use perception context to automatically elevate safety levels for sensitive screens and data.
-- [ ] **Health Dashboard Signals:** Expose runtime health telemetry (CPU pressure, RAM headroom, confidence) for embodied operations.
+- [x] **Health Dashboard Signals:** Expose runtime health telemetry (CPU pressure, RAM headroom, confidence) for embodied operations.
 
 ---
 

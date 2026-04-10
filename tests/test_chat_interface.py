@@ -246,7 +246,7 @@ def test_chat_session_recovers_after_reflection_retry(monkeypatch: Any) -> None:
     calls: list[dict[str, object]] = []
 
     def fake_parse_and_dispatch(
-        payload: dict[str, object], *, confirmed: bool = False
+        payload: dict[str, object], *, confirmed: bool = False, **_: object
     ) -> dict[str, object]:
         assert confirmed is False
         calls.append(payload)

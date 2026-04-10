@@ -308,10 +308,11 @@ def dispatch_agent_action(
     confirmed: bool = False,
     dry_run: bool = False,
     log_to_audit: bool = True,
+    policy_context: dict[str, Any] | None = None,
 ) -> ActionExecutionResult:
     action = payload if isinstance(payload, AgentAction) else parse_agent_action(payload)
 
-    policy = evaluate_action_policy(action)
+    policy = evaluate_action_policy(action, policy_context=policy_context)
     if not policy.allowed:
         result = ActionExecutionResult(
             status="rejected",

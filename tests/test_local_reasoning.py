@@ -3,7 +3,10 @@ from __future__ import annotations
 import pytest
 
 from agents.react.controller import NeuralActionController
-from core.inference.local_reasoning import generate_structured_response
+from core.inference.local_reasoning import (
+    generate_structured_response,
+    generate_structured_response_result,
+)
 
 
 @pytest.mark.unit
@@ -14,11 +17,26 @@ def test_local_reasoning_returns_empty_without_model_path(monkeypatch: pytest.Mo
 
 
 @pytest.mark.unit
+def test_local_reasoning_result_includes_fallback_reason_when_model_not_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("AI_LAN_LLAMACPP_MODEL_PATH", raising=False)
+
+    result = generate_structured_response_result(prompt="hello")
+
+    assert result.text == ""
+    assert result.fallback_reason == "llama_model_not_configured"
+
+
+@pytest.mark.unit
 def test_controller_llama_backend_falls_back_to_classic(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("AI_LAN_REASONING_BACKEND", "llama_cpp")
-    monkeypatch.setattr("agents.react.controller.generate_structured_response", lambda **_: "")
+    monkeypatch.setattr(
+        "agents.react.controller.generate_structured_response_result",
+        lambda **_: type("R", (), {"text": "", "fallback_reason": "llama_runtime_unavailable"})(),
+    )
     monkeypatch.setattr(
         "agents.react.controller.generate_text",
         lambda *_, **__: '{"mode":"reply","response":"classic fallback"}',
@@ -30,14 +48,19 @@ def test_controller_llama_backend_falls_back_to_classic(
     assert turn is not None
     assert turn.mode == "reply"
     assert turn.reply_text == "classic fallback"
+    assert turn.metadata is not None
+    assert turn.metadata["fallback_reason"] == "llama_runtime_unavailable"
+    assert turn.metadata["effective_backend"] == "classic"
 
 
 @pytest.mark.unit
 def test_controller_llama_backend_parses_model_json(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AI_LAN_REASONING_BACKEND", "llama_cpp")
     monkeypatch.setattr(
-        "agents.react.controller.generate_structured_response",
-        lambda **_: '{"mode":"reply","response":"from local brain"}',
+        "agents.react.controller.generate_structured_response_result",
+        lambda **_: type(
+            "R", (), {"text": '{"mode":"reply","response":"from local brain"}', "fallback_reason": None}
+        )(),
     )
     monkeypatch.setattr("agents.react.controller.generate_text", lambda *_, **__: "")
 
@@ -47,6 +70,7 @@ def test_controller_llama_backend_parses_model_json(monkeypatch: pytest.MonkeyPa
     assert turn is not None
     assert turn.mode == "reply"
     assert turn.reply_text == "from local brain"
+    assert turn.metadata is None
 
 
 @pytest.mark.unit

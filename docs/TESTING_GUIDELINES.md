@@ -26,3 +26,24 @@
 - Local registry gate command:
   - `python scripts/model_registry.py --settings config/settings.yaml --quality-dir runs/quality activate --version candidate-v1`
 - Activation exits nonzero when the quality artifact is missing, below `quality_guardrail_min_score`, or below the configured baseline model score.
+
+## Dynamic Safety Gate
+
+- Policy changes that affect confirmation behavior should include a dynamic-safety regression run.
+- Local dynamic safety command:
+  - `python -m pytest tests/test_dynamic_safety.py tests/test_policy_engine_config.py -q --disable-warnings`
+- Sensitive context should require strong confirmation on selected risky actions, while non-sensitive context keeps existing behavior.
+
+## Local-Brain Graceful Degradation Gate
+
+- Planner backend fallback behavior should be regression-tested when touching `agents/react/controller.py` or `core/inference/local_reasoning.py`.
+- Local fallback command:
+  - `python -m pytest tests/test_local_reasoning.py tests/test_chat_interface.py tests/test_layered_modules.py -q --disable-warnings`
+- Expected behavior: llama-cpp failures degrade immediately to classic planning and surface a debug-safe fallback reason in planner metadata.
+
+## Dashboard Health Gate
+
+- Dashboard/API health telemetry changes should include focused dashboard API tests.
+- Local health dashboard command:
+  - `python -m pytest tests/test_dashboard_api.py -q --disable-warnings`
+- Expected behavior: `/api/state` includes `health` payload and `/api/health` reports CPU pressure proxy, RAM usage, and model confidence summary when available.

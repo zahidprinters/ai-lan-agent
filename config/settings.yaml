@@ -3,4 +3,6 @@ mode: safe
 default_device: cpu
 quality_guardrail_min_score: 0.75
 quality_guardrail_baseline_model: ""
+dynamic_safety_enabled: false
+sensitive_context_keywords: "password,otp,2fa,bank,payment,wallet,private key,credential"
 

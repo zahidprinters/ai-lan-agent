@@ -113,7 +113,7 @@ def test_react_agent_reflection_retries_once(monkeypatch: pytest.MonkeyPatch) ->
     calls: list[dict[str, object]] = []
 
     def fake_parse_and_dispatch(
-        payload: dict[str, object], *, confirmed: bool = False
+        payload: dict[str, object], *, confirmed: bool = False, **_: object
     ) -> dict[str, object]:
         assert confirmed is False
         calls.append(payload)
@@ -157,7 +157,7 @@ def test_react_agent_reflection_budget_is_bounded(monkeypatch: pytest.MonkeyPatc
     calls = {"count": 0}
 
     def fake_parse_and_dispatch(
-        payload: dict[str, object], *, confirmed: bool = False
+        payload: dict[str, object], *, confirmed: bool = False, **_: object
     ) -> dict[str, object]:
         _ = payload
         assert confirmed is False

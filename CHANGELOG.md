@@ -45,7 +45,10 @@ All notable changes to this project will be documented in this file.
 - RL-01 reliability slice: bounded reflection retries in the ReAct runtime with repeated-action suppression and explicit skip reasons when recovery or retry budget is exhausted
 - RL-02 reliability slice: selected side-effect router actions now include verification metadata (`verified`, `not_verified`, `verification_failed`) in their observation payloads
 - RL-03 reliability slice: `scripts/benchmark_quality.py` now writes machine-readable quality artifacts and `scripts/model_registry.py activate` blocks model promotion on missing, below-threshold, or below-baseline benchmark scores
+- RL-04 reliability slice: runtime context now emits `sensitive_context`, and policy evaluation escalates selected risky actions to strong confirmation in sensitive contexts
 - RL-05 reliability slice: audit replay now emits deterministic `matched` / `diverged` / `skipped` summaries, supports strict nonzero exits, and is wired into CI for router/policy changes
+- RL-06 reliability slice: local-brain (`llama_cpp`) planning now degrades immediately to classic generation on runtime/model failures and includes debug-safe fallback reason metadata
+- RL-07 reliability slice: dashboard/API now provide health telemetry (`/api/health` and `/health`) including CPU pressure proxy, RAM usage snapshot, and model confidence summary
 
 ### Changed
 

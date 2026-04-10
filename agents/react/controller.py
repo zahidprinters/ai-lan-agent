@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from typing import Any, Callable
 
 from agents.react.prompt import build_react_prompt
 from agents.react.tool_schema import build_model_tool_schema
 from core.inference.generate import generate_text
-from core.inference.local_reasoning import generate_structured_response
+from core.inference.local_reasoning import generate_structured_response_result
 from router.dispatch_core import TOOL_REGISTRY
 from router.schema import ActionSchemaError, parse_agent_action
 
@@ -38,6 +38,7 @@ class PlannedTurn:
     action_payload: dict[str, object] | None = None
     reply_text: str | None = None
     raw_text: str = ""
+    metadata: dict[str, object] | None = None
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -237,8 +238,9 @@ class NeuralActionController:
             tool_names=tool_names or DEFAULT_TOOL_SCHEMA or DEFAULT_TOOL_NAMES,
         )
         generated = ""
+        fallback_reason: str | None = None
         if self.reasoning_backend == "llama_cpp":
-            generated = generate_structured_response(
+            local_result = generate_structured_response_result(
                 prompt=prompt,
                 model_path=os.getenv("AI_LAN_LLAMACPP_MODEL_PATH", "").strip() or None,
                 max_tokens=self.generation_length,
@@ -248,15 +250,31 @@ class NeuralActionController:
                 threads=int(os.getenv("AI_LAN_LLAMACPP_THREADS", "4")),
                 gpu_layers=int(os.getenv("AI_LAN_LLAMACPP_GPU_LAYERS", "0")),
             )
+            generated = local_result.text
+            fallback_reason = local_result.fallback_reason
 
         # Deterministic fallback preserves existing behavior when local brain is unavailable.
         if not generated.strip():
             generated = generate_text(
                 prompt, length=self.generation_length, temperature=0.2, top_k=20, top_p=0.9
             )
+            if self.reasoning_backend == "llama_cpp":
+                fallback_reason = fallback_reason or "llama_cpp_empty_response"
         if not generated.strip():
             return None
-        return self._parse_output(generated)
+        parsed_turn = self._parse_output(generated)
+        if (
+            parsed_turn is not None
+            and self.reasoning_backend == "llama_cpp"
+            and fallback_reason is not None
+        ):
+            fallback_metadata = {
+                "reasoning_backend": "llama_cpp",
+                "effective_backend": "classic",
+                "fallback_reason": fallback_reason,
+            }
+            return replace(parsed_turn, metadata=fallback_metadata)
+        return parsed_turn
 
     def plan_iterative(
         self,

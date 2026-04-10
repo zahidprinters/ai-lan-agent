@@ -248,6 +248,7 @@ The `Action Router` receives the payload and:
 
 - **Validates:** Checks if `pc.get_system_status` exists and args match.
 - **Authorizes:** Checks `safety/policy_engine.py`. Read-only actions are allowed immediately; write actions (like `pc.open_app`) return `status: "confirmation_required"`.
+- **Context-Aware Safety:** Dispatch can receive runtime policy context (`sensitive_context`, perception/query hints). In sensitive context, selected actions escalate to strong confirmation requirements.
 - **Executes:** Calls the underlying Python tool.
 
 ### 3. The Observation (Output)
@@ -340,6 +341,12 @@ For selected side-effect actions, the router also injects verification metadata 
 ### `scripts/validate_installation.py`
 
 - Validates the local environment, including ONNX tooling, and exits nonzero when required dependencies are missing.
+
+### Dashboard Health Telemetry
+
+- `api/server.py` now publishes a structured health payload via `/api/health` and includes `health` in `/api/state`.
+- Health payload fields include CPU pressure/thermal proxy, RAM usage snapshot, and active-model confidence summary (when available from registry metrics).
+- The web dashboard exposes these signals under the `/health` tab.
 
 ---
 

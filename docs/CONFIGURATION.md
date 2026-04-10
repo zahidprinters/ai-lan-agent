@@ -91,6 +91,8 @@ Android screenshot captures are also constrained to paths under `temp/` to keep 
 - **`AI_LAN_REFLECTION_RETRIES_PER_TURN`**: Max total reflection retries before the runtime stops retrying in a turn-like sequence (default `3`).
 - **`quality_guardrail_min_score`** (`config/settings.yaml`): Minimum quality score required before `scripts/model_registry.py activate` can promote a candidate version.
 - **`quality_guardrail_baseline_model`** (`config/settings.yaml`): Optional registry version that a candidate must meet or exceed in the quality benchmark artifacts under `runs/quality/`.
+- **`dynamic_safety_enabled`** (`config/settings.yaml`): Enables dynamic safety escalation from runtime context/perception signals.
+- **`sensitive_context_keywords`** (`config/settings.yaml`): Comma-separated keywords used to classify sensitive context (for example `password,otp,bank`).
 - **`AI_LAN_PERCEPTION_ENABLED`**: Enable background perception loop (`0`/`1`).
 - **`AI_LAN_PERCEPTION_INTERVAL_SEC`**: Perception sampling interval in seconds.
 - **`AI_LAN_PERCEPTION_MAX_INTERVAL_SEC`**: Maximum interval cap for adaptive perception backoff.
@@ -113,6 +115,12 @@ When `AI_LAN_MEMORY_BACKEND=chroma`, runtime context retrieval and memory search
 - `scripts/benchmark_quality.py` writes machine-readable benchmark artifacts to `runs/quality/`.
 - `scripts/model_registry.py activate --version <version>` now requires a matching artifact for the target version before it can become active.
 - Promotion is blocked when the candidate artifact is missing, when the score is below `quality_guardrail_min_score`, or when it regresses below `quality_guardrail_baseline_model`.
+
+### Dynamic Safety Escalation
+
+- Runtime context now emits `sensitive_context` when perception/query text matches configured sensitive keywords.
+- Policy evaluation consumes that context and upgrades selected risky actions (for example typing and screen OCR/screenshot reads) to strong confirmation mode.
+- In non-sensitive context, existing confirmation behavior is preserved.
 
 ---
 

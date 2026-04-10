@@ -46,7 +46,10 @@ AI Lan uses a modular layout with direct package folders (not a single `ai_lan.*
 - Phase 4.4 RL-01 reflection reliability slice: ReAct runtime now performs bounded self-correction retries for recoverable tool failures with repeated-action suppression and deterministic stop reasons.
 - Phase 4.4 RL-02 verification reliability slice: selected side-effect actions now attach explicit post-action verification metadata so launch requests do not silently count as trustworthy outcomes.
 - Phase 4.4 RL-03 guardrail benchmarking slice: model promotion now requires a per-version quality artifact in `runs/quality/` and blocks activation on missing, below-threshold, or below-baseline scores.
+- Phase 4.4 RL-04 dynamic safety slice: runtime context now emits `sensitive_context` and policy evaluation escalates selected risky actions to strong confirmation in sensitive contexts.
 - Phase 4.4 RL-05 replay reliability slice: audit replay now emits deterministic matched/diverged/skipped summaries, supports strict failure mode, and is wired into CI for router/policy changes.
+- Phase 4.4 RL-06 graceful degradation slice: llama-cpp planning now fails over deterministically to classic generation with debug-safe fallback metadata so user turns do not stall on local-brain failures.
+- Phase 4.4 RL-07 health dashboard slice: dashboard/API now expose runtime health telemetry for CPU pressure proxy, RAM usage, and model confidence summary through `/api/health` and the `/health` dashboard tab.
 
 ## Cleanup and Quality Enhancements (Latest)
 
@@ -77,7 +80,7 @@ These are retained by design and are not duplicate/legacy remnants.
 
 1. **Phase 4.2:** harden PC/Android/ingestion adapters from safe stubs to production-safe allowlisted implementations.
 2. **Phase 4.3:** enforce offline + online-style evaluation gates (tool success, refusal quality, latency) in CI.
-3. **Phase 4.4:** finish the remaining production-grade reliability controls: dynamic context-aware safety, graceful degradation, and a health dashboard.
+3. **Phase 4.4:** reliability ticket pack complete; continue hardening integration and observability depth for production operations.
 4. **Phase 4.5:** implement the CPU-first embodied loop (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`, `llama.cpp`) behind existing router/policy controls, including context-aware dynamic safety upgrades for sensitive screens.
 5. **Phase 5.1:** integrate one persistent memory backend (`Chroma` or `Qdrant`) with explicit retention/user-control boundaries.
 6. **Phase 5.2+:** ship nightly offline learning with canary promotion gates, benchmark-regression blocking, model registry rollback, and orchestration hardening when workload scale requires it.

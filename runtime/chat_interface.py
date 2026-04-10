@@ -340,7 +340,12 @@ class ChatSession:
     def _run_payload(
         self, payload: dict[str, object], *, confirmed: bool = False
     ) -> dict[str, Any]:
-        return self.agent.run_step(payload, confirmed=confirmed).result
+        policy_context = self.last_context if isinstance(self.last_context, dict) else None
+        return self.agent.run_step(
+            payload,
+            confirmed=confirmed,
+            policy_context=policy_context,
+        ).result
 
     def _resolve_session_path(self, raw_path: str | None = None) -> Path:
         if raw_path is None or not raw_path.strip():
@@ -396,6 +401,7 @@ class ChatSession:
                 mode="reply",
                 reply_text=final_turn.reply_text,
                 raw_text=final_turn.raw_text,
+                metadata=final_turn.metadata,
             )
             self._append_turn("assistant", final_turn.reply_text)
             result_payload: dict[str, Any] = {
@@ -414,6 +420,7 @@ class ChatSession:
                 mode="action",
                 action=str(payload.get("action", "")),
                 raw_text=final_turn.raw_text,
+                metadata=final_turn.metadata,
             )
             if result.get("status") == "confirmation_required":
                 self.pending_payload = payload
@@ -442,6 +449,7 @@ class ChatSession:
         action: str | None = None,
         reply_text: str | None = None,
         raw_text: str | None = None,
+        metadata: dict[str, object] | None = None,
     ) -> dict[str, object]:
         plan: dict[str, object] = {"source": source, "mode": mode}
         if action:
@@ -450,6 +458,8 @@ class ChatSession:
             plan["reply_text"] = reply_text
         if raw_text:
             plan["raw_text"] = raw_text
+        if metadata:
+            plan["metadata"] = dict(metadata)
         self.last_plan = plan
         return plan
 

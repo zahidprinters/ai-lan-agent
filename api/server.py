@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import json
 import os
+import sys
+import ctypes
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -252,6 +255,135 @@ def build_ops_payload(app: DashboardApp) -> dict[str, Any]:
     }
 
 
+def _build_cpu_pressure_payload() -> dict[str, Any]:
+    cpu_count = os.cpu_count() or 1
+    if hasattr(os, "getloadavg"):
+        try:
+            load1, load5, load15 = os.getloadavg()
+            load_ratio = float(load1) / max(cpu_count, 1)
+            if load_ratio >= 1.0:
+                band = "high"
+            elif load_ratio >= 0.7:
+                band = "elevated"
+            else:
+                band = "normal"
+            return {
+                "proxy_type": "loadavg",
+                "cpu_count": cpu_count,
+                "load_1m": round(float(load1), 4),
+                "load_5m": round(float(load5), 4),
+                "load_15m": round(float(load15), 4),
+                "load_ratio_1m": round(load_ratio, 4),
+                "thermal_proxy_band": band,
+            }
+        except (OSError, ValueError):
+            pass
+    return {
+        "proxy_type": "unavailable",
+        "cpu_count": cpu_count,
+        "thermal_proxy_band": "unknown",
+        "detail": "Load-average thermal proxy is not available on this platform.",
+    }
+
+
+def _build_memory_payload() -> dict[str, Any]:
+    if sys.platform.startswith("win"):
+        class _MemoryStatus(ctypes.Structure):
+            _fields_ = [
+                ("dwLength", ctypes.c_ulong),
+                ("dwMemoryLoad", ctypes.c_ulong),
+                ("ullTotalPhys", ctypes.c_ulonglong),
+                ("ullAvailPhys", ctypes.c_ulonglong),
+                ("ullTotalPageFile", ctypes.c_ulonglong),
+                ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong),
+                ("ullAvailVirtual", ctypes.c_ulonglong),
+                ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+            ]
+
+        state = _MemoryStatus()
+        state.dwLength = ctypes.sizeof(_MemoryStatus)
+        success = ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(state))
+        if success:
+            total = int(state.ullTotalPhys)
+            available = int(state.ullAvailPhys)
+            used = max(total - available, 0)
+            usage_pct = (used / total * 100.0) if total else 0.0
+            return {
+                "platform": "windows",
+                "total_bytes": total,
+                "available_bytes": available,
+                "used_bytes": used,
+                "usage_percent": round(usage_pct, 2),
+                "memory_load_percent": int(state.dwMemoryLoad),
+            }
+
+    return {
+        "platform": sys.platform,
+        "detail": "RAM telemetry is not available via standard runtime APIs on this platform.",
+    }
+
+
+def _build_model_confidence_payload(active_model: dict[str, Any] | None) -> dict[str, Any]:
+    if not active_model:
+        return {
+            "status": "unavailable",
+            "detail": "No active model is registered.",
+            "confidence_score": None,
+            "confidence_metric": None,
+            "confidence_band": "unknown",
+        }
+
+    metrics_obj = active_model.get("metrics", {})
+    metrics = metrics_obj if isinstance(metrics_obj, dict) else {}
+
+    metric_name: str | None = None
+    metric_value: float | None = None
+    for candidate in ("quality_score", "accuracy", "confidence"):
+        raw_value = metrics.get(candidate)
+        if isinstance(raw_value, (int, float)):
+            metric_name = candidate
+            metric_value = float(raw_value)
+            break
+
+    if metric_value is None:
+        return {
+            "status": "partial",
+            "detail": "Active model metrics do not include quality_score, accuracy, or confidence.",
+            "confidence_score": None,
+            "confidence_metric": None,
+            "confidence_band": "unknown",
+        }
+
+    if metric_value >= 0.85:
+        band = "high"
+    elif metric_value >= 0.70:
+        band = "medium"
+    else:
+        band = "low"
+
+    return {
+        "status": "ok",
+        "detail": "Derived from active model metrics.",
+        "confidence_score": round(metric_value, 4),
+        "confidence_metric": metric_name,
+        "confidence_band": band,
+        "model_version": active_model.get("version"),
+    }
+
+
+def build_health_payload(app: DashboardApp) -> dict[str, Any]:
+    registry_path = _model_registry_path(app.config)
+    active_model = get_active_model(registry_path)
+    return {
+        "status": "ok",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "cpu": _build_cpu_pressure_payload(),
+        "memory": _build_memory_payload(),
+        "model_confidence": _build_model_confidence_payload(active_model),
+    }
+
+
 def build_dashboard_state(
     app: DashboardApp,
     *,
@@ -281,6 +413,7 @@ def build_dashboard_state(
         "models": build_models_payload(app.config),
         "logs": build_log_payload(limit=log_limit),
         "ops": build_ops_payload(app),
+        "health": build_health_payload(app),
     }
 
 
@@ -298,7 +431,7 @@ def _build_chat_response(app: DashboardApp, message: str) -> dict[str, Any]:
 
 def build_dashboard_routes(app: DashboardApp) -> DashboardRouteSet:
     return DashboardRouteSet(
-        health=lambda: {"status": "ok"},
+        health=lambda: build_health_payload(app),
         session=lambda: app.session.get_state(),
         state=lambda query, runs_limit, memory_limit, snippet_limit, log_limit: build_dashboard_state(
             app,
@@ -357,6 +490,7 @@ def run_api_server(
 
 __all__ = [
     "DashboardApp",
+    "build_health_payload",
     "build_context_payload",
     "build_dashboard_state",
     "build_dashboard_routes",

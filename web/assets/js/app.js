@@ -2,7 +2,7 @@ const PAGE_CONFIG = {
   overview: {
     title: "Overview",
     eyebrow: "Local command center",
-    subtitle: "Offline shell for chat, runs, models, memory, logs, context, and ops.",
+    subtitle: "Offline shell for chat, runs, models, memory, logs, context, ops, and health.",
     limits: { runs: 6, memory: 6, snippet: 6, log: 8 },
   },
   chat: {
@@ -47,6 +47,12 @@ const PAGE_CONFIG = {
     subtitle: "Copy the training, export, and quantization commands.",
     limits: { runs: 4, memory: 4, snippet: 4, log: 4 },
   },
+  health: {
+    title: "Health",
+    eyebrow: "Runtime telemetry",
+    subtitle: "CPU pressure proxy, RAM usage, and model confidence summary.",
+    limits: { runs: 4, memory: 4, snippet: 4, log: 4 },
+  },
   notfound: {
     title: "Page not found",
     eyebrow: "Unknown route",
@@ -67,6 +73,7 @@ const ROUTE_ALIASES = {
   "/context.html": "context",
   "/logs.html": "logs",
   "/ops.html": "ops",
+  "/health.html": "health",
   overview: "overview",
   chat: "chat",
   runs: "runs",
@@ -75,6 +82,7 @@ const ROUTE_ALIASES = {
   context: "context",
   logs: "logs",
   ops: "ops",
+  health: "health",
 };
 
 const QUICK_LINKS = [
@@ -85,6 +93,7 @@ const QUICK_LINKS = [
   { route: "context", label: "Context", icon: "context", description: "Assembled prompt context and snippets." },
   { route: "logs", label: "Logs", icon: "logs", description: "Audit trail, error tail, and legacy log." },
   { route: "ops", label: "Ops", icon: "ops", description: "Local commands for training and export." },
+  { route: "health", label: "Health", icon: "spark", description: "CPU, RAM, and model confidence telemetry." },
 ];
 
 const routeMetaEl = document.getElementById("route-meta");
@@ -290,6 +299,7 @@ function safeState(state) {
     models: objectValue(data.models),
     logs: objectValue(data.logs),
     ops: objectValue(data.ops),
+    health: objectValue(data.health),
   };
 }
 
@@ -354,7 +364,7 @@ function setStatus(text) {
 
 function hero(route, state, query) {
   const cfg = pageConfig(route);
-  const { session, memory, runs, models, logs, ops, context } = safeState(state);
+  const { session, memory, runs, models, logs, ops, context, health } = safeState(state);
   const queryText = query || state.query || "";
   const chips = [chip("Local only", "good", "check")];
 
@@ -400,6 +410,11 @@ function hero(route, state, query) {
     case "ops":
       chips.push(chip(`${formatNumber(arrayValue(ops.commands).length)} commands`, "brand", "ops"));
       chips.push(chip(`${formatNumber(Object.keys(objectValue(ops.paths)).length)} paths`, "ghost", "file"));
+      break;
+    case "health":
+      chips.push(chip(`${escapeHtml(String(health.cpu?.thermal_proxy_band || "unknown"))} cpu`, "brand", "spark"));
+      chips.push(chip(`${formatNumber(Number(health.memory?.usage_percent || 0), 1)}% ram`, "accent", "memory"));
+      chips.push(chip(`${escapeHtml(String(health.model_confidence?.confidence_band || "unknown"))} confidence`, "ghost", "models"));
       break;
     default:
       chips.push(chip("Subpage not found", "danger", "alert"));
@@ -590,6 +605,8 @@ function renderRoute(route, state, query) {
       return renderLogs(state);
     case "ops":
       return renderOps(state);
+    case "health":
+      return renderHealth(state);
     default:
       return renderNotFound(state, window.location.pathname);
   }
@@ -1029,12 +1046,52 @@ function renderOps(state) {
   `;
 }
 
+function renderHealth(state) {
+  const { health } = safeState(state);
+  const cpu = objectValue(health.cpu);
+  const memory = objectValue(health.memory);
+  const confidence = objectValue(health.model_confidence);
+
+  const cpuGrid = `<div class="info-grid">${infoCard("Proxy", escapeHtml(cpu.proxy_type || "unknown"))}${infoCard("CPU count", escapeHtml(formatNumber(cpu.cpu_count || 0)))}${infoCard("Thermal band", escapeHtml(cpu.thermal_proxy_band || "unknown"))}${infoCard("Load ratio 1m", escapeHtml(cpu.load_ratio_1m != null ? formatMetric(cpu.load_ratio_1m, 3) : "n/a"))}</div>`;
+  const memoryGrid = `<div class="info-grid">${infoCard("Platform", escapeHtml(memory.platform || "unknown"))}${infoCard("Usage %", escapeHtml(memory.usage_percent != null ? formatMetric(memory.usage_percent, 2) : "n/a"))}${infoCard("Used bytes", escapeHtml(formatNumber(memory.used_bytes || 0)))}${infoCard("Available bytes", escapeHtml(formatNumber(memory.available_bytes || 0)))}</div>`;
+  const confidenceGrid = `<div class="info-grid">${infoCard("Status", escapeHtml(confidence.status || "unknown"))}${infoCard("Band", escapeHtml(confidence.confidence_band || "unknown"))}${infoCard("Metric", escapeHtml(confidence.confidence_metric || "n/a"))}${infoCard("Score", escapeHtml(confidence.confidence_score != null ? formatMetric(confidence.confidence_score, 4) : "n/a"))}</div>`;
+
+  return `
+    <div class="stack">
+      <section class="stat-grid">
+        ${statCard({ label: "CPU thermal proxy", value: cpu.thermal_proxy_band || "unknown", detail: cpu.proxy_type || "no proxy", tone: "brand" })}
+        ${statCard({ label: "RAM usage", value: memory.usage_percent != null ? `${formatMetric(memory.usage_percent, 2)}%` : "n/a", detail: memory.platform || "unknown", tone: "accent" })}
+        ${statCard({ label: "Model confidence", value: confidence.confidence_band || "unknown", detail: confidence.confidence_metric || "no metric", tone: confidence.confidence_band === "low" ? "danger" : "good" })}
+        ${statCard({ label: "Updated", value: formatTimestamp(health.timestamp || ""), detail: "Local runtime clock", tone: "ghost" })}
+      </section>
+
+      <section class="grid grid--2">
+        ${sectionCard("CPU pressure / thermal proxy", "Derived from local load where available.", cpuGrid + (cpu.detail ? `<div class="empty-state">${escapeHtml(cpu.detail)}</div>` : ""))}
+        ${sectionCard("RAM usage", "Physical memory usage snapshot from the local host runtime.", memoryGrid + (memory.detail ? `<div class="empty-state">${escapeHtml(memory.detail)}</div>` : ""))}
+      </section>
+
+      <section class="card">
+        <div class="card__header">
+          <div>
+            <h2 class="card__title">Model confidence summary</h2>
+            <p class="card__subtitle">Confidence band derived from active model metrics when available.</p>
+          </div>
+        </div>
+        <div class="card__body">
+          ${confidenceGrid}
+          ${confidence.detail ? `<div class="empty-state">${escapeHtml(confidence.detail)}</div>` : ""}
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function renderNotFound(state, path) {
   return `
     <div class="stack">
       <section class="stat-grid">
         ${statCard({ label: "Requested path", value: path || "Unknown", detail: "This route is not recognized by the dashboard shell.", tone: "danger" })}
-        ${statCard({ label: "Available pages", value: "8", detail: "overview, chat, runs, models, memory, context, logs, and ops", tone: "brand" })}
+        ${statCard({ label: "Available pages", value: "9", detail: "overview, chat, runs, models, memory, context, logs, ops, and health", tone: "brand" })}
       </section>
 
       <section class="card">

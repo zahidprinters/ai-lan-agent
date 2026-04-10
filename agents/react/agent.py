@@ -32,7 +32,11 @@ class ReactAgent:
         )
 
     def run_step(
-        self, payload: str | dict[str, object], *, confirmed: bool = False
+        self,
+        payload: str | dict[str, object],
+        *,
+        confirmed: bool = False,
+        policy_context: dict[str, Any] | None = None,
     ) -> ReactStepResult:
         initial_action: AgentAction = parse_agent_action(payload)
         self.state.thoughts.append(initial_action.thought)
@@ -45,10 +49,18 @@ class ReactAgent:
 
         while True:
             try:
-                result = parse_and_dispatch(current_payload, confirmed=confirmed)
+                result = parse_and_dispatch(
+                    current_payload,
+                    confirmed=confirmed,
+                    policy_context=policy_context,
+                )
             except Exception:
                 # Fallback to direct router dispatch if parse_and_dispatch fails unexpectedly.
-                result = dispatch_action(current_payload, confirmed=confirmed)
+                result = dispatch_action(
+                    current_payload,
+                    confirmed=confirmed,
+                    policy_context=policy_context,
+                )
 
             can_retry = (
                 not confirmed
@@ -100,10 +112,15 @@ class ReactAgent:
         return ReactStepResult(request=current_payload, result=result, state=self.state)
 
 
-def run_react_step(payload: str | dict[str, object], *, confirmed: bool = False) -> dict[str, Any]:
+def run_react_step(
+    payload: str | dict[str, object],
+    *,
+    confirmed: bool = False,
+    policy_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Stateless helper for single-step execution."""
     agent = ReactAgent()
-    step_result = agent.run_step(payload, confirmed=confirmed)
+    step_result = agent.run_step(payload, confirmed=confirmed, policy_context=policy_context)
     return {
         "request": step_result.request,
         "result": step_result.result,

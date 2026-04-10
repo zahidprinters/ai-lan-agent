@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from api.server import build_context_payload, build_dashboard_state, create_app
+from api.server import build_context_payload, build_dashboard_routes, build_dashboard_state, create_app
 from runtime.chat_interface import ChatSession
 from runtime.perception_loop import PerceptionSnapshot
 from tools.memory_store import add_memory_entry
@@ -121,6 +121,10 @@ def test_dashboard_state_includes_runs_models_memory_and_logs(tmp_path: Path, mo
     assert state["session"]["perception_snapshot"]["summary"] == "Outlook inbox visible with 14 unread messages."
     assert state["ops"]["paths"]["memory_db_path"] == str(memory_db)
     assert state["ops"]["perception"]["summary"] == "Outlook inbox visible with 14 unread messages."
+    assert state["health"]["status"] == "ok"
+    assert "cpu" in state["health"]
+    assert "memory" in state["health"]
+    assert "model_confidence" in state["health"]
 
 
 def test_build_context_payload_reuses_cached_session_context(monkeypatch) -> None:
@@ -136,3 +140,40 @@ def test_build_context_payload_reuses_cached_session_context(monkeypatch) -> Non
 
     context = build_context_payload(session, query="status")
     assert context["assembled_context"] == "cached context"
+
+
+def test_dashboard_health_route_returns_structured_payload(tmp_path: Path, monkeypatch) -> None:
+    runs_dir = tmp_path / "runs"
+    runs_dir.mkdir(parents=True, exist_ok=True)
+    data_path = tmp_path / "input.txt"
+    data_path.write_text("hello\n", encoding="utf-8")
+
+    registry_path = runs_dir / "model_registry.json"
+    registry_payload = {
+        "active_version": "v-health",
+        "records": [
+            {
+                "version": "v-health",
+                "model_path": str(tmp_path / "models" / "health.pt"),
+                "created_at": "2026-04-10T00:00:00+00:00",
+                "metrics": {"quality_score": 0.84},
+                "tags": ["health"],
+                "notes": "health test",
+            }
+        ],
+    }
+    registry_path.write_text(
+        json.dumps(registry_payload, ensure_ascii=True, indent=2), encoding="utf-8"
+    )
+
+    monkeypatch.setenv("AI_LAN_RUNS_DIR", str(runs_dir))
+    monkeypatch.setenv("AI_LAN_DATA_PATH", str(data_path))
+
+    app = create_app()
+    routes = build_dashboard_routes(app)
+    payload = routes.health()
+
+    assert payload["status"] == "ok"
+    assert payload["cpu"]["thermal_proxy_band"] in {"normal", "elevated", "high", "unknown"}
+    assert "memory" in payload
+    assert payload["model_confidence"]["status"] in {"ok", "partial", "unavailable"}

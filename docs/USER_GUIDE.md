@@ -161,6 +161,28 @@ $env:AI_LAN_CHROMA_PATH = "temp/chroma"
 
 If Chroma is not available at runtime, AI Lan falls back to the local vector index automatically.
 
+### 📍 Storage Cleanup And Retention
+
+Use the storage cleanup tool to audit or remove old temporary artifacts safely:
+
+```powershell
+python scripts/storage_cleanup.py
+```
+
+The default is dry-run mode and writes a JSON report to `temp/benchmarks/storage_cleanup_report.json`.
+To apply deletions for files older than configured retention windows:
+
+```powershell
+python scripts/storage_cleanup.py --apply
+```
+
+Retention windows are controlled in `config/settings.yaml` via:
+
+- `storage_temp_retention_days`
+- `storage_benchmark_retention_days`
+- `storage_download_retention_days`
+- `storage_temp_soft_limit_mb`
+
 ### 📍 Phase 4/5 Expansion Note
 
 If you are extending AI Lan beyond the current user workflows, start from [OPEN_SOURCE_REFERENCE.md](OPEN_SOURCE_REFERENCE.md) and keep to one project per capability.

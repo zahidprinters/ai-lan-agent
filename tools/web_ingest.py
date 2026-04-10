@@ -45,6 +45,7 @@ class IngestionReport:
     fetched_count: int
     kept_count: int
     duplicate_count: int
+    filtered_low_score_count: int
     merged_line_count: int
     merged_char_count: int
     documents: list[IngestedDocument]
@@ -210,12 +211,18 @@ def run_ingestion_pipeline(
     *,
     merged_output_path: Path,
     report_output_path: Path,
+    min_final_score: float = 0.3,
 ) -> IngestionReport:
     merged_output_path.parent.mkdir(parents=True, exist_ok=True)
     report_output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    bounded_min_final_score = _clamp_score(min_final_score)
     documents = [build_ingested_document(source) for source in sources]
-    deduped_documents, duplicate_count = dedupe_documents(documents)
+    score_filtered_documents = [
+        document for document in documents if document.final_score >= bounded_min_final_score
+    ]
+    filtered_low_score_count = len(documents) - len(score_filtered_documents)
+    deduped_documents, duplicate_count = dedupe_documents(score_filtered_documents)
     merged_text = merge_documents(deduped_documents)
 
     merged_output_path.write_text(merged_text, encoding="utf-8")
@@ -225,6 +232,7 @@ def run_ingestion_pipeline(
         fetched_count=len(documents),
         kept_count=len(deduped_documents),
         duplicate_count=duplicate_count,
+        filtered_low_score_count=filtered_low_score_count,
         merged_line_count=len(merged_text.splitlines()),
         merged_char_count=len(merged_text),
         documents=deduped_documents,

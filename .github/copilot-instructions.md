@@ -15,6 +15,9 @@
 
 ## Current Phase Status
 - Phase 4.1 safety freeze behavior is active: router dispatch is schema-validated, policy-gated, and audit-logged.
+- Phase 4.2 adapter reliability is complete (PC/Android deterministic failures + ingestion trust filtering + integration exit-gate tests).
+- Phase 4.3 is the immediate execution priority (benchmark-depth and regression control expansion).
+- Direction lock for remaining Phase 4 work: reasoning-first before vision (4.5A brain upgrades, then 4.5B perception depth).
 - Policy sets are runtime-loaded from `config/policies.yaml` (allow/deny/require_confirmation) with safe fallback defaults in `safety/policy_engine.py`.
 - Optional Phase 4 stack is integrated behind facades: Playwright + Tavily + Tesseract + ADB/scrcpy.
 - Audit replay is available via `scripts/replay_audit.py` and router dry-run mode (`dispatch_agent_action(..., dry_run=True)`) for side-effect-free policy evaluation.
@@ -34,6 +37,7 @@
 ## Conventions
 - Keep temporary files, caches, and generated scratch data inside `temp/`. Do not introduce hardcoded user-profile paths or system temp usage; tests already redirect temp via `tests/conftest.py`.
 - Prefer script entrypoints over ad hoc invocation: `main.ps1` for Windows orchestration and `scripts/launch.py` for runtime mode switching.
+- For capability growth, follow brain-before-eyes sequencing: strengthen local reasoning/planning/tool-use reliability before expanding embodied vision/audio features.
 - For new tool or action work, follow the project flow in `docs/AI_GUIDELINES.md`: define schema, define policy/confirmation behavior, implement a safe stub first, register it, then add tests.
 - Use shared checkpoint and run-summary helpers in `training/checkpoints.py` for resume, export, evaluation, generation, and indexing work. Checkpoint metadata is the source of truth, and run summaries may need normalization.
 - Before adding new external dependencies or capability stacks, consult `docs/OPEN_SOURCE_REFERENCE.md` and keep integrations behind local facades.
@@ -58,6 +62,7 @@
 - Make the minimal code change that fixes the root issue.
 - Add/update targeted tests when behavior changes.
 - Run the smallest relevant validation commands.
+- For reasoning or planner changes, run fallback and router safety gates before considering vision/perception expansion.
 - Update docs in the same change when config, workflow, API, or user-visible behavior changes.
 - For router/safety changes, include at least one confirmation-required and one rejection-path assertion.
 - For policy changes, verify `config/policies.yaml` and `safety/policy_engine.py` remain consistent.

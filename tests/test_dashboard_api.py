@@ -135,6 +135,9 @@ def test_dashboard_state_includes_runs_models_memory_and_logs(tmp_path: Path, mo
     assert "cpu" in state["health"]
     assert "memory" in state["health"]
     assert "model_confidence" in state["health"]
+    assert "storage" in state["health"]
+    assert "storage" in state
+    assert state["storage"]["status"] == "ok"
 
 
 def test_build_context_payload_reuses_cached_session_context(monkeypatch) -> None:
@@ -187,3 +190,5 @@ def test_dashboard_health_route_returns_structured_payload(tmp_path: Path, monke
     assert payload["cpu"]["thermal_proxy_band"] in {"normal", "elevated", "high", "unknown"}
     assert "memory" in payload
     assert payload["model_confidence"]["status"] in {"ok", "partial", "unavailable"}
+    assert "storage" in payload
+    assert payload["storage"]["status"] == "ok"

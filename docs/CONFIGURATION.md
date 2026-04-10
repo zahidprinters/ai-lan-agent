@@ -75,6 +75,15 @@ You can override any individual setting by setting its corresponding environment
 - **`AI_LAN_ANDROID_ALLOW_SIDE_EFFECTS`**: Enable Android ADB side effects (`0`/`1`). Keep disabled by default.
 - **`AI_LAN_ANDROID_ALLOWED_PACKAGES`**: Comma-separated allowlist for Android package launches. `android.launch_app` stays blocked until the target package is listed here.
 - **`AI_LAN_ANDROID_ALLOWED_DEVICE_IDS`**: Optional comma-separated allowlist for Android device IDs. When set, side-effect Android actions must include an explicit `device_id` from this list.
+- **`AI_LAN_ANDROID_ADB_TIMEOUT_SECONDS`**: ADB command timeout in seconds (default `15`, clamped to `1..120`) for deterministic failure instead of hanging subprocess calls.
+- **`AI_LAN_PC_PROCESS_LIST_TIMEOUT_SECONDS`**: `tasklist` timeout in seconds (default `8`, clamped to `1..60`) for deterministic `pc.list_running_apps` failure instead of hanging process probes.
+
+Storage retention and housekeeping defaults (`config/settings.yaml`):
+
+- **`storage_temp_retention_days`**: Retention window for generic temp artifacts.
+- **`storage_benchmark_retention_days`**: Retention window for benchmark artifacts under `temp/benchmarks`.
+- **`storage_download_retention_days`**: Retention window for cache/download artifacts under `temp/downloads`.
+- **`storage_temp_soft_limit_mb`**: Soft-limit threshold used by dashboard storage health warnings.
 
 Android screenshot captures are also constrained to paths under `temp/` to keep device artifacts inside the project scratch area.
 

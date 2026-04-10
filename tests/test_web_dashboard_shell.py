@@ -48,6 +48,12 @@ def test_web_dashboard_serves_local_shell_and_assets() -> None:
         payload = json.loads(body.decode("utf-8"))
         assert payload["service"]["name"] == "AI Lan Dashboard"
         assert "session" in payload
+
+        status, headers, body = _fetch(f"{base_url}/api/storage")
+        assert status == 200
+        storage_payload = json.loads(body.decode("utf-8"))
+        assert storage_payload["status"] == "ok"
+        assert "usage" in storage_payload
     finally:
         server.shutdown()
         server.server_close()

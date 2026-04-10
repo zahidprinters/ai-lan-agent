@@ -48,6 +48,13 @@
   - `python -m pytest tests/test_dashboard_api.py -q --disable-warnings`
 - Expected behavior: `/api/state` includes `health` payload and `/api/health` reports CPU pressure proxy, RAM usage, and model confidence summary when available.
 
+## Storage Health And Cleanup Gate
+
+- Storage telemetry and cleanup changes should include focused storage tests.
+- Local command:
+  - `python -m pytest tests/test_storage_health.py tests/test_dashboard_api.py tests/test_web_dashboard_shell.py -q --disable-warnings`
+- Expected behavior: `/api/health` and `/api/state` include `storage` payload, `/api/storage` responds successfully, and cleanup dry-run reports candidate files without deleting by default.
+
 ## Eval Benchmark Gate
 
 - Router/safety and benchmark-harness changes should run the strict benchmark gate before merge.

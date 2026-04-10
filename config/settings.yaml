@@ -5,4 +5,8 @@ quality_guardrail_min_score: 0.75
 quality_guardrail_baseline_model: ""
 dynamic_safety_enabled: false
 sensitive_context_keywords: "password,otp,2fa,bank,payment,wallet,private key,credential"
+storage_temp_retention_days: 14
+storage_benchmark_retention_days: 30
+storage_download_retention_days: 45
+storage_temp_soft_limit_mb: 2048
 

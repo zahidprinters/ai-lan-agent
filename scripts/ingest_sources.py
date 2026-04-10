@@ -32,6 +32,12 @@ def parse_args() -> argparse.Namespace:
         default=ROOT / "temp" / "ingestion" / "ingestion_report.json",
         help="JSON report output path.",
     )
+    parser.add_argument(
+        "--min-final-score",
+        type=float,
+        default=0.3,
+        help="Minimum final score required to keep a source document (0.0 to 1.0).",
+    )
     return parser.parse_args()
 
 
@@ -43,9 +49,11 @@ def main() -> None:
         sources,
         merged_output_path=args.output,
         report_output_path=args.report,
+        min_final_score=args.min_final_score,
     )
     print(f"Ingestion sources: {report.source_count}")
     print(f"Documents kept: {report.kept_count}")
+    print(f"Filtered low score: {report.filtered_low_score_count}")
     print(f"Duplicates dropped: {report.duplicate_count}")
     print(f"Merged lines: {report.merged_line_count}")
     print(f"Merged output: {args.output}")

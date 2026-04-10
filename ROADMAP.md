@@ -38,6 +38,8 @@ This sequence is the implementation order to follow one step at a time.
 
   Promote safe stubs to production-safe adapters with strict allowlists and deterministic errors. Connect trusted ingestion source manifests and enforce source scoring at ingest time. **Exit gate:** integration tests for router -> policy -> adapter path and ingestion trust filtering.
 
+  Status: completed (2026-04-10).
+
 1. **Phase 4.3: Evaluation + Regression Control**
 
   Add offline eval datasets for tool selection, argument quality, and safety behavior. Add online-style telemetry checks (latency, refusal quality, action success) on real traces. **Exit gate:** benchmark harness in CI with pass/fail thresholds and regression guardrails.
@@ -46,9 +48,12 @@ This sequence is the implementation order to follow one step at a time.
 
   Add reflection-aware retries in the ReAct controller, post-action state verification for side-effect tools, and deterministic dry-run replay as a required change-safety gate. **Exit gate:** no infinite-loop regressions in controller tests, verified state checks for selected side-effect actions, and replay parity report for policy/router changes.
 
-1. **Phase 4.5: Embodied Runtime (CPU-first)**
+1. **Phase 4.5: Embodied Runtime (CPU-first, reasoning-first order)**
 
-  Build `mss`/`OpenCV` + `Tesseract` + `Vosk` + `pyttsx3` + `llama.cpp` loop behind the same router/policy layer. Keep perception in facades first; migrate internals to dedicated packages only after stability. **Exit gate:** end-to-end embodied loop demo with bounded latency and confirmation gates preserved.
+  Execute this in two slices under the same router/policy layer.
+  **4.5A Reasoning-first slice:** strengthen `llama.cpp`/GGUF planning quality, tool-aware prompting, and multi-step plan/reflection reliability before deeper perception expansion.
+  **4.5B Perception slice:** expand `mss`/`OpenCV` + `Tesseract` + `Vosk` + `pyttsx3` embodied loop once 4.5A reasoning gates are stable.
+  **Exit gate:** end-to-end embodied loop demo with bounded latency and confirmation gates preserved.
 
 1. **Phase 5.1: Persistent Memory + Personalization**
 
@@ -134,12 +139,12 @@ Technical polish for this overlay:
 - [x] **Source Trust Scoring:** Add allowlist and per-source quality score (docs, datasets, news).
 - [x] **Agent Memory Store (Foundation):** Added local memory layer (SQLite) with retrieval API and summaries.
 - [x] **PC Adapter (Safe Mode Foundation):** Added safe action subset stubs: open app, type text, read clipboard.
-- [ ] **Android Adapter (ADB):** Implement whitelisted actions: launch app, tap/swipe, screenshot capture.
-- [ ] **Perception Adapters:** Add screenshot and OCR pipeline before camera/mic support.
+- [x] **Android Adapter (ADB):** Implemented allowlisted actions for launch app, tap/swipe, screenshot capture, and scrcpy mirror with confirmation and policy gating.
+- [x] **Perception Adapters:** Added screenshot and OCR pipeline surfaces behind policy-gated tool adapters.
 - [x] **Action Confirmation Gate (Foundation):** Confirmation required on selected write-like actions.
 - [x] **Audit Logging:** Persist every action request/result for reproducibility and rollback analysis.
 - [x] **Policy Engine (Foundation):** Enforce deny/allow rules by tool/action and execution context.
-- [ ] **Evaluation Harness:** Add benchmarks for tool success rate, latency, and safety refusal quality.
+- [x] **Evaluation Harness:** Added benchmark harness with strict thresholds for tool success rate, latency, and safety refusal quality.
 - [x] **Reflection Controller:** Add bounded self-correction in ReAct loops when a tool result fails or is inconsistent.
 - [x] **Action State Verification:** Add follow-up verification tools/checks for selected side-effect actions (for example app launch confirmation).
 - [x] **Deterministic Replay Gate:** Require dry-run replay checks against `action_audit.jsonl` for router/policy changes.

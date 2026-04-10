@@ -40,6 +40,9 @@ AI Lan uses a modular layout with direct package folders (not a single `ai_lan.*
 - Local dashboard views: `scripts/dashboard_views.py` renders the same Knowledge/System data directly from the CLI.
 - Safe adapter expansion (foundation): added read-only PC status/process actions and initial Android adapter surface with strict allowlist, confirmation gating, and safe-mode side-effect guard.
 - Phase 4.2 Android hardening slice: package launches now require an explicit package allowlist, optional device allowlists can pin side-effect actions to known ADB targets, and Android screenshot output is constrained to `temp/`.
+- Phase 4.2 reliability hardening slice: Android ADB calls now use bounded timeout handling with deterministic timeout failures, and PC process listing now uses bounded timeout handling with deterministic unavailable responses.
+- Phase 4.2 ingestion enforcement slice: ingestion pipeline now enforces a minimum final score threshold during merge and reports low-score filtered document counts.
+- Phase 4.2 exit gate completed: integration tests now cover router -> policy -> adapter reliability paths plus ingestion trust filtering behavior.
 - Evaluation and autonomy scaffolding (foundation): added tool benchmark harness plus offline learning/model registry scaffolds.
 - Offline-learning promotion guardrail: placeholder candidate artifacts are blocked from model-registry promotion.
 - Embodied AI roadmap foundation: documented CPU-first vision, speech, and local reasoning shortlist plus future `perception/vision/` and `perception/audio/` package split.
@@ -78,12 +81,13 @@ These are retained by design and are not duplicate/legacy remnants.
 
 ## Next Priorities
 
-1. **Phase 4.2:** harden PC/Android/ingestion adapters from safe stubs to production-safe allowlisted implementations.
-2. **Phase 4.3:** initial strict benchmark gate is now wired in CI for tool success/refusal quality/latency thresholds; continue expanding coverage and real-trace depth.
-3. **Phase 4.4:** reliability ticket pack complete; continue hardening integration and observability depth for production operations.
-4. **Phase 4.5:** implement the CPU-first embodied loop (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`, `llama.cpp`) behind existing router/policy controls, including context-aware dynamic safety upgrades for sensitive screens.
-5. **Phase 5.1:** integrate one persistent memory backend (`Chroma` or `Qdrant`) with explicit retention/user-control boundaries.
-6. **Phase 5.2+:** ship nightly offline learning with canary promotion gates, benchmark-regression blocking, model registry rollback, and orchestration hardening when workload scale requires it.
+1. **Phase 4.3:** strict benchmark gate is wired in CI for tool success/refusal quality/latency thresholds; continue expanding coverage and real-trace depth with broader datasets and traces.
+2. **Phase 4.5A (Reasoning-first):** prioritize stronger planner and local-brain quality (multi-step planning, reflection quality, tool-choice quality, GGUF backend reliability) before broader perception expansion.
+3. **Phase 4.5B (Embodied runtime):** once reasoning quality is stable, expand vision/audio runtime depth (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`) behind existing router/policy controls.
+4. **Phase 5.1:** integrate one persistent memory backend (`Chroma` or `Qdrant`) with explicit retention/user-control boundaries.
+5. **Phase 5.2+:** ship nightly offline learning with canary promotion gates, benchmark-regression blocking, model registry rollback, and orchestration hardening when workload scale requires it.
+
+Direction lock: brain-before-eyes sequencing is active for remaining Phase 4 work.
 
 ## Strategic Reliability Pillars
 

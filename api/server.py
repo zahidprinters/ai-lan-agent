@@ -24,6 +24,7 @@ from training.checkpoints import build_sorted_summaries
 from training.config import ProjectConfig, load_config
 from training.model_registry import get_active_model, init_registry, list_registered_models
 from tools.memory_store import get_recent_memories, retrieve_relevant_memories
+from tools.storage_health import build_storage_health_payload
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ACTION_AUDIT_PATH = ROOT / "temp" / "action_audit.jsonl"
@@ -443,7 +444,15 @@ def build_health_payload(app: DashboardApp) -> dict[str, Any]:
         "cpu": _build_cpu_pressure_payload(),
         "memory": _build_memory_payload(),
         "model_confidence": _build_model_confidence_payload(active_model),
+        "storage": build_storage_health_payload(project_root=ROOT),
     }
+
+
+def build_storage_payload(app: DashboardApp) -> dict[str, Any]:
+    _ = app
+    payload = build_storage_health_payload(project_root=ROOT)
+    payload["timestamp"] = datetime.now(timezone.utc).isoformat()
+    return payload
 
 
 def build_dashboard_state(
@@ -477,6 +486,7 @@ def build_dashboard_state(
         "ops": build_ops_payload(app),
         "control": build_control_payload(app),
         "health": build_health_payload(app),
+        "storage": build_storage_payload(app),
     }
 
 
@@ -520,6 +530,7 @@ def build_dashboard_routes(app: DashboardApp) -> DashboardRouteSet:
         ),
         logs=lambda limit: build_log_payload(limit=limit),
         ops=lambda: build_ops_payload(app),
+        storage=lambda: build_storage_payload(app),
         chat=lambda message: _build_chat_response(app, message),
     )
 
@@ -563,6 +574,7 @@ __all__ = [
     "build_memory_payload",
     "build_models_payload",
     "build_ops_payload",
+    "build_storage_payload",
     "build_runs_payload",
     "create_app",
     "run_api_server",

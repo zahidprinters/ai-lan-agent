@@ -16,6 +16,15 @@ def allow_side_effects() -> bool:
     return os.getenv("AI_LAN_ANDROID_ALLOW_SIDE_EFFECTS", "0").strip() in {"1", "true", "True"}
 
 
+def _get_adb_timeout_seconds() -> int:
+    raw_value = os.getenv("AI_LAN_ANDROID_ADB_TIMEOUT_SECONDS", "15").strip()
+    try:
+        timeout = int(raw_value)
+    except ValueError:
+        return 15
+    return max(1, min(timeout, 120))
+
+
 def _parse_csv_allowlist(env_name: str) -> set[str]:
     raw_value = os.getenv(env_name, "")
     return {item.strip() for item in raw_value.split(",") if item.strip()}
@@ -68,7 +77,19 @@ def run_adb_command(
 def run_adb_command(
     command: list[str], *, text: bool = True
 ) -> subprocess.CompletedProcess[str] | subprocess.CompletedProcess[bytes] | None:
+    timeout_seconds = _get_adb_timeout_seconds()
     try:
-        return subprocess.run(command, capture_output=True, text=text, check=False)
+        return subprocess.run(
+            command,
+            capture_output=True,
+            text=text,
+            check=False,
+            timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired:
+        detail = f"adb command timed out after {timeout_seconds}s"
+        if text:
+            return subprocess.CompletedProcess(command, 124, stdout="", stderr=detail)
+        return subprocess.CompletedProcess(command, 124, stdout=b"", stderr=detail.encode("utf-8"))
     except FileNotFoundError:
         return None

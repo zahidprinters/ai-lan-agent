@@ -305,6 +305,7 @@ For selected side-effect actions, the router also injects verification metadata 
 ### `scripts/ingest_sources.py`
 
 - Loads a JSON source list and writes merged/report artifacts under `temp/ingestion/` by default.
+- Enforces minimum source quality at ingest time via `--min-final-score` (default `0.3`) and reports filtered documents through `filtered_low_score_count`.
 
 ### `scripts/memory_store.py`
 
@@ -346,7 +347,19 @@ For selected side-effect actions, the router also injects verification metadata 
 
 - `api/server.py` now publishes a structured health payload via `/api/health` and includes `health` in `/api/state`.
 - Health payload fields include CPU pressure/thermal proxy, RAM usage snapshot, and active-model confidence summary (when available from registry metrics).
+- Health payload now also includes `storage` telemetry: per-directory usage (`temp`, `runs`, `models`, `data`, `logs`), temp soft-limit pressure, retention settings, and disk free space summary.
 - The web dashboard exposes these signals under the `/health` tab.
+
+### `scripts/storage_cleanup.py`
+
+- Performs retention-policy cleanup for temporary artifacts (benchmarks/downloads/android/ingestion/pytest/temp logs).
+- Default mode is dry-run (safe, no deletion); apply mode requires `--apply`.
+- Writes machine-readable cleanup report JSON (`temp/benchmarks/storage_cleanup_report.json` by default).
+
+### Dashboard Storage Endpoint
+
+- `GET /api/storage` returns standalone storage health payload used by dashboard/system tooling.
+- `/api/state` also includes the same `storage` block for single-request dashboard rendering.
 
 ---
 

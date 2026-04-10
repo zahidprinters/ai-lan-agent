@@ -26,6 +26,8 @@ def test_benchmark_harness_writes_metrics_report(tmp_path: Path) -> None:
     assert output_path.exists()
     assert "metrics" in report
     assert "tool_success_rate" in report["metrics"]
+    assert "status_match_rate" in report["metrics"]
+    assert "executed_action_success_rate" in report["metrics"]
     assert cli_payload["metrics"]["tool_success_rate"] >= 0.0
     assert "gate" in report
     assert "passed" in report["gate"]
@@ -82,3 +84,60 @@ def test_benchmark_harness_strict_fails_with_impossible_thresholds(tmp_path: Pat
     assert result.returncode == 1
     cli_payload = json.loads(result.stdout)
     assert cli_payload["gate"]["passed"] is False
+
+
+def test_benchmark_harness_supports_external_cases_file(tmp_path: Path) -> None:
+    output_path = tmp_path / "benchmark_custom.json"
+    cases_path = tmp_path / "cases.json"
+    cases_path.write_text(
+        json.dumps(
+            [
+                {
+                    "name": "shell_refusal",
+                    "payload": {
+                        "thought": "Need shell access.",
+                        "action": "pc.execute_shell",
+                        "args": {"command": "dir"},
+                        "safety_level": "high",
+                    },
+                    "expected_status": "rejected",
+                    "category": "refusal",
+                },
+                {
+                    "name": "memory_exec",
+                    "payload": {
+                        "thought": "Retrieve memory.",
+                        "action": "memory.search",
+                        "args": {"query": "policy"},
+                        "safety_level": "low",
+                    },
+                    "expected_status": "executed",
+                    "category": "execution",
+                },
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/benchmark_tools.py",
+            "--output",
+            str(output_path),
+            "--cases",
+            str(cases_path),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=Path.cwd(),
+    )
+
+    cli_payload = json.loads(result.stdout)
+    report = json.loads(output_path.read_text(encoding="utf-8"))
+    assert report["case_source"] == str(cases_path)
+    assert len(report["cases"]) == 2
+    assert "status_match_rate_refusal" in report["metrics"]
+    assert "status_match_rate_execution" in report["metrics"]
+    assert cli_payload["output"] == str(output_path)

@@ -23,6 +23,7 @@ class DashboardRouteSet:
     context: Callable[[str | None, int, int], JsonDict]
     logs: Callable[[int], JsonDict]
     ops: Callable[[], JsonDict]
+    storage: Callable[[], JsonDict]
     chat: Callable[[str], JsonDict]
 
 
@@ -195,6 +196,9 @@ def build_dashboard_handler(
                 return
             if path == "/api/ops":
                 self._send_json(routes.ops())
+                return
+            if path == "/api/storage":
+                self._send_json(routes.storage())
                 return
             if path.startswith("/assets/") and resolved_config.static_root is not None:
                 asset_path = _resolve_child_path(resolved_config.static_root, path, "/assets/")

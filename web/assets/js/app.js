@@ -1146,10 +1146,18 @@ function renderHealth(state) {
   const cpu = objectValue(health.cpu);
   const memory = objectValue(health.memory);
   const confidence = objectValue(health.model_confidence);
+  const storage = objectValue(health.storage);
+  const storageUsage = arrayValue(storage.usage);
+  const tempSoftLimit = objectValue(storage.temp_soft_limit);
 
   const cpuGrid = `<div class="info-grid">${infoCard("Proxy", escapeHtml(cpu.proxy_type || "unknown"))}${infoCard("CPU count", escapeHtml(formatNumber(cpu.cpu_count || 0)))}${infoCard("Thermal band", escapeHtml(cpu.thermal_proxy_band || "unknown"))}${infoCard("Load ratio 1m", escapeHtml(cpu.load_ratio_1m != null ? formatMetric(cpu.load_ratio_1m, 3) : "n/a"))}</div>`;
   const memoryGrid = `<div class="info-grid">${infoCard("Platform", escapeHtml(memory.platform || "unknown"))}${infoCard("Usage %", escapeHtml(memory.usage_percent != null ? formatMetric(memory.usage_percent, 2) : "n/a"))}${infoCard("Used bytes", escapeHtml(formatNumber(memory.used_bytes || 0)))}${infoCard("Available bytes", escapeHtml(formatNumber(memory.available_bytes || 0)))}</div>`;
   const confidenceGrid = `<div class="info-grid">${infoCard("Status", escapeHtml(confidence.status || "unknown"))}${infoCard("Band", escapeHtml(confidence.confidence_band || "unknown"))}${infoCard("Metric", escapeHtml(confidence.confidence_metric || "n/a"))}${infoCard("Score", escapeHtml(confidence.confidence_score != null ? formatMetric(confidence.confidence_score, 4) : "n/a"))}</div>`;
+  const storageGrid = `<div class="info-grid">${infoCard("Temp current MB", escapeHtml(formatNumber(tempSoftLimit.current_mb || 0, 2)))}${infoCard("Temp limit MB", escapeHtml(formatNumber(tempSoftLimit.limit_mb || 0, 0)))}${infoCard("Limit exceeded", escapeHtml(String(Boolean(tempSoftLimit.exceeded))))}${infoCard("Disk free GB", escapeHtml(formatNumber(objectValue(storage.disk).free_gb || 0, 2)))}</div>`;
+  const storageRows = storageUsage.map((item) => {
+    const obj = objectValue(item);
+    return `<tr><td>${escapeHtml(String(obj.name || "unknown"))}</td><td>${escapeHtml(formatNumber(obj.size_mb || 0, 2))}</td><td>${escapeHtml(String(obj.path || ""))}</td></tr>`;
+  });
 
   return `
     <div class="stack">
@@ -1175,6 +1183,19 @@ function renderHealth(state) {
         <div class="card__body">
           ${confidenceGrid}
           ${confidence.detail ? `<div class="empty-state">${escapeHtml(confidence.detail)}</div>` : ""}
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card__header">
+          <div>
+            <h2 class="card__title">Storage health</h2>
+            <p class="card__subtitle">Disk usage summary and temp retention pressure.</p>
+          </div>
+        </div>
+        <div class="card__body">
+          ${storageGrid}
+          ${renderTable(["Area", "Size (MB)", "Path"], storageRows)}
         </div>
       </section>
     </div>

@@ -52,6 +52,9 @@ All notable changes to this project will be documented in this file.
 - Phase 4.3 eval-gate slice: `scripts/benchmark_tools.py` now supports strict threshold enforcement and CI runs a conditional strict benchmark gate for router/safety and benchmark harness changes
 - CLI chat control-center commands: added `/control`, `/policy`, `/settings`, and `/env` for in-session policy inspection/editing, runtime settings updates, and process environment management
 - Web dashboard chat now includes a Control Center panel with policy/settings/env editors, quick command buttons, and mic/speaker/camera/OCR capability toggles to match CLI control workflows
+- Phase 4.2 completion slices: deterministic timeout handling for Android ADB and PC process-list probes, ingestion score-threshold enforcement (`--min-final-score`) with filtered-count reporting, and integration exit-gate coverage for router-policy-adapter reliability plus ingestion trust filtering
+- Storage hardening package: retention settings keys in `config/settings.yaml`, storage health telemetry in dashboard/API (`/api/health`, `/api/state`, `/api/storage`), and safe cleanup automation via `scripts/storage_cleanup.py` (dry-run default)
+- Phase 4.3 benchmark-depth slice: benchmark harness now supports external case datasets (`--cases`) and richer metrics (`status_match_rate`, `executed_action_success_rate`, per-category match rates)
 
 ### Changed
 
@@ -73,6 +76,7 @@ All notable changes to this project will be documented in this file.
 - `training/config.py` now includes typed Phase 4.5 settings for local reasoning backend, llama-cpp runtime tuning, perception loop controls, and memory backend pathing
 - Updated `docs/CONFIGURATION.md` with Phase 4.5 environment variable reference for local brain and embodied runtime controls
 - Updated `README.md` and `docs/USER_GUIDE.md` with voice-mode launch and STT/TTS setup guidance
+- Updated roadmap/status/context docs to mark Phase 4.2 complete and move immediate priority to Phase 4.3 benchmark and regression-depth expansion
 
 ### Fixed
 

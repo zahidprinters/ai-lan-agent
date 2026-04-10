@@ -47,13 +47,13 @@ Keep Phase 4 and Phase 5 intake narrow: one framework per capability, tests firs
 
 ## Immediate Next Build Sequence
 
-1. **Phase 4.1:** lock one stack per capability from `docs/OPEN_SOURCE_REFERENCE.md` and keep policy defaults in safe mode.
-2. **Phase 4.2:** expand PC/Android adapters and ingestion connectors with strict allowlists and deterministic failures.
-3. **Phase 4.3:** add integration + benchmark gates (tool success, refusal quality, latency) and enforce thresholds.
-4. **Phase 4.4:** add reliability controls: reflection in ReAct loops, post-action state verification, and deterministic replay checks for policy/router changes.
-5. **Phase 4.5:** build the minimum embodied CPU stack (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`, `llama.cpp`) behind local facades and safety checks.
-6. **Phase 5.1:** integrate one persistent memory backend and verify retrieval quality under tests.
-7. **Phase 5.2+:** run offline learning with model-registry promotion/rollback gates plus benchmark-regression blocking, then add orchestration only when scale requires it.
+1. **Phase 4.3:** expand integration + benchmark gates (tool success, refusal quality, latency) and enforce thresholds with broader datasets and trace depth.
+2. **Phase 4.5A (Reasoning-first):** strengthen local reasoning before vision by improving planner quality, multi-step plan/reflection behavior, tool-aware prompting, and GGUF backend reliability (`llama.cpp` path + deterministic fallback).
+3. **Phase 4.5B (Embodied perception):** after reasoning gates are stable, build the embodied CPU stack (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`) behind local facades and safety checks.
+4. **Phase 5.1:** integrate one persistent memory backend and verify retrieval quality under tests.
+5. **Phase 5.2+:** run offline learning with model-registry promotion/rollback gates plus benchmark-regression blocking, then add orchestration only when scale requires it.
+
+Execution rule for this cycle: prefer brain-first upgrades (reasoning/planning quality) before eye/ear expansion (vision/audio perception depth).
 
 ## Reliability Pillars (Production-Grade Overlay)
 

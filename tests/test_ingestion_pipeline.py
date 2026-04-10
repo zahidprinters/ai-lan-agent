@@ -59,6 +59,43 @@ def test_run_ingestion_pipeline_dedupes_documents_and_lines(tmp_path: Path) -> N
     assert len(payload["documents"]) == 2
 
 
+def test_run_ingestion_pipeline_filters_low_score_sources(tmp_path: Path) -> None:
+    sources = [
+        IngestionSource(
+            name="high-quality",
+            source_type="inline",
+            location=(
+                "This source has rich content for trust scoring.\n"
+                "Second meaningful line for quality evaluation.\n"
+                "Third line keeps the document above threshold."
+            ),
+            trust_score=0.9,
+        ),
+        IngestionSource(
+            name="low-quality",
+            source_type="inline",
+            location="dup\ndup\n\x01bad",
+            trust_score=0.2,
+        ),
+    ]
+
+    merged_path = tmp_path / "merged.txt"
+    report_path = tmp_path / "report.json"
+    report = run_ingestion_pipeline(
+        sources,
+        merged_output_path=merged_path,
+        report_output_path=report_path,
+        min_final_score=0.5,
+    )
+
+    assert report.source_count == 2
+    assert report.filtered_low_score_count == 1
+    assert report.kept_count == 1
+    assert [document.name for document in report.documents] == ["high-quality"]
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    assert payload["filtered_low_score_count"] == 1
+
+
 def test_merge_documents_preserves_first_seen_order() -> None:
     documents = [
         IngestionSource(name="a", source_type="inline", location="one\ntwo", trust_score=0.6),
@@ -119,3 +156,4 @@ def test_ingest_sources_cli_writes_outputs(tmp_path: Path) -> None:
     ]
     payload = json.loads(report_path.read_text(encoding="utf-8"))
     assert payload["duplicate_count"] == 0
+    assert payload["filtered_low_score_count"] == 0

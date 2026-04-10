@@ -140,9 +140,9 @@ Technical polish for this overlay:
 - [x] **Audit Logging:** Persist every action request/result for reproducibility and rollback analysis.
 - [x] **Policy Engine (Foundation):** Enforce deny/allow rules by tool/action and execution context.
 - [ ] **Evaluation Harness:** Add benchmarks for tool success rate, latency, and safety refusal quality.
-- [ ] **Reflection Controller:** Add bounded self-correction in ReAct loops when a tool result fails or is inconsistent.
-- [ ] **Action State Verification:** Add follow-up verification tools/checks for selected side-effect actions (for example app launch confirmation).
-- [ ] **Deterministic Replay Gate:** Require dry-run replay checks against `action_audit.jsonl` for router/policy changes.
+- [x] **Reflection Controller:** Add bounded self-correction in ReAct loops when a tool result fails or is inconsistent.
+- [x] **Action State Verification:** Add follow-up verification tools/checks for selected side-effect actions (for example app launch confirmation).
+- [x] **Deterministic Replay Gate:** Require dry-run replay checks against `action_audit.jsonl` for router/policy changes.
 
 ---
 

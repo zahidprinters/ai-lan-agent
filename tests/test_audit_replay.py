@@ -6,7 +6,10 @@ from pathlib import Path
 import pytest
 
 from router.dispatch_core import ToolSpec, dispatch_agent_action
-from scripts.replay_audit import replay_audit_log
+from scripts.replay_audit import replay_audit_log, should_fail_strict, write_replay_report
+
+
+FIXTURES = Path(__file__).resolve().parent / "fixtures" / "replay"
 
 
 @pytest.mark.unit
@@ -112,3 +115,35 @@ def test_replay_audit_log_reports_decision_matches(tmp_path: Path) -> None:
     assert report["total_rows"] == 2
     assert report["parse_errors"] == 0
     assert report["decision_match_rate"] == 1.0
+    assert report["summary"] == {"matched": 2, "diverged": 0, "skipped": 0}
+
+
+@pytest.mark.unit
+def test_replay_audit_strict_pass_fixture() -> None:
+    report = replay_audit_log(FIXTURES / "strict_pass.jsonl")
+
+    assert report["summary"] == {"matched": 2, "diverged": 0, "skipped": 0}
+    assert should_fail_strict(report) is False
+
+
+@pytest.mark.unit
+def test_replay_audit_strict_fail_fixture() -> None:
+    report = replay_audit_log(FIXTURES / "strict_fail.jsonl")
+
+    assert report["summary"] == {"matched": 0, "diverged": 1, "skipped": 0}
+    assert report["mismatch_count"] == 1
+    assert should_fail_strict(report) is True
+
+
+@pytest.mark.unit
+def test_replay_audit_deterministic_output_equivalence(tmp_path: Path) -> None:
+    report_one = replay_audit_log(FIXTURES / "strict_pass.jsonl")
+    report_two = replay_audit_log(FIXTURES / "strict_pass.jsonl")
+
+    output_one = tmp_path / "report_one.json"
+    output_two = tmp_path / "report_two.json"
+    write_replay_report(output_one, report_one)
+    write_replay_report(output_two, report_two)
+
+    assert report_one == report_two
+    assert output_one.read_text(encoding="utf-8") == output_two.read_text(encoding="utf-8")

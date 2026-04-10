@@ -45,6 +45,7 @@ AI Lan uses a modular layout with direct package folders (not a single `ai_lan.*
 - Embodied AI roadmap foundation: documented CPU-first vision, speech, and local reasoning shortlist plus future `perception/vision/` and `perception/audio/` package split.
 - Phase 4.4 RL-01 reflection reliability slice: ReAct runtime now performs bounded self-correction retries for recoverable tool failures with repeated-action suppression and deterministic stop reasons.
 - Phase 4.4 RL-02 verification reliability slice: selected side-effect actions now attach explicit post-action verification metadata so launch requests do not silently count as trustworthy outcomes.
+- Phase 4.4 RL-05 replay reliability slice: audit replay now emits deterministic matched/diverged/skipped summaries, supports strict failure mode, and is wired into CI for router/policy changes.
 
 ## Cleanup and Quality Enhancements (Latest)
 

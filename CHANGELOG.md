@@ -44,6 +44,7 @@ All notable changes to this project will be documented in this file.
 - Added voice runtime tests for STT fallback path and voice CLI loop behavior
 - RL-01 reliability slice: bounded reflection retries in the ReAct runtime with repeated-action suppression and explicit skip reasons when recovery or retry budget is exhausted
 - RL-02 reliability slice: selected side-effect router actions now include verification metadata (`verified`, `not_verified`, `verification_failed`) in their observation payloads
+- RL-05 reliability slice: audit replay now emits deterministic `matched` / `diverged` / `skipped` summaries, supports strict nonzero exits, and is wired into CI for router/policy changes
 
 ### Changed
 

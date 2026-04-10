@@ -1,0 +1,2 @@
+{"timestamp":"2026-04-10T00:00:00+00:00","request":{"thought":"Search docs","action":"web.search","args":{"query":"AI Lan"},"safety_level":"low"},"result":{"status":"executed","action":"web.search","observation":[],"policy_reason":"allowed"}}
+{"timestamp":"2026-04-10T00:00:01+00:00","request":{"thought":"Run shell","action":"pc.execute_shell","args":{"command":"dir"},"safety_level":"high"},"result":{"status":"rejected","action":"pc.execute_shell","observation":null,"policy_reason":"disabled"}}

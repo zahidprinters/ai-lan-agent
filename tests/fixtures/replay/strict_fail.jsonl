@@ -1,0 +1,1 @@
+{"timestamp":"2026-04-10T00:00:00+00:00","request":{"thought":"Search docs","action":"web.search","args":{"query":"AI Lan"},"safety_level":"low"},"result":{"status":"rejected","action":"web.search","observation":null,"policy_reason":"disabled"}}

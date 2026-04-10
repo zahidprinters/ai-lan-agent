@@ -63,6 +63,8 @@ Keep Phase 4 and Phase 5 intake narrow: one framework per capability, tests firs
 - Dynamic policy: elevate safety requirements using runtime/perception context.
 - Deterministic dry-run replay: validate new policy/router behavior against historical logs before rollout.
 
+Current Phase 4.4 status: reflection retries, post-action verification, and strict deterministic replay gating are now implemented as the reliability foundation.
+
 ## Safety & Control Requirements
 
 - High-risk actions require explicit confirmation.

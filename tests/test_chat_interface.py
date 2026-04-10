@@ -239,6 +239,41 @@ def test_chat_session_runs_multi_step_neural_loop(monkeypatch: Any) -> None:
     assert session.last_plan["mode"] == "reply"
 
 
+def test_chat_session_recovers_after_reflection_retry(monkeypatch: Any) -> None:
+    monkeypatch.setenv("AI_LAN_REFLECTION_RETRIES", "1")
+    monkeypatch.setenv("AI_LAN_REFLECTION_RETRIES_PER_TURN", "3")
+
+    calls: list[dict[str, object]] = []
+
+    def fake_parse_and_dispatch(
+        payload: dict[str, object], *, confirmed: bool = False
+    ) -> dict[str, object]:
+        assert confirmed is False
+        calls.append(payload)
+        if len(calls) == 1:
+            return {
+                "status": "failed",
+                "action": "web.search",
+                "policy_reason": "timeout",
+                "observation": None,
+            }
+        return {
+            "status": "executed",
+            "action": "web.search",
+            "policy_reason": "ok",
+            "observation": {"results": [{"title": "AI LAN roadmap"}]},
+        }
+
+    monkeypatch.setattr("agents.react.agent.parse_and_dispatch", fake_parse_and_dispatch)
+
+    session = ChatSession()
+    reply = session.handle_message("search ai lan roadmap")
+
+    assert "status: executed" in reply
+    assert len(calls) == 2
+    assert calls[1]["args"] == {"query": "ai lan roadmap fallback"}
+
+
 def test_chat_session_includes_perception_snapshot_in_context(monkeypatch: Any) -> None:
     session = ChatSession()
     session.perception_snapshot = PerceptionSnapshot(

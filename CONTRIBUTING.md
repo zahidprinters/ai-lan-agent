@@ -13,15 +13,18 @@ Thank you for considering contributing to this project! Your help is welcome and
 7. If your change touches embodied AI, use the CPU-first shortlist (`mss`, `OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`, `llama.cpp`) before adding heavier alternatives.
 
 ## Code Style
+
 - Follow PEP8 for Python code.
 - Use descriptive variable and function names.
 - Add docstrings to all public modules, classes, and functions.
 - Use type hints where possible.
 
 ## Reporting Issues
+
 - Use the GitHub Issues page to report bugs or request features.
 - Provide as much detail as possible (steps to reproduce, environment, etc.).
 
 ## Community
+
 - Be respectful and constructive in all communications.
 - See the CODE_OF_CONDUCT.md for expected behavior.

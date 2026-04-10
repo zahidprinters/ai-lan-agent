@@ -7,3 +7,4 @@ from dataclasses import dataclass, field
 class ReactState:
     thoughts: list[str] = field(default_factory=list)
     observations: list[str] = field(default_factory=list)
+    reflection_retries_used: int = 0

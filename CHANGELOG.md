@@ -42,6 +42,8 @@ All notable changes to this project will be documented in this file.
 - Added audit replay dry-run workflow (`scripts/replay_audit.py`) to simulate historical action requests against current router/policy behavior without executing side effects
 - Added focused tests for local-brain backend fallback/selection and perception loop snapshot lifecycle
 - Added voice runtime tests for STT fallback path and voice CLI loop behavior
+- RL-01 reliability slice: bounded reflection retries in the ReAct runtime with repeated-action suppression and explicit skip reasons when recovery or retry budget is exhausted
+- RL-02 reliability slice: selected side-effect router actions now include verification metadata (`verified`, `not_verified`, `verification_failed`) in their observation payloads
 
 ### Changed
 

@@ -106,6 +106,90 @@ def test_react_agent_tracks_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert step.result["action"] == "pc.list_workspace_files"
 
 
+def test_react_agent_reflection_retries_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AI_LAN_REFLECTION_RETRIES", "1")
+    monkeypatch.setenv("AI_LAN_REFLECTION_RETRIES_PER_TURN", "3")
+
+    calls: list[dict[str, object]] = []
+
+    def fake_parse_and_dispatch(
+        payload: dict[str, object], *, confirmed: bool = False
+    ) -> dict[str, object]:
+        assert confirmed is False
+        calls.append(payload)
+        if len(calls) == 1:
+            return {
+                "status": "failed",
+                "action": "web.search",
+                "policy_reason": "timeout",
+                "observation": None,
+            }
+        return {
+            "status": "executed",
+            "action": "web.search",
+            "policy_reason": "ok",
+            "observation": {"results": [{"title": "AI LAN"}]},
+        }
+
+    monkeypatch.setattr("agents.react.agent.parse_and_dispatch", fake_parse_and_dispatch)
+
+    agent = ReactAgent()
+    step = agent.run_step(
+        {
+            "thought": "search roadmap",
+            "action": "web.search",
+            "args": {"query": "ai lan roadmap"},
+            "safety_level": "low",
+        }
+    )
+
+    assert len(calls) == 2
+    assert calls[1]["args"] == {"query": "ai lan roadmap fallback"}
+    assert step.result["status"] == "executed"
+    assert step.result["reflection_retry_count"] == 1
+    assert step.result["reflection_applied"] is True
+
+
+def test_react_agent_reflection_budget_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AI_LAN_REFLECTION_RETRIES", "1")
+    monkeypatch.setenv("AI_LAN_REFLECTION_RETRIES_PER_TURN", "3")
+
+    calls = {"count": 0}
+
+    def fake_parse_and_dispatch(
+        payload: dict[str, object], *, confirmed: bool = False
+    ) -> dict[str, object]:
+        _ = payload
+        assert confirmed is False
+        calls["count"] += 1
+        return {
+            "status": "failed",
+            "action": "web.search",
+            "policy_reason": "timeout",
+            "observation": None,
+        }
+
+    monkeypatch.setattr("agents.react.agent.parse_and_dispatch", fake_parse_and_dispatch)
+
+    agent = ReactAgent()
+    payload = {
+        "thought": "search roadmap",
+        "action": "web.search",
+        "args": {"query": "ai lan roadmap"},
+        "safety_level": "low",
+    }
+    for _ in range(3):
+        step = agent.run_step(payload)
+        assert step.result["reflection_retry_count"] == 1
+
+    final_step = agent.run_step(payload)
+
+    assert calls["count"] == 7
+    assert final_step.result["reflection_retry_count"] == 0
+    assert final_step.result["reflection_skipped_reason"] == "retry_budget_exhausted"
+    assert agent.state.reflection_retries_used == 3
+
+
 def test_run_react_step_stateless_helper(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(tmp_path / "audit.jsonl"))
     result = run_react_step(

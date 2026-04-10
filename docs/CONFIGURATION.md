@@ -87,6 +87,8 @@ Android screenshot captures are also constrained to paths under `temp/` to keep 
 - **`AI_LAN_LLAMACPP_CTX`**: Context window for llama-cpp runtime.
 - **`AI_LAN_LLAMACPP_THREADS`**: CPU thread count for llama-cpp.
 - **`AI_LAN_LLAMACPP_GPU_LAYERS`**: GPU layer offload count (`0` for CPU-only).
+- **`AI_LAN_REFLECTION_RETRIES`**: Max reflection retries per ReAct step (default `1`).
+- **`AI_LAN_REFLECTION_RETRIES_PER_TURN`**: Max total reflection retries before the runtime stops retrying in a turn-like sequence (default `3`).
 - **`AI_LAN_PERCEPTION_ENABLED`**: Enable background perception loop (`0`/`1`).
 - **`AI_LAN_PERCEPTION_INTERVAL_SEC`**: Perception sampling interval in seconds.
 - **`AI_LAN_PERCEPTION_MAX_INTERVAL_SEC`**: Maximum interval cap for adaptive perception backoff.

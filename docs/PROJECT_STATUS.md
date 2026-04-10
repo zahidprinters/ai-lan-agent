@@ -43,6 +43,8 @@ AI Lan uses a modular layout with direct package folders (not a single `ai_lan.*
 - Evaluation and autonomy scaffolding (foundation): added tool benchmark harness plus offline learning/model registry scaffolds.
 - Offline-learning promotion guardrail: placeholder candidate artifacts are blocked from model-registry promotion.
 - Embodied AI roadmap foundation: documented CPU-first vision, speech, and local reasoning shortlist plus future `perception/vision/` and `perception/audio/` package split.
+- Phase 4.4 RL-01 reflection reliability slice: ReAct runtime now performs bounded self-correction retries for recoverable tool failures with repeated-action suppression and deterministic stop reasons.
+- Phase 4.4 RL-02 verification reliability slice: selected side-effect actions now attach explicit post-action verification metadata so launch requests do not silently count as trustworthy outcomes.
 
 ## Cleanup and Quality Enhancements (Latest)
 

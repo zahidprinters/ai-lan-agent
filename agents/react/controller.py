@@ -16,6 +16,7 @@ from router.schema import ActionSchemaError, parse_agent_action
 
 DEFAULT_TOOL_NAMES = tuple(sorted(TOOL_REGISTRY))
 DEFAULT_TOOL_SCHEMA = tuple(item.name for item in build_model_tool_schema())
+FAILED_TOOL_STATUSES = frozenset({"failed", "blocked", "blocked_policy", "adb_unavailable"})
 
 
 def _env_flag(name: str, default: bool = True) -> bool:
@@ -46,6 +47,76 @@ def _action_signature(action_payload: dict[str, object] | None) -> str:
     if not action_payload:
         return ""
     return json.dumps(action_payload, ensure_ascii=True, sort_keys=True)
+
+
+def action_signature(action_payload: dict[str, object] | None) -> str:
+    """Public wrapper used by the runtime for repeated-action suppression."""
+    return _action_signature(action_payload)
+
+
+def _is_empty_observation(observation: object) -> bool:
+    if observation is None:
+        return True
+    if isinstance(observation, str):
+        return not observation.strip()
+    if isinstance(observation, (list, tuple, dict, set)):
+        return len(observation) == 0
+    return False
+
+
+def is_reflection_candidate(
+    action_payload: dict[str, object], result: dict[str, Any]
+) -> bool:
+    status = str(result.get("status", "")).strip().lower()
+    if status in FAILED_TOOL_STATUSES:
+        return True
+
+    # Some tool adapters return success with no observation payload.
+    if status == "executed" and _is_empty_observation(result.get("observation")):
+        action_name = str(action_payload.get("action", "")).strip().lower()
+        return action_name in {
+            "web.search",
+            "memory.search",
+            "pc.list_workspace_files",
+            "context.build",
+        }
+    return False
+
+
+def build_reflection_payload(
+    action_payload: dict[str, object], result: dict[str, Any], *, retry_index: int
+) -> dict[str, object] | None:
+    """Build a deterministic one-step recovery payload for recoverable failures."""
+    if retry_index > 1:
+        return None
+
+    args_obj = action_payload.get("args")
+    args = dict(args_obj) if isinstance(args_obj, dict) else {}
+    adjusted = False
+
+    query = args.get("query")
+    if isinstance(query, str) and query.strip():
+        query_text = query.strip()
+        if "fallback" not in query_text.lower():
+            args["query"] = f"{query_text} fallback"
+            adjusted = True
+
+    if not adjusted:
+        return None
+
+    original_thought = str(action_payload.get("thought", "")).strip() or "Retry action"
+    status = str(result.get("status", "unknown")).strip().lower()
+    reflected = {
+        "thought": f"{original_thought} | reflection retry after {status}",
+        "action": action_payload.get("action", ""),
+        "args": args,
+        "safety_level": action_payload.get("safety_level", "low"),
+    }
+
+    try:
+        return parse_agent_action(reflected).to_dict()
+    except ActionSchemaError:
+        return None
 
 
 def _extract_json_object(text: str) -> dict[str, Any] | None:
@@ -244,4 +315,11 @@ class NeuralActionController:
         return results
 
 
-__all__ = ["NeuralActionController", "PlannedTurn"]
+__all__ = [
+    "FAILED_TOOL_STATUSES",
+    "NeuralActionController",
+    "PlannedTurn",
+    "action_signature",
+    "build_reflection_payload",
+    "is_reflection_candidate",
+]

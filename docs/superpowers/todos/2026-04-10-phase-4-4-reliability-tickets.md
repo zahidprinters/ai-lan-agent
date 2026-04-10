@@ -21,9 +21,11 @@ This ticket pack converts the Phase 4.4 reliability update into concrete impleme
 Priority: P0
 
 Objective:
+
 - Add bounded self-correction when a tool call fails or returns inconsistent observations.
 
 Implementation:
+
 - Update `agents/react/agent.py` and `agents/react/controller.py`.
 - Add a reflection branch:
   - Detect failed tool outcomes (`status in {"failed", "blocked", "blocked_policy", "adb_unavailable"}` and empty/invalid observations).
@@ -32,11 +34,13 @@ Implementation:
 - Add repeated-action suppression so reflection cannot loop infinitely.
 
 Acceptance Criteria:
+
 - Agent does not get stuck on repeating failed tool calls.
 - On recoverable failures, agent attempts an alternative once and continues.
 - On unrecoverable failures, agent exits with explicit reason and safe final response.
 
 Tests:
+
 - Add tests in `tests/test_chat_interface.py` and `tests/test_layered_modules.py`:
   - failed tool -> one reflection retry
   - repeated failure -> bounded stop
@@ -49,9 +53,11 @@ Tests:
 Priority: P0
 
 Objective:
+
 - Verify that side-effect actions actually changed real state.
 
 Implementation:
+
 - Add verification registry in `router/dispatch_core.py`.
 - For selected actions, run read-only verification tools after execution:
   - `pc.open_app` -> verify with `pc.list_running_apps`
@@ -61,10 +67,12 @@ Implementation:
   - `verification_detail`
 
 Acceptance Criteria:
+
 - Side-effect action responses include verification metadata.
 - Verification failures are explicit and do not silently pass.
 
 Tests:
+
 - Extend `tests/test_action_router.py`:
   - successful action + verified state
   - action executed but verification failed
@@ -77,9 +85,11 @@ Tests:
 Priority: P1
 
 Objective:
+
 - Block candidate model promotion when quality regresses below baseline.
 
 Implementation:
+
 - Add `scripts/benchmark_quality.py`.
 - Add standard prompt suite file `data/benchmarks/quality_prompts.json` (50 prompts split by logic/math/tool-choice).
 - Emit score artifact under `runs/quality/`.
@@ -91,10 +101,12 @@ Implementation:
   - `quality_guardrail_baseline_model`
 
 Acceptance Criteria:
+
 - Promotion command fails if candidate score is below threshold/baseline.
 - Score artifacts are persisted and traceable.
 
 Tests:
+
 - Add `tests/test_quality_guardrail.py`:
   - pass path (promotion allowed)
   - fail path (promotion blocked)
@@ -107,9 +119,11 @@ Tests:
 Priority: P1
 
 Objective:
+
 - Elevate safety requirements automatically in sensitive contexts.
 
 Implementation:
+
 - Update `safety/policy_engine.py`:
   - ingest compact perception signal from runtime context (`sensitive_context=true`).
   - when sensitive context is active, promote risky actions to high safety.
@@ -120,10 +134,12 @@ Implementation:
   - `sensitive_context_keywords`
 
 Acceptance Criteria:
+
 - Typing/screenshot actions require stronger confirmation under sensitive context.
 - Normal context behavior remains unchanged.
 
 Tests:
+
 - Add `tests/test_dynamic_safety.py`:
   - sensitive context -> stronger confirmation required
   - non-sensitive context -> existing confirmation behavior
@@ -135,9 +151,11 @@ Tests:
 Priority: P0
 
 Objective:
+
 - Make policy/router changes replay-validated before merge/release.
 
 Implementation:
+
 - Extend `scripts/replay_audit.py`:
   - deterministic summary output (matched, diverged, skipped)
   - strict nonzero exit on divergence when `--strict` is enabled
@@ -146,10 +164,12 @@ Implementation:
 - Add replay fixture bundle in `tests/fixtures/replay/`.
 
 Acceptance Criteria:
+
 - Replay gate can run in strict mode and fail on unexpected decision drift.
 - Output includes machine-readable summary JSON.
 
 Tests:
+
 - Extend `tests/test_audit_replay.py`:
   - strict pass
   - strict fail
@@ -162,17 +182,21 @@ Tests:
 Priority: P1
 
 Objective:
+
 - Ensure local runtime never becomes non-responsive when llama-cpp fails.
 
 Implementation:
+
 - Update `agents/react/controller.py` and `core/inference/local_reasoning.py`:
   - on llama load/run failure, immediately fallback to deterministic/classic mode
   - surface fallback reason in debug-safe response metadata
 
 Acceptance Criteria:
+
 - No user turn ends with empty response due to local-brain failure.
 
 Tests:
+
 - Extend `tests/test_local_reasoning.py` fallback paths.
 
 ---
@@ -182,9 +206,11 @@ Tests:
 Priority: P2
 
 Objective:
+
 - Expose operational health signals in dashboard/API.
 
 Implementation:
+
 - Add health endpoint in `api/server.py` and runtime provider in `runtime/dashboard_http.py`.
 - Add web route/tab under `web/` for:
   - CPU pressure/thermal proxy
@@ -192,9 +218,11 @@ Implementation:
   - model confidence summary
 
 Acceptance Criteria:
+
 - Health tab available in web dashboard and JSON endpoint.
 
 Tests:
+
 - Extend `tests/test_dashboard_api.py`.
 
 ---

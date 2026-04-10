@@ -165,7 +165,7 @@ function Get-ProjectPython {
 
 function Test-TcpPortOpen {
     param(
-        [string]$Host,
+        [string]$ComputerName,
         [int]$Port,
         [int]$TimeoutMs = 150
     )
@@ -173,7 +173,7 @@ function Test-TcpPortOpen {
     $client = $null
     try {
         $client = [System.Net.Sockets.TcpClient]::new()
-        $async = $client.BeginConnect($Host, $Port, $null, $null)
+        $async = $client.BeginConnect($ComputerName, $Port, $null, $null)
         if (-not $async.AsyncWaitHandle.WaitOne($TimeoutMs)) {
             return $false
         }
@@ -192,7 +192,7 @@ function Test-TcpPortOpen {
 
 function Get-WebDashboardStatus {
     $url = "http://{0}:{1}{2}" -f $script:DashboardWebHost, $script:DashboardWebPort, $script:DashboardWebPath
-    $running = Test-TcpPortOpen -Host $script:DashboardWebHost -Port $script:DashboardWebPort
+    $running = Test-TcpPortOpen -ComputerName $script:DashboardWebHost -Port $script:DashboardWebPort
     if ($running) {
         return [pscustomobject]@{
             Label = 'Running'

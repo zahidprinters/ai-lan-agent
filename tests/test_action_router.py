@@ -108,6 +108,65 @@ def test_dispatch_agent_action_requires_confirmation_for_type_text(
     assert confirmed.observation is True
 
 
+def test_dispatch_agent_action_pc_open_app_includes_verified_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(tmp_path / "audit.jsonl"))
+    monkeypatch.setitem(
+        action_router.TOOL_REGISTRY,
+        "pc.open_app",
+        action_router.ToolSpec(lambda app_name: f"opened {app_name}", ("app_name",)),
+    )
+    monkeypatch.setattr(
+        "router.dispatch_core.list_running_apps",
+        lambda limit=100: ["notepad.exe", "Code.exe"],
+    )
+
+    result = dispatch_agent_action(
+        {
+            "thought": "Open notepad.",
+            "action": "pc.open_app",
+            "args": {"app_name": "notepad"},
+            "safety_level": "medium",
+        },
+        confirmed=True,
+    )
+
+    assert result.status == "executed"
+    assert result.observation["result"] == "opened notepad"
+    assert result.observation["verification_status"] == "verified"
+    assert "notepad" in result.observation["verification_detail"].lower()
+
+
+def test_dispatch_agent_action_pc_open_app_not_verified_when_process_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(tmp_path / "audit.jsonl"))
+    monkeypatch.setitem(
+        action_router.TOOL_REGISTRY,
+        "pc.open_app",
+        action_router.ToolSpec(lambda app_name: f"opened {app_name}", ("app_name",)),
+    )
+    monkeypatch.setattr(
+        "router.dispatch_core.list_running_apps",
+        lambda limit=100: ["Code.exe", "python.exe"],
+    )
+
+    result = dispatch_agent_action(
+        {
+            "thought": "Open notepad.",
+            "action": "pc.open_app",
+            "args": {"app_name": "notepad"},
+            "safety_level": "medium",
+        },
+        confirmed=True,
+    )
+
+    assert result.status == "executed"
+    assert result.observation["verification_status"] == "not_verified"
+    assert "no running process matched" in result.observation["verification_detail"].lower()
+
+
 def test_parse_and_dispatch_returns_structured_router_result(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -325,6 +384,10 @@ def test_dispatch_agent_action_android_launch_app_runs_for_allowlisted_package(
         return subprocess.CompletedProcess(command, 0, stdout="Starting: Intent", stderr="")
 
     monkeypatch.setattr("tools.android.adb.run_adb_command", fake_run_adb)
+    monkeypatch.setattr(
+        "router.dispatch_core.list_devices",
+        lambda: [{"device_id": "emulator-5554", "status": "device", "detail": ""}],
+    )
 
     result = dispatch_agent_action(
         {
@@ -338,6 +401,41 @@ def test_dispatch_agent_action_android_launch_app_runs_for_allowlisted_package(
 
     assert result.status == "executed"
     assert result.observation["status"] == "ok"
+    assert result.observation["verification_status"] == "verified"
+
+
+def test_dispatch_agent_action_android_launch_app_verification_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(tmp_path / "audit.jsonl"))
+    monkeypatch.setenv("AI_LAN_ANDROID_ALLOW_SIDE_EFFECTS", "1")
+    monkeypatch.setenv("AI_LAN_ANDROID_ALLOWED_PACKAGES", "com.example.app")
+
+    def fake_run_adb(command: list[str], *, text: bool = True) -> subprocess.CompletedProcess[str]:
+        assert command[-1] == "com.example.app"
+        return subprocess.CompletedProcess(command, 0, stdout="Starting: Intent", stderr="")
+
+    monkeypatch.setattr("tools.android.adb.run_adb_command", fake_run_adb)
+
+    def failing_list_devices() -> list[dict[str, str]]:
+        raise RuntimeError("adb probe unavailable")
+
+    monkeypatch.setattr("router.dispatch_core.list_devices", failing_list_devices)
+
+    result = dispatch_agent_action(
+        {
+            "thought": "Launch mobile app.",
+            "action": "android.launch_app",
+            "args": {"package_name": "com.example.app"},
+            "safety_level": "medium",
+        },
+        confirmed=True,
+    )
+
+    assert result.status == "executed"
+    assert result.observation["status"] == "ok"
+    assert result.observation["verification_status"] == "verification_failed"
+    assert "verification error" in result.observation["verification_detail"].lower()
 
 
 def test_dispatch_agent_action_android_list_devices_low_risk(

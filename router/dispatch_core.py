@@ -51,6 +51,12 @@ class ActionExecutionResult:
         return asdict(self)
 
 
+@dataclass(frozen=True)
+class VerificationResult:
+    status: str
+    detail: str
+
+
 @sentinel
 def _memory_search_tool(
     query: str,
@@ -142,6 +148,91 @@ TOOL_REGISTRY: dict[str, ToolSpec] = {
 }
 
 
+def _normalize_process_name(value: str) -> str:
+    normalized = value.strip().lower()
+    if normalized.endswith(".exe"):
+        return normalized[:-4]
+    return normalized
+
+
+@sentinel
+def _verify_pc_open_app(action: AgentAction, observation: object) -> VerificationResult:
+    _ = observation
+    app_name = str(action.args.get("app_name", "")).strip()
+    if not app_name:
+        return VerificationResult("verification_failed", "Missing app_name for verification.")
+
+    running = list_running_apps(limit=100)
+    if running and str(running[0]).startswith("unavailable:"):
+        return VerificationResult("verification_failed", str(running[0]))
+
+    target = _normalize_process_name(app_name)
+    matches = []
+    for item in running:
+        candidate = _normalize_process_name(str(item))
+        if target == candidate or target in candidate or candidate in target:
+            matches.append(str(item))
+
+    if matches:
+        detail = f"Verified running app match for '{app_name}': {matches[0]}"
+        return VerificationResult("verified", detail)
+
+    return VerificationResult(
+        "not_verified", f"No running process matched requested app '{app_name}'."
+    )
+
+
+@sentinel
+def _verify_android_launch_app(action: AgentAction, observation: object) -> VerificationResult:
+    if not isinstance(observation, dict):
+        return VerificationResult(
+            "verification_failed", "Launch observation was not a structured object."
+        )
+
+    launch_status = str(observation.get("status", "")).strip().lower()
+    launch_detail = str(observation.get("detail", "")).strip()
+    if launch_status != "ok":
+        detail = launch_detail or f"Launch returned status '{launch_status or 'unknown'}'."
+        return VerificationResult("not_verified", detail)
+
+    devices = list_devices()
+    available = [
+        item
+        for item in devices
+        if isinstance(item, dict) and str(item.get("status", "")).strip().lower() == "device"
+    ]
+    if not available:
+        unavailable = next(
+            (
+                str(item.get("detail", "")).strip() or str(item.get("status", "")).strip()
+                for item in devices
+                if isinstance(item, dict)
+            ),
+            "No connected Android devices were available for verification.",
+        )
+        return VerificationResult("verification_failed", unavailable)
+
+    requested_device = str(action.args.get("device_id", "")).strip()
+    if requested_device:
+        matched = any(str(item.get("device_id", "")).strip() == requested_device for item in available)
+        if not matched:
+            return VerificationResult(
+                "not_verified",
+                f"Launch reported success but device '{requested_device}' was not present during verification.",
+            )
+
+    return VerificationResult(
+        "verified",
+        launch_detail or "Launch reported success and at least one target device remained available.",
+    )
+
+
+VERIFICATION_REGISTRY: dict[str, Callable[[AgentAction, object], VerificationResult]] = {
+    "pc.open_app": _verify_pc_open_app,
+    "android.launch_app": _verify_android_launch_app,
+}
+
+
 def _get_audit_log_path() -> Path:
     configured_path = os.getenv("AI_LAN_ACTION_AUDIT_PATH")
     if configured_path:
@@ -178,6 +269,36 @@ def append_action_audit_log(action: AgentAction, result: ActionExecutionResult) 
     }
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(payload, ensure_ascii=True) + "\n")
+
+
+def _augment_observation_with_verification(
+    observation: object,
+    verification: VerificationResult,
+) -> Any:
+    if isinstance(observation, dict):
+        enriched = dict(observation)
+    else:
+        enriched = {"result": observation}
+    enriched["verification_status"] = verification.status
+    enriched["verification_detail"] = verification.detail
+    return enriched
+
+
+@sentinel
+def _run_post_action_verification(action: AgentAction, observation: object) -> object:
+    verifier = VERIFICATION_REGISTRY.get(action.action)
+    if verifier is None:
+        return observation
+
+    try:
+        verification = verifier(action, observation)
+    except Exception as exc:
+        verification = VerificationResult(
+            status="verification_failed",
+            detail=f"Verification error: {exc}",
+        )
+
+    return _augment_observation_with_verification(observation, verification)
 
 
 @sentinel
@@ -232,6 +353,7 @@ def dispatch_agent_action(
 
     tool_spec = TOOL_REGISTRY[action.action]
     observation = tool_spec.handler(**action.args)
+    observation = _run_post_action_verification(action, observation)
     result = ActionExecutionResult(
         status="executed",
         action=action.action,

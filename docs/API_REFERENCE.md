@@ -231,7 +231,9 @@ This document provides a detailed breakdown of the functions, classes, and modul
 AI Lan uses a structured loop for autonomous tool use.
 
 ### 1. The Request (Input)
+
 The model generates a "Thought" and an "Action" in JSON format:
+
 ```json
 {
   "thought": "I need to know the current CPU usage.",
@@ -241,13 +243,17 @@ The model generates a "Thought" and an "Action" in JSON format:
 ```
 
 ### 2. The Dispatch (Router)
+
 The `Action Router` receives the payload and:
+
 - **Validates:** Checks if `pc.get_system_status` exists and args match.
 - **Authorizes:** Checks `safety/policy_engine.py`. Read-only actions are allowed immediately; write actions (like `pc.open_app`) return `status: "confirmation_required"`.
 - **Executes:** Calls the underlying Python tool.
 
 ### 3. The Observation (Output)
+
 The router returns an `ActionExecutionResult` which the model reads as its next context:
+
 ```json
 {
   "status": "executed",
@@ -259,6 +265,22 @@ The router returns an `ActionExecutionResult` which the model reads as its next 
   }
 }
 ```
+
+For selected side-effect actions, the router also injects verification metadata into the observation payload after execution:
+
+```json
+{
+  "status": "executed",
+  "action": "pc.open_app",
+  "observation": {
+    "result": "opened notepad",
+    "verification_status": "verified",
+    "verification_detail": "Verified running app match for 'notepad': notepad.exe"
+  }
+}
+```
+
+`verification_status` is one of `verified`, `not_verified`, or `verification_failed`.
 
 ---
 

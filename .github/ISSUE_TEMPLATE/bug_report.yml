@@ -1,0 +1,61 @@
+name: Bug report
+description: Create a report to help us improve AI Lan
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us what you expected to happen.
+      placeholder: Tell us what you see!
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: How to reproduce?
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Run `python main.py`
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Info
+      description: OS version, Python version, hardware profile, and whether .venv is active.
+      placeholder: Win11, Python 3.11, i5-8350U, .venv active
+    validations:
+      required: true
+  - type: textarea
+    id: action-payload
+    attributes:
+      label: Action Payload (if router/safety related)
+      description: Paste the JSON payload used for dispatch, if applicable.
+      render: json
+  - type: textarea
+    id: policy-context
+    attributes:
+      label: Policy Context (if applicable)
+      description: Include relevant lines from config/policies.yaml and whether confirmation was provided.
+      placeholder: "Action in require_confirmation, confirmed=false"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Please paste any relevant logs here.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submit checks
+      options:
+        - label: I reproduced this with the latest local changes.
+          required: true
+        - label: I included exact command(s) and/or payload(s) to reproduce.
+          required: true

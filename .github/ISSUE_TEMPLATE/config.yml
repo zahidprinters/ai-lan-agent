@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security disclosure
+    url: mailto:zahid_printers@yahoo.com
+    about: Please report vulnerabilities privately and do not open public issues.

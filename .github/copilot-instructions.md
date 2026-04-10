@@ -13,6 +13,13 @@
 - Follow the separation documented in `docs/PROJECT_STRUCTURE.md` and `docs/ARCHITECTURE.md`: agents think, tools act, memory remembers, safety controls.
 - Route behavior changes through the owning layer rather than cross-layer shortcuts (for example, avoid embedding policy logic in tool execution code).
 
+## Current Phase Status
+- Phase 4.1 safety freeze behavior is active: router dispatch is schema-validated, policy-gated, and audit-logged.
+- Policy sets are runtime-loaded from `config/policies.yaml` (allow/deny/require_confirmation) with safe fallback defaults in `safety/policy_engine.py`.
+- Optional Phase 4 stack is integrated behind facades: Playwright + Tavily + Tesseract + ADB/scrcpy.
+- Audit replay is available via `scripts/replay_audit.py` and router dry-run mode (`dispatch_agent_action(..., dry_run=True)`) for side-effect-free policy evaluation.
+- Sentinel trace output now sanitizes sensitive values before logging; preserve this behavior when changing observability code.
+
 ## Build and Test
 - Default fast validation: `python -m pytest tests -m unit -q --disable-warnings`.
 - Broader validation before finishing larger changes: `python -m pytest tests -q --disable-warnings --ignore=tests/integration`.
@@ -33,6 +40,7 @@
 
 ## High-Risk Areas
 - `router/`, `safety/`, `actions/`: policy, confirmation, and dispatch correctness.
+- `scripts/replay_audit.py`: audit decision replay correctness and deterministic comparison logic.
 - `training/checkpoints.py`, `training/model_registry.py`, `scripts/model_registry.py`: artifact metadata, normalization, and promotion safety.
 - `runtime/`, `api/`, `scripts/launch.py`: user-facing workflow and route behavior.
 - `config/` and `training/config.py`: environment and default behavior drift.
@@ -43,6 +51,9 @@
 - Add/update targeted tests when behavior changes.
 - Run the smallest relevant validation commands.
 - Update docs in the same change when config, workflow, API, or user-visible behavior changes.
+- For router/safety changes, include at least one confirmation-required and one rejection-path assertion.
+- For policy changes, verify `config/policies.yaml` and `safety/policy_engine.py` remain consistent.
+- For audit replay/dry-run changes, add tests under `tests/test_audit_replay.py`.
 
 ## Reference Docs
 - Read `docs/AI_CONTEXT.md` for current roadmap and handoff context.

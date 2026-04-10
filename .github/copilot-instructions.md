@@ -24,6 +24,7 @@
 - Default fast validation: `python -m pytest tests -m unit -q --disable-warnings`.
 - Broader validation before finishing larger changes: `python -m pytest tests -q --disable-warnings --ignore=tests/integration`.
 - PowerShell smoke check: `powershell -ExecutionPolicy Bypass -File main.ps1 check`.
+- Router and policy regression gate: `python scripts/replay_audit.py --input tests/fixtures/replay/strict_pass.jsonl --output temp/benchmarks/local_replay_report.json --strict`.
 - Treat integration tests, model training, export/quantization, and interactive CLI/web/API launch commands as non-default workflows unless the task requires them.
 - Validation ladder for typical edits:
 	- Small local fix: unit target for affected area.
@@ -32,11 +33,18 @@
 
 ## Conventions
 - Keep temporary files, caches, and generated scratch data inside `temp/`. Do not introduce hardcoded user-profile paths or system temp usage; tests already redirect temp via `tests/conftest.py`.
+- Prefer script entrypoints over ad hoc invocation: `main.ps1` for Windows orchestration and `scripts/launch.py` for runtime mode switching.
 - For new tool or action work, follow the project flow in `docs/AI_GUIDELINES.md`: define schema, define policy/confirmation behavior, implement a safe stub first, register it, then add tests.
 - Use shared checkpoint and run-summary helpers in `training/checkpoints.py` for resume, export, evaluation, generation, and indexing work. Checkpoint metadata is the source of truth, and run summaries may need normalization.
 - Before adding new external dependencies or capability stacks, consult `docs/OPEN_SOURCE_REFERENCE.md` and keep integrations behind local facades.
 - Preserve auditability for behavior changes: prefer explicit validation/error paths and avoid silent fallbacks that hide policy or metadata failures.
 - Treat model promotion and rollback as guarded workflows; avoid manual registry edits when helper APIs already exist.
+
+## Common Pitfalls
+- `.venv` not active: activate with `& .venv\Scripts\Activate.ps1` before any Python or pytest command.
+- Temp leakage: route all temporary and cache outputs to `temp/`, not system temp or user-profile paths.
+- Layer bypass: avoid implementing policy logic inside tools; route through `router/` and `safety/` ownership.
+- Shim edits: prefer changing owning implementations over compatibility shims unless the task is explicitly about migration wiring.
 
 ## High-Risk Areas
 - `router/`, `safety/`: policy, confirmation, and dispatch correctness.
@@ -62,3 +70,10 @@
 - Read `docs/TESTING_GUIDELINES.md` for test execution expectations.
 - Read `docs/API_REFERENCE.md` for API contracts and route behavior.
 - Read `docs/USER_GUIDE.md` for runtime and chat/dashboard usage expectations.
+
+## Docs Map (Link, Don't Embed)
+- Architecture and boundaries: `docs/ARCHITECTURE.md`, `docs/PROJECT_STRUCTURE.md`, `docs/AGENCY_MAP.md`.
+- Runtime and operations: `docs/USER_GUIDE.md`, `docs/DEBUGGING_GUIDE.md`, `docs/RESOURCE_INVENTORY.md`.
+- Configuration and safety: `docs/CONFIGURATION.md`, `docs/SECURITY_POLICY.md`, `config/policies.yaml`.
+- Testing and validation gates: `docs/TESTING_GUIDELINES.md`.
+- Training and registry workflows: `docs/AI_CONTEXT.md`, `training/checkpoints.py`, `training/model_registry.py`.

@@ -5,7 +5,7 @@ from tools.perception.vision import capture_screen_text
 
 def test_capture_screen_text():
     # Clear any existing screenshot
-    screenshot_path = Path("temp/screen.png")
+    screenshot_path = Path("temp/vision/screen.png")
     if screenshot_path.exists():
         screenshot_path.unlink()
 

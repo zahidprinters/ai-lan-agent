@@ -248,6 +248,15 @@ def _env_bool(name: str, default: bool) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _env_float(name: str, default: float, *, minimum: float = 0.0) -> float:
+    raw = os.getenv(name, str(default)).strip()
+    try:
+        parsed = float(raw)
+    except ValueError:
+        return default
+    return max(minimum, parsed)
+
+
 def parse_natural_action(message: str) -> dict[str, object] | None:
     text = message.strip()
     lowered = text.lower()
@@ -434,6 +443,12 @@ class ChatSession:
     perception_adaptive: bool = field(
         default_factory=lambda: _env_bool("AI_LAN_PERCEPTION_ADAPTIVE", True)
     )
+    perception_min_ocr_confidence: float = field(
+        default_factory=lambda: _env_float("AI_LAN_PERCEPTION_MIN_OCR_CONFIDENCE", 45.0, minimum=0.0)
+    )
+    perception_max_samples_per_tick: int = field(
+        default_factory=lambda: _env_int("AI_LAN_PERCEPTION_MAX_SAMPLES_PER_TICK", 1)
+    )
     runtime_context_max_chars: int = field(
         default_factory=lambda: _env_int("AI_LAN_RUNTIME_CONTEXT_MAX_CHARS", 4000, minimum=256)
     )
@@ -448,6 +463,8 @@ class ChatSession:
                 interval_sec=self.perception_interval_sec,
                 max_interval_sec=self.perception_max_interval_sec,
                 adaptive=self.perception_adaptive,
+                min_ocr_confidence=self.perception_min_ocr_confidence,
+                max_samples_per_tick=self.perception_max_samples_per_tick,
                 on_snapshot=self._handle_perception_snapshot,
             )
         except TypeError:
@@ -503,6 +520,10 @@ class ChatSession:
                 memory_backend=self.memory_backend,
                 chroma_path=self.chroma_path,
                 perception_summary=(self.perception_snapshot.summary if self.perception_snapshot else None),
+                perception_source=(self.perception_snapshot.source if self.perception_snapshot else None),
+                perception_confidence=(
+                    self.perception_snapshot.average_confidence if self.perception_snapshot else None
+                ),
                 max_context_chars=self.runtime_context_max_chars,
                 merged_corpus_path=self.merged_corpus_path,
             )
@@ -751,6 +772,8 @@ class ChatSession:
         perception_interval_obj = payload_obj.get("perception_interval_sec")
         perception_max_interval_obj = payload_obj.get("perception_max_interval_sec")
         perception_adaptive_obj = payload_obj.get("perception_adaptive")
+        perception_min_ocr_confidence_obj = payload_obj.get("perception_min_ocr_confidence")
+        perception_max_samples_per_tick_obj = payload_obj.get("perception_max_samples_per_tick")
         runtime_context_max_chars_obj = payload_obj.get("runtime_context_max_chars")
         perception_snapshot_obj = payload_obj.get("perception_snapshot")
 
@@ -778,17 +801,33 @@ class ChatSession:
             self.perception_max_interval_sec = perception_max_interval_obj
         if isinstance(perception_adaptive_obj, bool):
             self.perception_adaptive = perception_adaptive_obj
+        if isinstance(perception_min_ocr_confidence_obj, (int, float)):
+            self.perception_min_ocr_confidence = float(perception_min_ocr_confidence_obj)
+        if isinstance(perception_max_samples_per_tick_obj, int):
+            self.perception_max_samples_per_tick = max(1, perception_max_samples_per_tick_obj)
         if isinstance(runtime_context_max_chars_obj, int):
             self.runtime_context_max_chars = runtime_context_max_chars_obj
         if isinstance(perception_snapshot_obj, dict):
             timestamp = str(perception_snapshot_obj.get("timestamp", "")).strip()
             summary = str(perception_snapshot_obj.get("summary", "")).strip()
             source = str(perception_snapshot_obj.get("source", "screen_ocr")).strip() or "screen_ocr"
+            average_confidence_obj = perception_snapshot_obj.get("average_confidence")
+            sample_count_obj = perception_snapshot_obj.get("sample_count")
+            average_confidence = (
+                float(average_confidence_obj)
+                if isinstance(average_confidence_obj, (int, float))
+                else None
+            )
+            sample_count = (
+                max(1, int(sample_count_obj)) if isinstance(sample_count_obj, int) else 1
+            )
             if timestamp and summary:
                 self.perception_snapshot = PerceptionSnapshot(
                     timestamp=timestamp,
                     summary=summary,
                     source=source,
+                    average_confidence=average_confidence,
+                    sample_count=sample_count,
                 )
         self._reset_short_term_buffer()
         return target
@@ -823,6 +862,8 @@ class ChatSession:
             "perception_interval_sec": self.perception_interval_sec,
             "perception_max_interval_sec": self.perception_max_interval_sec,
             "perception_adaptive": self.perception_adaptive,
+            "perception_min_ocr_confidence": self.perception_min_ocr_confidence,
+            "perception_max_samples_per_tick": self.perception_max_samples_per_tick,
             "runtime_context_max_chars": self.runtime_context_max_chars,
             "perception_snapshot": (
                 self.perception_snapshot.to_dict() if self.perception_snapshot is not None else None

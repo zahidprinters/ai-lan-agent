@@ -37,11 +37,26 @@ def _configure_tesseract() -> None:
         pass
 
 
-@sentinel
-def run_ocr(image_path: str) -> dict[str, str]:
-    """Run Tesseract OCR on the given image file.
+def _coerce_confidence(raw_value: object) -> float | None:
+    try:
+        value = float(str(raw_value).strip())
+    except (TypeError, ValueError):
+        return None
+    if value < 0:
+        return None
+    return value
 
-    Returns a dict with keys ``status``, ``text``, ``detail``.
+
+@sentinel
+def run_ocr_with_confidence(
+    image_path: str,
+    *,
+    min_confidence: float = 45.0,
+) -> dict[str, object]:
+    """Run OCR and keep only tokens above the configured confidence threshold.
+
+    Returns keys: ``status``, ``text``, ``filtered_text``, ``average_confidence``,
+    ``tokens_considered``, ``tokens_kept``, and ``detail``.
     """
     _configure_tesseract()
     try:
@@ -49,14 +64,97 @@ def run_ocr(image_path: str) -> dict[str, str]:
         from PIL import Image
 
         img = Image.open(image_path)
-        text: str = pytesseract.image_to_string(img)
-        return {"status": "ok", "text": text.strip(), "detail": ""}
+        raw_text = str(pytesseract.image_to_string(img)).strip()
+
+        try:
+            data = pytesseract.image_to_data(  # type: ignore[attr-defined]
+                img,
+                output_type=pytesseract.Output.DICT,
+            )
+            words = data.get("text", [])
+            confidences = data.get("conf", [])
+        except Exception:
+            words = []
+            confidences = []
+
+        kept_tokens: list[str] = []
+        kept_confidences: list[float] = []
+        considered_count = 0
+        for word, confidence_raw in zip(words, confidences):
+            token = str(word).strip()
+            if not token:
+                continue
+            confidence = _coerce_confidence(confidence_raw)
+            if confidence is None:
+                continue
+            considered_count += 1
+            if confidence >= float(min_confidence):
+                kept_tokens.append(token)
+                kept_confidences.append(confidence)
+
+        filtered_text = " ".join(kept_tokens).strip()
+        average_confidence = (
+            round(sum(kept_confidences) / len(kept_confidences), 3)
+            if kept_confidences
+            else None
+        )
+        return {
+            "status": "ok",
+            "text": raw_text,
+            "filtered_text": filtered_text,
+            "average_confidence": average_confidence,
+            "tokens_considered": considered_count,
+            "tokens_kept": len(kept_tokens),
+            "detail": "",
+        }
     except ImportError as exc:
-        return {"status": "failed", "text": "", "detail": f"pytesseract not installed: {exc}"}
+        return {
+            "status": "failed",
+            "text": "",
+            "filtered_text": "",
+            "average_confidence": None,
+            "tokens_considered": 0,
+            "tokens_kept": 0,
+            "detail": f"pytesseract not installed: {exc}",
+        }
     except FileNotFoundError as exc:
-        return {"status": "failed", "text": "", "detail": f"Image not found: {exc}"}
+        return {
+            "status": "failed",
+            "text": "",
+            "filtered_text": "",
+            "average_confidence": None,
+            "tokens_considered": 0,
+            "tokens_kept": 0,
+            "detail": f"Image not found: {exc}",
+        }
     except Exception as exc:
-        return {"status": "failed", "text": "", "detail": str(exc)}
+        return {
+            "status": "failed",
+            "text": "",
+            "filtered_text": "",
+            "average_confidence": None,
+            "tokens_considered": 0,
+            "tokens_kept": 0,
+            "detail": str(exc),
+        }
+
+
+@sentinel
+def run_ocr(image_path: str) -> dict[str, str]:
+    """Run Tesseract OCR on the given image file.
+
+    Returns a dict with keys ``status``, ``text``, ``detail``.
+    """
+    detailed = run_ocr_with_confidence(image_path=image_path)
+    status = str(detailed.get("status", "failed"))
+    detail = str(detailed.get("detail", ""))
+    filtered_text = str(detailed.get("filtered_text", "")).strip()
+    raw_text = str(detailed.get("text", "")).strip()
+    return {
+        "status": status,
+        "text": filtered_text or raw_text,
+        "detail": detail,
+    }
 
 
 @sentinel
@@ -86,4 +184,4 @@ def run_ocr_from_screenshot() -> dict[str, str]:
         return {"status": "failed", "text": "", "detail": str(exc)}
 
 
-__all__ = ["run_ocr", "run_ocr_from_screenshot"]
+__all__ = ["run_ocr", "run_ocr_from_screenshot", "run_ocr_with_confidence"]

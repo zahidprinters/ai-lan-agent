@@ -126,6 +126,18 @@ class TestOcrTool:
         assert isinstance(result, dict)
         assert "status" in result
 
+    def test_run_ocr_with_confidence_returns_expected_shape(self) -> None:
+        from tools.perception.ocr import run_ocr_with_confidence
+
+        result = run_ocr_with_confidence("/nonexistent.png", min_confidence=50.0)
+        assert "status" in result
+        assert "text" in result
+        assert "filtered_text" in result
+        assert "average_confidence" in result
+        assert "tokens_considered" in result
+        assert "tokens_kept" in result
+        assert "detail" in result
+
 
 # ---------------------------------------------------------------------------
 # tools.android.scrcpy — safety guard

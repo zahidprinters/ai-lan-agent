@@ -153,6 +153,7 @@ The runtime also verifies an execution contract for streamed actions, so if the 
 If perception is enabled, the latest OCR/screen summary is kept in session state and included in the planner's live runtime context.
 That same summary is visible through the dashboard/API state views, and chat sessions now stop background perception resources cleanly when the CLI exits.
 For CPU-friendly runtime handling, perception sampling now backs off automatically when the visible screen summary is unchanged, and runtime context sections are capped by a configurable character budget.
+Perception sampling also uses a bounded sample count per tick and confidence-filtered OCR extraction so low-confidence tokens do not dominate runtime context.
 
 Recommended toggles:
 

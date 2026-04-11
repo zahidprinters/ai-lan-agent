@@ -335,12 +335,17 @@ def test_chat_session_includes_perception_snapshot_in_context(monkeypatch: Any) 
     session.perception_snapshot = PerceptionSnapshot(
         timestamp=datetime.now(timezone.utc).isoformat(),
         summary="Outlook inbox visible with 14 unread messages.",
+        source="screen_ocr",
+        average_confidence=88.2,
     )
 
     context = session._build_context("what is on screen")
 
     assert context["perception_summary"] == "Outlook inbox visible with 14 unread messages."
+    assert context["perception_source"] == "screen_ocr"
+    assert context["perception_confidence"] == 88.2
     assert "Perception Context:" in context["assembled_context"]
+    assert "Source: screen_ocr" in context["assembled_context"]
 
 
 def test_chat_session_starts_perception_loop_when_enabled(monkeypatch: Any) -> None:

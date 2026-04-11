@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import Callable
 
 from debug_utils import sentinel
-from tools.perception.vision import capture_screen_text
+from tools.perception.vision import capture_vision_sample
 
 
 @dataclass(frozen=True)
@@ -17,6 +17,8 @@ class PerceptionSnapshot:
     timestamp: str
     summary: str
     source: str = "screen_ocr"
+    average_confidence: float | None = None
+    sample_count: int = 1
 
     def to_dict(self) -> dict[str, str]:
         return asdict(self)
@@ -31,6 +33,12 @@ def _summarize_ocr_text(text: str, limit: int = 400) -> str:
     return normalized[: limit - 3] + "..."
 
 
+def _build_summary_from_sample(sample: dict[str, object]) -> str:
+    filtered = str(sample.get("filtered_text", "")).strip()
+    raw = str(sample.get("text", "")).strip()
+    return _summarize_ocr_text(filtered or raw)
+
+
 class PerceptionLoop:
     """Background OCR sampler that emits compact situational context snapshots."""
 
@@ -41,12 +49,16 @@ class PerceptionLoop:
         max_interval_sec: int = 30,
         adaptive: bool = True,
         backoff_multiplier: float = 1.5,
+        min_ocr_confidence: float = 45.0,
+        max_samples_per_tick: int = 1,
         on_snapshot: Callable[[PerceptionSnapshot], None] | None = None,
     ) -> None:
         self.interval_sec = max(1, int(interval_sec))
         self.max_interval_sec = max(self.interval_sec, int(max_interval_sec))
         self.adaptive = adaptive
         self.backoff_multiplier = max(1.1, float(backoff_multiplier))
+        self.min_ocr_confidence = max(0.0, float(min_ocr_confidence))
+        self.max_samples_per_tick = max(1, min(5, int(max_samples_per_tick)))
         self.on_snapshot = on_snapshot
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
@@ -68,10 +80,19 @@ class PerceptionLoop:
     @sentinel
     def collect_once(self) -> PerceptionSnapshot:
         previous_summary = self._last_snapshot.summary if self._last_snapshot is not None else None
-        text = capture_screen_text()
+        sample = capture_vision_sample(
+            min_confidence=self.min_ocr_confidence,
+            max_samples=self.max_samples_per_tick,
+        )
+        average_confidence = sample.get("average_confidence")
         snapshot = PerceptionSnapshot(
             timestamp=datetime.now(timezone.utc).isoformat(),
-            summary=_summarize_ocr_text(text),
+            summary=_build_summary_from_sample(sample),
+            source=str(sample.get("source", "screen_ocr")) or "screen_ocr",
+            average_confidence=(
+                float(average_confidence) if average_confidence is not None else None
+            ),
+            sample_count=max(1, int(sample.get("sample_count", 1))),
         )
 
         if self.adaptive and previous_summary is not None:

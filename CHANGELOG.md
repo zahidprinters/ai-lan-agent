@@ -77,6 +77,7 @@ All notable changes to this project will be documented in this file.
 - Added deeper 4.5A prompt compaction quality: older turns/thoughts/observations now summarize with better structural context and oversized runtime context preserves opening/latest lines instead of flat clipping
 - Added Phase 4.5A benchmark-depth hardening: `scripts/benchmark_tools.py` now supports execution-contract, routing, and compaction probes with strict match-rate gates backed by updated curated fixtures and CI thresholds
 - Added compact benchmark `probe_failures` report output so CI artifacts summarize per-probe evaluated counts, failed counts, top failed case names, and failure reasons for faster triage
+- Added initial 4.5B perception runtime slice: vision capture service entrypoint with bounded per-tick sampling, OCR confidence-filtering facade output, and runtime-context wiring of perception source/confidence metadata without policy bypass
 
 ### Changed
 

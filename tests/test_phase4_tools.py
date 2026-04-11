@@ -145,6 +145,44 @@ class TestOcrTool:
         assert result["status"] == "failed"
         assert "Unsupported OCR backend" in str(result["detail"])
 
+    def test_run_ocr_with_confidence_auto_falls_back_on_empty_tesseract(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr("tools.perception.ocr._configure_tesseract", lambda: None)
+        monkeypatch.setattr(
+            "tools.perception.ocr._extract_tesseract_confidence",
+            lambda image_path, *, min_confidence: {
+                "status": "ok",
+                "text": "",
+                "filtered_text": "",
+                "average_confidence": None,
+                "tokens_considered": 0,
+                "tokens_kept": 0,
+                "detail": "",
+                "backend": "tesseract",
+            },
+        )
+        monkeypatch.setattr(
+            "tools.perception.ocr._extract_easyocr_confidence",
+            lambda image_path, *, min_confidence: {
+                "status": "ok",
+                "text": "fallback text",
+                "filtered_text": "fallback text",
+                "average_confidence": 92.0,
+                "tokens_considered": 2,
+                "tokens_kept": 2,
+                "detail": "",
+                "backend": "easyocr",
+            },
+        )
+
+        from tools.perception.ocr import run_ocr_with_confidence
+
+        result = run_ocr_with_confidence("/nonexistent.png", backend="auto")
+        assert result["status"] == "ok"
+        assert result["backend"] == "easyocr"
+        assert result["filtered_text"] == "fallback text"
+
 
 # ---------------------------------------------------------------------------
 # tools.android.scrcpy — safety guard

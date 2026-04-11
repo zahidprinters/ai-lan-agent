@@ -8,6 +8,7 @@ not on PATH so the rest of the stack never hard-codes paths.
 from __future__ import annotations
 
 import os
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -55,19 +56,19 @@ def _extract_tesseract_confidence(
     import pytesseract  # type: ignore[import-untyped]
     from PIL import Image
 
-    img = Image.open(image_path)
-    raw_text = str(pytesseract.image_to_string(img)).strip()
+    with Image.open(image_path) as img:
+        raw_text = str(pytesseract.image_to_string(img)).strip()
 
-    try:
-        data = pytesseract.image_to_data(  # type: ignore[attr-defined]
-            img,
-            output_type=pytesseract.Output.DICT,
-        )
-        words = data.get("text", [])
-        confidences = data.get("conf", [])
-    except Exception:
-        words = []
-        confidences = []
+        try:
+            data = pytesseract.image_to_data(  # type: ignore[attr-defined]
+                img,
+                output_type=pytesseract.Output.DICT,
+            )
+            words = data.get("text", [])
+            confidences = data.get("conf", [])
+        except Exception:
+            words = []
+            confidences = []
 
     kept_tokens: list[str] = []
     kept_confidences: list[float] = []
@@ -107,9 +108,7 @@ def _extract_easyocr_confidence(
     *,
     min_confidence: float,
 ) -> dict[str, object]:
-    import easyocr  # type: ignore[import-untyped]
-
-    reader = easyocr.Reader(["en"], gpu=False)
+    reader = _get_easyocr_reader()
     results = reader.readtext(image_path)
     all_tokens: list[str] = []
     kept_tokens: list[str] = []
@@ -149,6 +148,20 @@ def _extract_easyocr_confidence(
     }
 
 
+@lru_cache(maxsize=1)
+def _get_easyocr_reader() -> Any:
+    import easyocr  # type: ignore[import-untyped]
+
+    return easyocr.Reader(["en"], gpu=False)
+
+
+def _has_usable_ocr_text(result: dict[str, object]) -> bool:
+    filtered_text = str(result.get("filtered_text", "")).strip()
+    raw_text = str(result.get("text", "")).strip()
+    tokens_kept = int(result.get("tokens_kept", 0) or 0)
+    return bool(filtered_text or raw_text or tokens_kept > 0)
+
+
 @sentinel
 def run_ocr_with_confidence(
     image_path: str,
@@ -179,10 +192,13 @@ def run_ocr_with_confidence(
     last_error = ""
     try:
         if resolved_backend in {"auto", "tesseract"}:
-            return _extract_tesseract_confidence(
+            tesseract_result = _extract_tesseract_confidence(
                 image_path,
                 min_confidence=min_confidence,
             )
+            if resolved_backend == "tesseract" or _has_usable_ocr_text(tesseract_result):
+                return tesseract_result
+            last_error = "tesseract returned no usable OCR text"
     except ImportError as exc:
         last_error = f"tesseract unavailable: {exc}"
         if not enable_easyocr_fallback or resolved_backend == "tesseract":

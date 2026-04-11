@@ -189,6 +189,7 @@ AI Lan is now extending into a CPU-first embodied loop that can see the screen, 
 - **Dynamic Planning:** Require full multi-step planning only for medium/high-complexity tasks; permit direct execution for low-risk/simple actions to reduce latency.
 - **Rolling Context:** Use summarization and memory compaction when context budget is near limit, rather than hard token truncation that drops task-critical early state.
 - **Telemetry:** Persist structured agent traces (thought/plan/action/result/reflection) for dashboard and replay debugging.
+- **Validated Planning Contract:** require a 3-5 step model plan, then validate it for quality, safety, and refusal-awareness before trusting it; repair the plan when it misses those checks.
 - **Skill App Reference:** Study `OpenVoiceOS` for a maintained skills/plugin architecture around voice commands.
 - **Realtime Loop:** screen/audio -> perception -> LLM -> tool -> observation -> speech.
 - **Future Package Split:** extract the embodied layer into `perception/vision/` and `perception/audio/` while keeping the existing `tools/perception/` facade during migration.
@@ -198,10 +199,23 @@ AI Lan is now extending into a CPU-first embodied loop that can see the screen, 
 The production GGUF path uses an explicit inference abstraction layer rather than ad hoc direct calls.
 
 - **InferenceManager role:** centralize model loading, residency policy, stream decoding, token-level tool trigger interception, and planner fallback behavior.
+- **Current implementation boundary:** `core/inference/engine.py` owns runtime loading/caching plus fallback attempt ordering, `core/inference/residency.py` owns RAM-pressure checks, and `core/inference/model_router.py` builds the explicit/profiled/simple/complex GGUF candidate chain.
+- **Prompt-state compaction:** `core/inference/context_manager.py` and `core/inference/kv_cache_manager.py` compact older turns/thoughts/observations into bounded role-aware summaries and preserve the opening/latest runtime-context lines before prompt growth destabilizes the local runtime.
 - **Residency policy (Option 4):** keep model resident by default; unload on memory pressure threshold instead of fixed idle timers.
+- **Pressure-aware routing:** when host RAM pressure is high, prefer a cheaper nonresident simple-model candidate before abandoning the local-brain path entirely.
 - **Hardware mapping (i5 baseline):** prefer AVX2-capable wheels/builds and default `n_threads=4` to match physical cores while preserving OS responsiveness.
-- **Tool-trigger streaming:** stop generation as soon as trigger text appears (for example `Action:`) and route to tool execution without waiting for full completion.
+- **Tool-trigger streaming:** stop generation as soon as a complete actionable trigger is visible, whether that arrives as JSON action payload or `Thought/Action/Args/Safety` text lines, and route to tool execution without waiting for full completion.
+- **Dispatch alignment guard:** `agents/react/runtime_guard.py` enforces that streamed triggers include validated/repaired plan metadata aligned with the requested action and risk tier before dispatch.
+- **Execution contract:** guarded streamed actions now carry a canonical SHA-256 payload contract so the runtime can verify the intercepted trigger payload, guard-approved payload, and actual dispatched request remain structurally identical before execution.
 - **Fallback contract:** if local runtime/model fails, degrade deterministically to classic planning so user turns never stall.
+
+## 6.7. Reflection And Structured Execution Logs
+
+- **Reflection policy:** `agents/react/reflection.py` emits an explicit retry-or-skip decision for each failed or empty-result tool attempt before a retry is made.
+- **Risk-aware planner metadata:** `agents/react/tool_risk.py` assigns each tool a richer risk profile (`safe`, `medium`, `dangerous` plus `policy_mode` and reasons) that is visible in planner schema and structured logs.
+- **Agent log:** `temp/logs/agent_reasoning.jsonl` records step starts, reflection decisions, step completions, and inference-manager fallback/success events.
+- **Tool log:** `temp/logs/tool_events.jsonl` records tool dispatch attempts and final tool statuses.
+- **Error log:** `temp/logs/runtime_errors.jsonl` records tool-dispatch exceptions before fallback routing.
 
 ---
 

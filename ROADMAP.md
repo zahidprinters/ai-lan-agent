@@ -64,6 +64,8 @@ This sequence is the implementation order to follow one step at a time.
   **4.5B Perception slice:** expand `mss`/`OpenCV` + `Tesseract` + `Vosk` + `pyttsx3` embodied loop once 4.5A reasoning gates are stable.
   **Exit gate:** end-to-end embodied loop demo with bounded latency and confirmation gates preserved.
 
+  Status (2026-04-11): 4.5A completed and exit-gated. Active execution focus is now 4.5B perception depth while retaining strict 4.5A reasoning/safety benchmark gates.
+
 1. **Phase 5.1: Persistent Memory + Personalization**
 
   Select one memory backend (`Chroma` or `Qdrant`) and wire retrieval into runtime context. Add explicit user controls for preference memory and retention boundaries. **Exit gate:** deterministic retrieval tests and documented user memory controls.
@@ -266,4 +268,4 @@ This is the approved design target for the reasoning-first slice before deeper p
 
 ## Last Updated
 
-2026-04-10
+2026-04-11

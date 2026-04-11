@@ -160,6 +160,7 @@ def test_react_agent_reflection_retries_once(monkeypatch: pytest.MonkeyPatch) ->
     assert step.result["status"] == "executed"
     assert step.result["reflection_retry_count"] == 1
     assert step.result["reflection_applied"] is True
+    assert step.result["reflection_notes"]
 
 
 def test_react_agent_reflection_budget_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -200,6 +201,37 @@ def test_react_agent_reflection_budget_is_bounded(monkeypatch: pytest.MonkeyPatc
     assert final_step.result["reflection_retry_count"] == 0
     assert final_step.result["reflection_skipped_reason"] == "retry_budget_exhausted"
     assert agent.state.reflection_retries_used == 3
+
+
+def test_react_agent_writes_structured_logs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AI_LAN_AGENT_LOG_PATH", str(tmp_path / "agent.jsonl"))
+    monkeypatch.setenv("AI_LAN_TOOL_LOG_PATH", str(tmp_path / "tool.jsonl"))
+    monkeypatch.setenv("AI_LAN_ERROR_LOG_PATH", str(tmp_path / "error.jsonl"))
+
+    monkeypatch.setattr(
+        "agents.react.agent.parse_and_dispatch",
+        lambda payload, **_: {
+            "status": "executed",
+            "action": str(payload.get("action", "")),
+            "policy_reason": "ok",
+            "observation": {"hits": []},
+        },
+    )
+
+    agent = ReactAgent()
+    agent.run_step(
+        {
+            "thought": "list docs",
+            "action": "pc.list_workspace_files",
+            "args": {"relative_path": "docs", "limit": 2},
+            "safety_level": "low",
+        }
+    )
+
+    assert (tmp_path / "agent.jsonl").exists()
+    assert (tmp_path / "tool.jsonl").exists()
+    assert not (tmp_path / "error.jsonl").exists()
+    assert 'risk_profile' in (tmp_path / 'tool.jsonl').read_text(encoding='utf-8')
 
 
 def test_run_react_step_stateless_helper(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

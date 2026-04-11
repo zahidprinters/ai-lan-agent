@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
+from agents.react.tool_risk import get_tool_risk_profile
 from router.dispatch_core import TOOL_REGISTRY
 from safety.policy_engine import ALLOWED_ACTIONS, CONFIRMATION_REQUIRED_ACTIONS, DENIED_ACTIONS
 
@@ -38,6 +39,9 @@ class ModelToolSchema:
     optional_args: list[str]
     confirmation_required: bool
     risk: str
+    risk_tier: str
+    policy_mode: str
+    risk_reasons: list[str]
     allowed: bool
 
     def to_dict(self) -> dict[str, object]:
@@ -61,6 +65,7 @@ def build_model_tool_schema(
         spec = TOOL_REGISTRY.get(name)
         if spec is None:
             continue
+        risk_profile = get_tool_risk_profile(name)
         schemas.append(
             ModelToolSchema(
                 name=name,
@@ -69,6 +74,9 @@ def build_model_tool_schema(
                 optional_args=list(spec.optional_args),
                 confirmation_required=name in CONFIRMATION_REQUIRED_ACTIONS,
                 risk=_infer_risk(name),
+                risk_tier=risk_profile.risk_tier,
+                policy_mode=risk_profile.policy_mode,
+                risk_reasons=risk_profile.risk_reasons,
                 allowed=name in ALLOWED_ACTIONS and name not in DENIED_ACTIONS,
             )
         )
@@ -95,6 +103,9 @@ def format_model_tool_schema(
                 f"  optional_args: {optional}",
                 f"  confirmation_required: {confirmation}",
                 f"  risk: {item.risk}",
+                f"  risk_tier: {item.risk_tier}",
+                f"  policy_mode: {item.policy_mode}",
+                f"  risk_reasons: {', '.join(item.risk_reasons) if item.risk_reasons else 'none'}",
                 f"  allowed: {allowed}",
             ]
         )

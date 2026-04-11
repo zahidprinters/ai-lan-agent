@@ -11,6 +11,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from core.inference.engine import InferenceRequest, get_default_inference_manager
 from debug_utils import sentinel
 
 
@@ -18,6 +19,7 @@ from debug_utils import sentinel
 class LocalReasoningResult:
     text: str
     fallback_reason: str | None = None
+    metadata: dict[str, object] | None = None
 
 
 @sentinel
@@ -31,49 +33,29 @@ def generate_structured_response_result(
     context_window: int = 4096,
     threads: int = 4,
     gpu_layers: int = 0,
+    task_complexity: str = "complex",
 ) -> LocalReasoningResult:
     """Generate local-brain response and include deterministic fallback metadata."""
     resolved_model = Path(model_path) if model_path else None
-    if resolved_model is None:
-        configured = os.getenv("AI_LAN_LLAMACPP_MODEL_PATH", "").strip()
-        if configured:
-            resolved_model = Path(configured)
-
-    if resolved_model is None:
-        return LocalReasoningResult(text="", fallback_reason="llama_model_not_configured")
-    if not resolved_model.exists():
-        return LocalReasoningResult(text="", fallback_reason="llama_model_missing")
-
-    try:
-        from llama_cpp import Llama  # type: ignore[import-untyped]
-    except Exception:
-        return LocalReasoningResult(text="", fallback_reason="llama_runtime_unavailable")
-
-    try:
-        llm = Llama(
-            model_path=str(resolved_model),
-            n_ctx=context_window,
-            n_threads=threads,
-            n_gpu_layers=gpu_layers,
-            verbose=False,
-        )
-
-        output = llm(
-            prompt,
+    manager = get_default_inference_manager()
+    result = manager.generate(
+        InferenceRequest(
+            prompt=prompt,
+            model_path=resolved_model,
             max_tokens=max_tokens,
             temperature=temperature,
             top_p=top_p,
-            stop=["\n\nUser:", "\n\nSYSTEM:"],
+            context_window=context_window,
+            threads=threads,
+            gpu_layers=gpu_layers,
+            task_complexity=task_complexity,
         )
-        choices = output.get("choices", [])
-        if not choices:
-            return LocalReasoningResult(text="", fallback_reason="llama_no_choices")
-        text = str(choices[0].get("text", "")).strip()
-        if not text:
-            return LocalReasoningResult(text="", fallback_reason="llama_empty_response")
-        return LocalReasoningResult(text=text, fallback_reason=None)
-    except Exception:
-        return LocalReasoningResult(text="", fallback_reason="llama_runtime_error")
+    )
+    return LocalReasoningResult(
+        text=result.text,
+        fallback_reason=result.fallback_reason,
+        metadata=result.metadata or None,
+    )
 
 
 @sentinel
@@ -87,6 +69,7 @@ def generate_structured_response(
     context_window: int = 4096,
     threads: int = 4,
     gpu_layers: int = 0,
+    task_complexity: str = "complex",
 ) -> str:
     """Generate a structured response with llama-cpp when available.
 
@@ -102,6 +85,7 @@ def generate_structured_response(
         context_window=context_window,
         threads=threads,
         gpu_layers=gpu_layers,
+        task_complexity=task_complexity,
     )
     return result.text
 

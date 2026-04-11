@@ -67,6 +67,16 @@ All notable changes to this project will be documented in this file.
 - Expanded Phase 4.3 benchmark gating with per-category success thresholds so `execution`, `confirmation`, and `refusal` categories must each meet their own match-rate floor in addition to aggregate pass/error/latency thresholds
 - Expanded Phase 4.3 benchmark gating with distinct action diversity thresholds so each benchmark category must cover multiple action shapes rather than passing on repeated single-action cases
 - Added `models/gguf/` folder marker and pinned `llama-cpp-python` in base dependencies for the Phase 4.5A local-brain path on Windows/i5-class hosts
+- Added the first concrete Phase 4.5A inference foundation: `core/inference/engine.py`, `core/inference/residency.py`, and `core/inference/model_router.py` now provide GGUF runtime loading, resident-cache reuse, RAM-pressure unload fallback, and simple/complex model routing
+- Added the next Phase 4.5A reasoning slice: mandatory 3-5 step planner blueprints, prompt-state compaction (`context_manager.py` / `kv_cache_manager.py`), stream-time action interception in the llama-cpp path, and structured JSONL agent/tool/error logs
+- Added a deeper 4.5A planner/runtime slice: model-plan validation and refusal-aware repair, text-or-JSON stream trigger extraction for tool orchestration, and richer tool risk profiles surfaced to planner schema and structured logs
+- Added runtime dispatch guard enforcement for 4.5A orchestration: streamed tool triggers are now checked against validated/repaired plan metadata and `risk_tier` policy signals before any tool dispatch
+- Added benchmark-harness runtime-guard coverage fields (`planner_metadata`, `expected_guard_allowed`) and strict guard-decision gating metric (`runtime_guard_decision_match_rate`)
+- Added pressure-aware GGUF fallback routing so preferred complex/simple model choices can step down to secondary candidates before classic planner fallback
+- Added execution-contract enforcement for streamed tool actions so intercepted trigger payloads, runtime-guard approval, and final dispatched requests must remain canonically identical before runtime execution
+- Added deeper 4.5A prompt compaction quality: older turns/thoughts/observations now summarize with better structural context and oversized runtime context preserves opening/latest lines instead of flat clipping
+- Added Phase 4.5A benchmark-depth hardening: `scripts/benchmark_tools.py` now supports execution-contract, routing, and compaction probes with strict match-rate gates backed by updated curated fixtures and CI thresholds
+- Added compact benchmark `probe_failures` report output so CI artifacts summarize per-probe evaluated counts, failed counts, top failed case names, and failure reasons for faster triage
 
 ### Changed
 
@@ -96,6 +106,15 @@ All notable changes to this project will be documented in this file.
 - Updated roadmap/status/context docs to mark Phase 4.2 complete and move immediate priority to Phase 4.3 benchmark and regression-depth expansion
 - Updated roadmap/context/status/config docs with the Phase 4.5A Strong Reasoning Core standard (GGUF-first local brain, residency policy, ReAct++ planning/reflection loop) plus required hardening addenda (KV-cache controls, tool risk tiers, streaming interception, fallback routing, and structured logs)
 - Updated `README.md`, `docs/ARCHITECTURE.md`, and `project_plan.md` to clarify production GGUF agency core vs research transformer path, dynamic planning policy, XML prompt contract, rolling context summarization, tool-schema translation, and reasoning telemetry expectations
+- Updated the local reasoning facade and ReAct controller so `llama_cpp` planning now routes through the new inference manager, emits backend metadata, and can classify requests as simple or complex for model selection
+- Updated the ReAct runtime so reflection now records explicit retry-or-skip decisions before retries, and documented the new active config/testing surface for the 4.5A planning + streaming path
+- Updated planner/runtime docs and metadata so 4.5A now describes validated plans instead of heuristic injected steps, streamed tool-trigger orchestration instead of payload-only interception, and richer `risk_tier` / `policy_mode` / `risk_reasons` metadata across planner-visible tool schema and logs
+- Updated benchmark and CI gate commands to require orchestration category coverage and strict runtime-guard decision-match thresholds
+- Updated 4.5A runtime docs to reflect pressure-aware model candidate routing and secondary GGUF fallback before classic degradation
+- Updated 4.5A runtime docs and tests to cover execution-contract verification on streamed tool dispatch paths
+- Updated 4.5A runtime docs and tests to reflect richer KV-cache/runtime-context compaction behavior
+- Updated benchmark testing guidance and CI strict benchmark commands to require explicit execution-contract, routing, and compaction assertion matches
+- Updated optional trace-derived strict benchmark gate and checked-in trace fixture so Phase 4.5A execution-contract, routing, and compaction probes are asserted there as well
 
 ### Fixed
 

@@ -136,5 +136,134 @@
     "expected_status": "confirmation_required",
     "confirmed": false,
     "category": "confirmation"
+  },
+  {
+    "name": "audit_011_stream_trigger_aligned_memory_search",
+    "payload": {
+      "thought": "Use memory lookup for policy guidance.",
+      "action": "memory.search",
+      "args": {
+        "query": "policy guidance"
+      },
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "confirmed": true,
+    "category": "orchestration",
+    "planner_metadata": {
+      "stream_trigger_mode": "text_action",
+      "plan_validation": {
+        "source": "model_validated"
+      },
+      "plan_steps": [
+        "Understand the policy question and inspect context.",
+        "Use memory.search to gather the most relevant records.",
+        "Verify the retrieved records and prepare a grounded reply."
+      ],
+      "runtime_guard": {
+        "allowed": true,
+        "reason": "runtime_guard_pass",
+        "risk_profile": {
+          "risk_tier": "safe",
+          "policy_mode": "allow",
+          "reasons": [
+            "allowlisted"
+          ]
+        }
+      }
+    },
+    "expected_guard_allowed": true,
+    "expected_execution_contract_valid": true,
+    "expected_execution_contract_reason": "execution_contract_verified",
+    "autobuild_execution_contract": true
+  },
+  {
+    "name": "audit_012_context_build_routing_probe",
+    "payload": {
+      "thought": "Assemble runtime context.",
+      "action": "context.build",
+      "args": {
+        "query": "policy confirmation"
+      },
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "confirmed": true,
+    "category": "execution",
+    "routing_probe": {
+      "task_complexity": "complex",
+      "pressure_high": true,
+      "router": {
+        "router_enabled": true,
+        "resident_enabled": true,
+        "simple_model_path": "models/gguf/phi4-mini.gguf",
+        "complex_model_path": "models/gguf/deepseek-r1.gguf"
+      },
+      "expected": {
+        "primary_selection_reason": "pressure_simple_route",
+        "primary_resident_enabled": false,
+        "candidate_count": 3
+      }
+    }
+  },
+  {
+    "name": "audit_013_memory_search_compaction_probe",
+    "payload": {
+      "thought": "Retrieve memory summary.",
+      "action": "memory.search",
+      "args": {
+        "query": "policy"
+      },
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "confirmed": true,
+    "category": "execution",
+    "compaction_probe": {
+      "policy": {
+        "max_turns": 2,
+        "summary_enabled": true,
+        "summary_target_tokens": 80,
+        "runtime_context_max_chars": 125
+      },
+      "runtime_context": "Perception Context:\nDesktop UI idle.\nObservation backlog contains prior summaries.\nTool cache is warm.\nLatest observation says tool execution succeeded.",
+      "recent_turns": [
+        {
+          "role": "user",
+          "message": "Summarize the last policy result and keep it short."
+        },
+        {
+          "role": "assistant",
+          "message": "I will fetch the most relevant policy memory and then summarize it."
+        },
+        {
+          "role": "tool",
+          "message": "memory.search returned three relevant policy snippets."
+        },
+        {
+          "role": "assistant",
+          "message": "The policy requires confirmation for medium-risk device control."
+        }
+      ],
+      "recent_thoughts": [
+        "Need the freshest policy summary.",
+        "Prefer the memory layer over guessing.",
+        "Keep the answer grounded."
+      ],
+      "recent_observations": [
+        "Previous confirmation request was accepted.",
+        "Latest observation says tool execution succeeded.",
+        "No policy overrides were detected."
+      ],
+      "expected_compacted": true,
+      "runtime_context_contains": [
+        "Perception Context:",
+        "Tool cache is warm."
+      ],
+      "summary_contains": [
+        "Runtime context compacted",
+        "roles:"
+      ]
+    }
   }
 ]

@@ -69,9 +69,28 @@ class ProjectConfig:
     voice_rate: int = 175
     reasoning_backend: str = "classic"
     llamacpp_model_path: Path | None = None
+    llamacpp_model_profile: str = "phi4_q4km"
     llamacpp_ctx: int = 4096
     llamacpp_threads: int = 4
     llamacpp_gpu_layers: int = 0
+    llamacpp_resident: bool = True
+    llamacpp_unload_ram_pct: float = 85.0
+    model_router_enabled: bool = False
+    model_router_simple_model_path: Path | None = None
+    model_router_complex_model_path: Path | None = None
+    reasoning_plan_steps_min: int = 3
+    reasoning_plan_steps_max: int = 5
+    reasoning_dynamic_planning: bool = True
+    reasoning_telemetry_enabled: bool = False
+    agent_log_path: Path = ROOT / "temp" / "logs" / "agent_reasoning.jsonl"
+    tool_log_path: Path = ROOT / "temp" / "logs" / "tool_events.jsonl"
+    error_log_path: Path = ROOT / "temp" / "logs" / "runtime_errors.jsonl"
+    stream_tool_trigger_enabled: bool = True
+    stream_tool_trigger_pattern: str = "Action:"
+    reflection_required_on_failure: bool = True
+    kv_cache_max_turns: int = 8
+    context_summary_enabled: bool = True
+    context_summary_target_tokens: int = 160
     perception_enabled: bool = False
     perception_interval_sec: int = 10
     perception_max_interval_sec: int = 30
@@ -234,9 +253,46 @@ def load_config() -> ProjectConfig:
             if os.getenv("AI_LAN_LLAMACPP_MODEL_PATH")
             else None
         ),
+        llamacpp_model_profile=os.getenv("AI_LAN_LLAMACPP_MODEL_PROFILE", "phi4_q4km")
+        .strip()
+        .lower(),
         llamacpp_ctx=int(os.getenv("AI_LAN_LLAMACPP_CTX", "4096")),
         llamacpp_threads=int(os.getenv("AI_LAN_LLAMACPP_THREADS", "4")),
         llamacpp_gpu_layers=int(os.getenv("AI_LAN_LLAMACPP_GPU_LAYERS", "0")),
+        llamacpp_resident=os.getenv("AI_LAN_LLAMACPP_RESIDENT", "1") == "1",
+        llamacpp_unload_ram_pct=float(os.getenv("AI_LAN_LLAMACPP_UNLOAD_RAM_PCT", "85.0")),
+        model_router_enabled=os.getenv("AI_LAN_MODEL_ROUTER_ENABLED", "0") == "1",
+        model_router_simple_model_path=(
+            Path(os.getenv("AI_LAN_MODEL_ROUTER_SIMPLE_MODEL_PATH"))
+            if os.getenv("AI_LAN_MODEL_ROUTER_SIMPLE_MODEL_PATH")
+            else None
+        ),
+        model_router_complex_model_path=(
+            Path(os.getenv("AI_LAN_MODEL_ROUTER_COMPLEX_MODEL_PATH"))
+            if os.getenv("AI_LAN_MODEL_ROUTER_COMPLEX_MODEL_PATH")
+            else None
+        ),
+        reasoning_plan_steps_min=int(os.getenv("AI_LAN_REASONING_PLAN_STEPS_MIN", "3")),
+        reasoning_plan_steps_max=int(os.getenv("AI_LAN_REASONING_PLAN_STEPS_MAX", "5")),
+        reasoning_dynamic_planning=os.getenv("AI_LAN_REASONING_DYNAMIC_PLANNING", "1") == "1",
+        reasoning_telemetry_enabled=os.getenv("AI_LAN_REASONING_TELEMETRY_ENABLED", "0")
+        == "1",
+        agent_log_path=Path(
+            os.getenv("AI_LAN_AGENT_LOG_PATH", str(ROOT / "temp" / "logs" / "agent_reasoning.jsonl"))
+        ),
+        tool_log_path=Path(
+            os.getenv("AI_LAN_TOOL_LOG_PATH", str(ROOT / "temp" / "logs" / "tool_events.jsonl"))
+        ),
+        error_log_path=Path(
+            os.getenv("AI_LAN_ERROR_LOG_PATH", str(ROOT / "temp" / "logs" / "runtime_errors.jsonl"))
+        ),
+        stream_tool_trigger_enabled=os.getenv("AI_LAN_STREAM_TOOL_TRIGGER_ENABLED", "1") == "1",
+        stream_tool_trigger_pattern=os.getenv("AI_LAN_STREAM_TOOL_TRIGGER_PATTERN", "Action:"),
+        reflection_required_on_failure=os.getenv("AI_LAN_REFLECTION_REQUIRED_ON_FAILURE", "1")
+        == "1",
+        kv_cache_max_turns=int(os.getenv("AI_LAN_KV_CACHE_MAX_TURNS", "8")),
+        context_summary_enabled=os.getenv("AI_LAN_CONTEXT_SUMMARY_ENABLED", "1") == "1",
+        context_summary_target_tokens=int(os.getenv("AI_LAN_CONTEXT_SUMMARY_TARGET_TOKENS", "160")),
         perception_enabled=os.getenv("AI_LAN_PERCEPTION_ENABLED", "0") == "1",
         perception_interval_sec=int(os.getenv("AI_LAN_PERCEPTION_INTERVAL_SEC", "10")),
         perception_max_interval_sec=int(os.getenv("AI_LAN_PERCEPTION_MAX_INTERVAL_SEC", "30")),

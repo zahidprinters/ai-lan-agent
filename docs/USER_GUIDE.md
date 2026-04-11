@@ -148,6 +148,8 @@ The web chat command buttons and form submissions send the same slash commands u
 
 In CLI and voice chat modes, the local planner can now take a small bounded action-observation loop before replying, but any write-like action still stops for confirmation.
 Planner tool selection is grounded in a structured tool schema generated from the router registry, so the model sees available actions, arguments, and confirmation hints instead of only raw tool names.
+Before dispatch, streamed tool triggers are validated against the planner's repaired/validated plan metadata; misaligned or policy-blocked trigger payloads are rejected before tools execute.
+The runtime also verifies an execution contract for streamed actions, so if the final dispatch payload drifts from the trigger/guard-approved payload, the action is blocked instead of executed.
 If perception is enabled, the latest OCR/screen summary is kept in session state and included in the planner's live runtime context.
 That same summary is visible through the dashboard/API state views, and chat sessions now stop background perception resources cleanly when the CLI exits.
 For CPU-friendly runtime handling, perception sampling now backs off automatically when the visible screen summary is unchanged, and runtime context sections are capped by a configurable character budget.

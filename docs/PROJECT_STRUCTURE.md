@@ -24,8 +24,12 @@ ai-lan/
 │   │   ├── tokenizer.py
 │   │   └── config.py
 │   ├── inference/
-│   │   ├── inference_manager.py
+│   │   ├── context_manager.py
+│   │   ├── engine.py
 │   │   ├── generate.py
+│   │   ├── kv_cache_manager.py
+│   │   ├── local_reasoning.py
+│   │   ├── model_router.py
 │   │   ├── residency.py
 │   │   ├── sampler.py
 │   │   └── stopping.py
@@ -35,7 +39,10 @@ ai-lan/
 │   ├── react/
 │   │   ├── agent.py
 │   │   ├── parser.py
+│   │   ├── planner.py
 │   │   ├── prompt.py
+│   │   ├── reflection.py
+│   │   ├── tool_risk.py
 │   │   └── state.py
 │   ├── planner/
 │   │   ├── task_planner.py
@@ -103,6 +110,9 @@ ai-lan/
 ├── logs/
 │   ├── actions.log
 │   ├── errors.log
+│   ├── agent_reasoning.jsonl
+│   ├── runtime_errors.jsonl
+│   ├── tool_events.jsonl
 │   └── runs/
 ├── models/
 │   ├── char_model.pt

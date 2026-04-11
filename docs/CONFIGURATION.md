@@ -97,11 +97,30 @@ Android screenshot captures are also constrained to paths under `temp/` to keep 
 
 - **`AI_LAN_REASONING_BACKEND`**: Planner backend (`classic` or `llama_cpp`).
 - **`AI_LAN_LLAMACPP_MODEL_PATH`**: GGUF model path for local llama-cpp reasoning.
+- **`AI_LAN_LLAMACPP_MODEL_PROFILE`**: Default GGUF profile selector (`phi4_q4km` or `llama8b_q4km`) when no explicit model path is set.
 - **`AI_LAN_LLAMACPP_CTX`**: Context window for llama-cpp runtime.
 - **`AI_LAN_LLAMACPP_THREADS`**: CPU thread count for llama-cpp.
 - **`AI_LAN_LLAMACPP_GPU_LAYERS`**: GPU layer offload count (`0` for CPU-only).
+- **`AI_LAN_LLAMACPP_RESIDENT`**: Keep the selected GGUF model resident between turns (`0`/`1`).
+- **`AI_LAN_LLAMACPP_UNLOAD_RAM_PCT`**: Unload the resident model and fall back to classic planning when host RAM pressure crosses this percent.
+- **`AI_LAN_MODEL_ROUTER_ENABLED`**: Enable simple-vs-complex GGUF model routing (`0`/`1`).
+- **`AI_LAN_MODEL_ROUTER_SIMPLE_MODEL_PATH`**: Optional GGUF path used when dynamic planning marks a request as simple.
+- **`AI_LAN_MODEL_ROUTER_COMPLEX_MODEL_PATH`**: Optional GGUF path used for complex requests when routing is enabled.
+- **`AI_LAN_REASONING_DYNAMIC_PLANNING`**: Let the controller classify requests as `simple` or `complex` for model routing (`0`/`1`).
+- **`AI_LAN_REASONING_PLAN_STEPS_MIN`**: Minimum acceptable plan length enforced by planner validation and repair (clamped to `3`-`5`).
+- **`AI_LAN_REASONING_PLAN_STEPS_MAX`**: Maximum acceptable plan length enforced by planner validation and repair (clamped to `3`-`5`).
+- **`AI_LAN_REASONING_TELEMETRY_ENABLED`**: Write structured inference success/fallback events to the agent log (`0`/`1`).
+- **`AI_LAN_AGENT_LOG_PATH`**: JSONL output path for inference-manager telemetry.
+- **`AI_LAN_TOOL_LOG_PATH`**: JSONL output path for structured tool dispatch attempts/results.
+- **`AI_LAN_ERROR_LOG_PATH`**: JSONL output path for structured runtime/tool exceptions.
 - **`AI_LAN_REFLECTION_RETRIES`**: Max reflection retries per ReAct step (default `1`).
 - **`AI_LAN_REFLECTION_RETRIES_PER_TURN`**: Max total reflection retries before the runtime stops retrying in a turn-like sequence (default `3`).
+- **`AI_LAN_REFLECTION_REQUIRED_ON_FAILURE`**: Require an explicit reflection decision record before retrying failed or empty-result tool calls (`0`/`1`).
+- **`AI_LAN_STREAM_TOOL_TRIGGER_ENABLED`**: Enable token-stream interception while llama-cpp is generating (`0`/`1`).
+- **`AI_LAN_STREAM_TOOL_TRIGGER_PATTERN`**: Optional fallback text trigger used for stream interception when JSON action payloads have not completed yet.
+- **`AI_LAN_KV_CACHE_MAX_TURNS`**: Maximum un-compacted recent turn/thought/observation count before prompt compaction runs.
+- **`AI_LAN_CONTEXT_SUMMARY_ENABLED`**: Enable compacted summaries for older turns/thoughts/observations before prompt assembly (`0`/`1`).
+- **`AI_LAN_CONTEXT_SUMMARY_TARGET_TOKENS`**: Approximate token budget used by the compaction summaries.
 - **`quality_guardrail_min_score`** (`config/settings.yaml`): Minimum quality score required before `scripts/model_registry.py activate` can promote a candidate version.
 - **`quality_guardrail_baseline_model`** (`config/settings.yaml`): Optional registry version that a candidate must meet or exceed in the quality benchmark artifacts under `runs/quality/`.
 - **`dynamic_safety_enabled`** (`config/settings.yaml`): Enables dynamic safety escalation from runtime context/perception signals.
@@ -115,37 +134,31 @@ Android screenshot captures are also constrained to paths under `temp/` to keep 
 When enabled, the latest compact OCR/screen summary is stored in session state and injected into runtime context for the planner.
 Adaptive perception reduces idle CPU load by increasing sample interval when the screen summary stays unchanged.
 
+Active in the current 4.5A foundation slice:
+
+- `core/inference/engine.py` now owns GGUF runtime loading, resident-cache reuse, and deterministic fallback reasons.
+- `core/inference/residency.py` monitors host RAM pressure and triggers resident unload when the configured threshold is exceeded.
+- `core/inference/model_router.py` builds a pressure-aware GGUF candidate chain and can fall back from preferred complex/simple models to cheaper secondary candidates before classic fallback.
+- `core/inference/context_manager.py` and `core/inference/kv_cache_manager.py` compact older prompt state with role-aware summaries and head/tail runtime-context preservation before context growth degrades stability.
+- `agents/react/planner.py` now provides plan-quality requirements plus model-plan validation/repair instead of injecting a fixed heuristic plan body.
+- `agents/react/reflection.py` records explicit retry/skip decisions before retries are attempted.
+- `agents/react/tool_risk.py` and `agents/react/tool_schema.py` expose richer tool risk metadata (`risk_tier`, `policy_mode`, `risk_reasons`) to the planner and runtime logs.
+- `agents/react/runtime_guard.py` now enforces pre-dispatch runtime checks so streamed tool triggers must align with validated plan metadata before action dispatch.
+- `agents/react/runtime_guard.py` also binds streamed actions to a canonical execution contract so runtime dispatch can reject payload drift before `_run_payload` executes.
+- `agents/react/structured_logging.py` writes structured agent, tool, and error JSONL logs under `temp/logs/` by default.
+
 - **`AI_LAN_STT_ENABLED`**: Enable speech-to-text runtime wiring (`0`/`1`).
 - **`AI_LAN_TTS_ENABLED`**: Enable text-to-speech runtime wiring (`0`/`1`).
 - **`AI_LAN_VOSK_MODEL_PATH`**: Local path to Vosk model directory used by offline STT listener.
 - **`AI_LAN_MEMORY_BACKEND`**: Memory backend selector (`none` or `chroma`).
 - **`AI_LAN_CHROMA_PATH`**: Local storage path for Chroma backend.
 
-Planned for Phase 4.5A (documented target, not all keys active yet):
+Planned for later 4.5A slices (documented target, not active yet):
 
-- **`AI_LAN_LLAMACPP_MODEL_PROFILE`**: Preferred GGUF profile (`phi4_q4km`, `llama8b_q4km`, and fallback profiles).
-- **`AI_LAN_LLAMACPP_RESIDENT`**: Keep model loaded between turns (`0`/`1`).
-- **`AI_LAN_LLAMACPP_UNLOAD_RAM_PCT`**: Host RAM pressure threshold that triggers background model unload.
-- **`AI_LAN_REASONING_PLAN_STEPS_MIN`**: Minimum required plan length before tool execution.
-- **`AI_LAN_REASONING_PLAN_STEPS_MAX`**: Maximum plan length cap for bounded planning.
-- **`AI_LAN_REASONING_DYNAMIC_PLANNING`**: Enable complexity-aware planning (`0`/`1`) so simple tasks can skip full multi-step plans.
-- **`AI_LAN_STREAM_TOOL_TRIGGER_ENABLED`**: Enable token-stream interception for `Action:` triggers (`0`/`1`).
-- **`AI_LAN_STREAM_TOOL_TRIGGER_PATTERN`**: Trigger pattern used to pause generation and execute tools.
-- **`AI_LAN_REFLECTION_REQUIRED_ON_FAILURE`**: Require a reflection pass after tool failure (`0`/`1`).
 - **`AI_LAN_REFLECTION_MAX_RETRIES`**: Reflection/retry ceiling per turn.
-- **`AI_LAN_KV_CACHE_MAX_TURNS`**: Maximum raw-turn window before context summarization + cache reset.
-- **`AI_LAN_CONTEXT_SUMMARY_ENABLED`**: Enable rolling context summarization before buffer pressure causes truncation (`0`/`1`).
-- **`AI_LAN_CONTEXT_SUMMARY_TARGET_TOKENS`**: Token budget for compacted memory summaries.
 - **`AI_LAN_PROMPT_XML_MODE`**: Enforce XML-structured prompt contract for planner output (`0`/`1`).
 - **`AI_LAN_TOOL_SCHEMA_TRANSLATOR_ENABLED`**: Enable automatic translation of tool signatures/metadata into model prompt schema (`0`/`1`).
-- **`AI_LAN_MODEL_ROUTER_ENABLED`**: Enable multi-model routing/fallback (`0`/`1`).
-- **`AI_LAN_MODEL_ROUTER_SIMPLE_MODEL_PATH`**: GGUF path for low-cost/simple tasks.
-- **`AI_LAN_MODEL_ROUTER_COMPLEX_MODEL_PATH`**: GGUF path for complex tasks.
 - **`AI_LAN_TOOL_RISK_POLICY_PATH`**: Optional risk-tier mapping file (`safe`/`medium`/`dangerous`) for tool execution controls.
-- **`AI_LAN_REASONING_TELEMETRY_ENABLED`**: Enable structured thought/plan/action/result/reflection telemetry (`0`/`1`).
-- **`AI_LAN_AGENT_LOG_PATH`**: Structured thought/planning log output path.
-- **`AI_LAN_TOOL_LOG_PATH`**: Structured tool execution log output path.
-- **`AI_LAN_ERROR_LOG_PATH`**: Structured runtime error/failure log path.
 
 When `AI_LAN_MEMORY_BACKEND=chroma`, runtime context retrieval and memory search use ChromaDB first for vector scoring and automatically fall back to the local JSON vector index if Chroma is unavailable.
 

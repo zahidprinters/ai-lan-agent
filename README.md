@@ -113,11 +113,15 @@ When neural planning is enabled, chat mode can also run a small bounded Thought 
 The planner prompt now uses a structured tool schema derived from the router registry, including arg contracts, confirmation hints, and risk labels.
 Planner prompting for GGUF models follows a structured XML contract (`<thought>`, `<plan>`, `<action>`, `<reflection>`) to keep parser behavior deterministic across model families.
 Planning is dynamic by complexity: simple actions can skip full multi-step plans, while higher-complexity tasks require explicit multi-step planning before tool execution.
+The 4.5A foundation now routes GGUF requests through a dedicated inference manager with resident-model reuse, RAM-pressure unload fallback, and optional simple-versus-complex model selection.
+The current 4.5A slice also validates model-supplied plans against 3 to 5 step quality checks, repairs weak plans with refusal-aware shaping when needed, compacts older turns/thoughts/observations before prompt growth gets unstable, and stops llama-cpp streaming early when an actionable tool trigger is complete.
 Long-running sessions use rolling context with summarization instead of blunt truncation so older turns are compacted into memory blocks rather than dropped abruptly.
 When perception is enabled, the latest screen/OCR snapshot is also injected into runtime context so the local planner can reason over live situational summaries.
 The dashboard/API surfaces now expose that live perception summary, and CLI/voice chat shut down session resources cleanly on exit.
 For lower machine load, runtime context assembly now applies a configurable section-size budget and perception sampling can adaptively back off when the screen state is unchanged.
 Runtime telemetry should include agent reasoning traces (thought/plan/action/result/reflection) so planner quality can be debugged in real time.
+Structured JSONL logs now default to `temp/logs/agent_reasoning.jsonl`, `temp/logs/tool_events.jsonl`, and `temp/logs/runtime_errors.jsonl`.
+Planner-visible tool schema now includes richer risk metadata (`risk_tier`, `policy_mode`, `risk_reasons`) so risky or blocked actions can be shaped toward confirmation or refusal before dispatch.
 
 ### Run CLI Dashboard
 
@@ -149,6 +153,11 @@ Common examples:
 - `AI_LAN_EPOCHS=50`
 - `AI_LAN_BATCH_SIZE=8`
 - `AI_LAN_DEVICE=cpu`
+- `AI_LAN_REASONING_BACKEND=llama_cpp`
+- `AI_LAN_LLAMACPP_MODEL_PROFILE=phi4_q4km`
+- `AI_LAN_LLAMACPP_RESIDENT=1`
+- `AI_LAN_REASONING_PLAN_STEPS_MIN=3`
+- `AI_LAN_STREAM_TOOL_TRIGGER_ENABLED=1`
 
 See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for the full variable reference.
 

@@ -313,7 +313,8 @@ For selected side-effect actions, the router also injects verification metadata 
 
 ### `scripts/benchmark_tools.py`
 
-- Runs tool benchmark cases and reports tool success rate, safety refusal quality, and latency metrics.
+- Runs tool benchmark cases and reports tool success rate, safety refusal quality, runtime-guard match quality, and latency metrics.
+- Cases may include optional `planner_metadata` and `expected_guard_allowed` fields to validate runtime dispatch guard decisions for streamed-trigger orchestration paths.
 
 ### `scripts/offline_learning_pipeline.py`
 

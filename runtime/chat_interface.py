@@ -8,7 +8,8 @@ from pathlib import Path
 from typing import Any
 
 from agents.react.agent import ReactAgent
-from agents.react.controller import NeuralActionController
+from agents.react.controller import NeuralActionController, PlannedTurn
+from agents.react.runtime_guard import verify_execution_contract
 from memory.short_term.buffer import ShortTermBuffer
 from runtime.context import build_runtime_context
 from runtime.perception_loop import PerceptionLoop, PerceptionSnapshot
@@ -511,7 +512,23 @@ class ChatSession:
     def _run_neural_controller(self, text: str) -> str | None:
         action_results: list[tuple[dict[str, object], dict[str, Any]]] = []
 
-        def observe_action(payload: dict[str, object]) -> str:
+        def observe_action(turn: PlannedTurn) -> str:
+            payload = dict(turn.action_payload or {})
+            verification = verify_execution_contract(
+                action_payload=payload,
+                metadata=turn.metadata,
+            )
+            if not verification.valid:
+                result = {
+                    "status": "blocked",
+                    "action": str(payload.get("action", "")),
+                    "policy_reason": f"execution_contract:{verification.reason}",
+                    "observation": {"execution_contract": verification.to_dict()},
+                }
+                self.last_result = result
+                action_results.append((payload, result))
+                return format_router_result(result)
+
             result = self._run_payload(payload, confirmed=False)
             self.last_result = result
             action_results.append((payload, result))

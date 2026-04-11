@@ -25,7 +25,39 @@
       "safety_level": "low"
     },
     "expected_status": "executed",
-    "category": "execution"
+    "category": "execution",
+    "compaction_probe": {
+      "policy": {
+        "max_turns": 2,
+        "summary_enabled": true,
+        "summary_target_tokens": 80,
+        "runtime_context_max_chars": 125
+      },
+      "runtime_context": "Perception Context:\nDesktop UI idle.\nObservation backlog contains prior summaries.\nTool cache is warm.\nLatest observation says tool execution succeeded.",
+      "recent_turns": [
+        {"role": "user", "message": "Summarize the last policy result and keep it short."},
+        {"role": "assistant", "message": "I will fetch the most relevant policy memory and then summarize it."},
+        {"role": "tool", "message": "memory.search returned three relevant policy snippets."},
+        {"role": "assistant", "message": "The policy requires confirmation for medium-risk device control."}
+      ],
+      "recent_thoughts": [
+        "Need the freshest policy summary.",
+        "Prefer the memory layer over guessing."
+      ],
+      "recent_observations": [
+        "Previous confirmation request was accepted.",
+        "Latest observation says tool execution succeeded."
+      ],
+      "expected_compacted": true,
+      "runtime_context_contains": [
+        "Perception Context:",
+        "Tool cache is warm."
+      ],
+      "summary_contains": [
+        "Runtime context compacted",
+        "roles:"
+      ]
+    }
   },
   {
     "name": "context_build_exec",
@@ -38,7 +70,22 @@
       "safety_level": "low"
     },
     "expected_status": "executed",
-    "category": "execution"
+    "category": "execution",
+    "routing_probe": {
+      "task_complexity": "complex",
+      "pressure_high": true,
+      "router": {
+        "router_enabled": true,
+        "resident_enabled": true,
+        "simple_model_path": "models/gguf/phi4-mini.gguf",
+        "complex_model_path": "models/gguf/deepseek-r1.gguf"
+      },
+      "expected": {
+        "primary_selection_reason": "pressure_simple_route",
+        "primary_resident_enabled": false,
+        "candidate_count": 3
+      }
+    }
   },
   {
     "name": "web_search_exec",
@@ -173,5 +220,91 @@
     },
     "expected_status": "rejected",
     "category": "refusal"
+  },
+  {
+    "name": "stream_trigger_aligned_memory_search",
+    "payload": {
+      "thought": "Use memory lookup for policy guidance.",
+      "action": "memory.search",
+      "args": {
+        "query": "policy guidance"
+      },
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "category": "orchestration",
+    "planner_metadata": {
+      "stream_trigger_mode": "text_action",
+      "plan_validation": {
+        "source": "model_validated"
+      },
+      "plan_steps": [
+        "Understand the policy question and inspect context.",
+        "Use memory.search to gather the most relevant records.",
+        "Verify the retrieved records and prepare a grounded reply."
+      ],
+      "runtime_guard": {
+        "allowed": true,
+        "reason": "runtime_guard_pass",
+        "risk_tier": "safe",
+        "policy_mode": "allow",
+        "plan_validated": true,
+        "plan_alignment": true,
+        "trigger_alignment": true
+      }
+    },
+    "expected_guard_allowed": true,
+    "expected_execution_contract_valid": true,
+    "expected_execution_contract_reason": "execution_contract_verified",
+    "autobuild_execution_contract": true
+  },
+  {
+    "name": "stream_trigger_misaligned_plan_rejected",
+    "payload": {
+      "thought": "Launch app now.",
+      "action": "android.launch_app",
+      "args": {
+        "package_name": "com.example.app"
+      },
+      "safety_level": "medium"
+    },
+    "expected_status": "rejected",
+    "category": "orchestration",
+    "planner_metadata": {
+      "stream_trigger_mode": "text_action",
+      "plan_validation": {
+        "source": "model_validated"
+      },
+      "plan_steps": [
+        "Write a direct answer without taking any tool action.",
+        "Polish wording for readability.",
+        "Send the final response."
+      ]
+    },
+    "expected_guard_allowed": false
+  },
+  {
+    "name": "stream_trigger_denied_tool_rejected",
+    "payload": {
+      "thought": "Run shell command.",
+      "action": "pc.execute_shell",
+      "args": {
+        "command": "dir"
+      },
+      "safety_level": "high"
+    },
+    "expected_status": "rejected",
+    "category": "orchestration",
+    "planner_metadata": {
+      "stream_trigger_mode": "json_action",
+      "plan_validation": {
+        "source": "repaired"
+      },
+      "plan_steps": [
+        "Check policy and prepare a refusal for blocked shell execution.",
+        "Return a safe alternative path."
+      ]
+    },
+    "expected_guard_allowed": false
   }
 ]

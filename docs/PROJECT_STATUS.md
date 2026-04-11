@@ -94,13 +94,12 @@ These are retained by design and are not duplicate/legacy remnants.
 ## Next Priorities
 
 1. **Phase 4.3:** completed (2026-04-11). Benchmark harness exit gate now includes curated CI thresholds, checked-in trace regression coverage, category coverage minimums, per-category success thresholds, and distinct action diversity thresholds.
-2. **Phase 4.5A (Reasoning-first):** execute the Strong Reasoning Core plan with GGUF-first runtime (`Phi-4` / `Llama 8B`, `Q4_K_M` baseline), memory-aware residency controls, mandatory 3-5 step planning, token-stream tool interception, and mandatory post-failure reflection.
-3. **Phase 4.5A hardening requirements:** enforce KV-cache reset/summarization policy, tool risk tiers (`safe`/`medium`/`dangerous`), multi-model fallback routing under pressure/task complexity, and structured agent/tool/error logging.
-4. **Phase 4.5B (Embodied runtime):** once reasoning quality is stable, expand vision/audio runtime depth (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`) behind existing router/policy controls.
-5. **Phase 5.1:** integrate one persistent memory backend (`Chroma` or `Qdrant`) with explicit retention/user-control boundaries.
-6. **Phase 5.2+:** ship nightly offline learning with canary promotion gates, benchmark-regression blocking, model registry rollback, and orchestration hardening when workload scale requires it.
+2. **Phase 4.5A (Reasoning-first):** completed (2026-04-11). Exit-gated with model-validated planning, stream-trigger orchestration, runtime guard + execution-contract enforcement, pressure-aware routing fallback, upgraded context compaction quality, and strict benchmark assertions for runtime guard/routing/execution-contract/compaction behavior.
+3. **Phase 4.5B (Embodied runtime):** active next phase. Expand vision/audio runtime depth (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`) behind existing router/policy controls while preserving 4.5A reasoning and safety gates.
+4. **Phase 5.1:** integrate one persistent memory backend (`Chroma` or `Qdrant`) with explicit retention/user-control boundaries.
+5. **Phase 5.2+:** ship nightly offline learning with canary promotion gates, benchmark-regression blocking, model registry rollback, and orchestration hardening when workload scale requires it.
 
-Direction lock: brain-before-eyes sequencing is active for remaining Phase 4 work.
+Direction lock: 4.5A is complete; continue brain-before-eyes sequencing by preserving 4.5A gates while expanding 4.5B perception depth.
 
 ## Strategic Reliability Pillars
 

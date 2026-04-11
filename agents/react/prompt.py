@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from core.inference.context_manager import compact_prompt_context
+
 from agents.react.tool_schema import format_model_tool_schema
 
 SYSTEM_PROMPT = "You are AI Lan. Think safely, act minimally, and log every tool call."
 OUTPUT_RULES = (
-    'Return one JSON object only. Use {"mode":"action","thought":"...","action":"...","args":{...},"safety_level":"low"} '
-    'or {"mode":"reply","response":"..."}.'
+    'Return one JSON object only. Always include a "plan" array with 3 to 5 short steps. '
+    'Use {"mode":"action","plan":["..."],"thought":"...","action":"...","args":{...},"safety_level":"low"} '
+    'or {"mode":"reply","plan":["..."],"response":"..."}.'
 )
 
 
@@ -37,31 +40,36 @@ def build_react_prompt(
     recent_thoughts: list[str] | None = None,
     recent_observations: list[str] | None = None,
     tool_names: list[str] | tuple[str, ...] | None = None,
+    plan_requirements: list[str] | None = None,
 ) -> str:
-    context_text = ""
-    if isinstance(runtime_context, dict):
-        context_text = str(
-            runtime_context.get("assembled_context") or runtime_context.get("context_text") or ""
-        )
+    compacted = compact_prompt_context(
+        runtime_context=runtime_context,
+        recent_turns=recent_turns,
+        recent_thoughts=recent_thoughts,
+        recent_observations=recent_observations,
+    )
+    context_text = compacted.runtime_context_text
 
     tools_text = format_model_tool_schema(tool_names)
-    thoughts_text = (
-        "\n".join(f"- {thought}" for thought in (recent_thoughts or [])[-8:]) or "(none)"
-    )
+    thoughts_text = "\n".join(f"- {thought}" for thought in compacted.recent_thoughts) or "(none)"
     observations_text = (
-        "\n".join(f"- {item}" for item in (recent_observations or [])[-8:]) or "(none)"
+        "\n".join(f"- {item}" for item in compacted.recent_observations) or "(none)"
     )
+    plan_text = "\n".join(f"- {step}" for step in (plan_requirements or [])) or "(none)"
 
     sections = [
         SYSTEM_PROMPT,
         "Use the tool schema and recent context to decide whether to reply or act.",
+        "Follow the mandatory plan outline. Do not skip reflection after a failed tool attempt.",
         "Prefer memory.search and context.build for internal knowledge queries.",
         "Prefer web.search for current external information.",
         "Use only tools marked as allowed in the schema.",
         _format_block("Available tools:", tools_text),
-        _format_block("Recent turns:", _format_turns(recent_turns)),
+        _format_block("Plan quality requirements:", plan_text),
+        _format_block("Recent turns:", _format_turns(compacted.recent_turns)),
         _format_block("Recent thoughts:", thoughts_text),
         _format_block("Recent observations:", observations_text),
+        _format_block("Compacted summaries:", "\n".join(f"- {item}" for item in compacted.summary_blocks)),
         _format_block("Runtime context:", context_text),
         OUTPUT_RULES,
         _format_block("Message:", message.strip()),

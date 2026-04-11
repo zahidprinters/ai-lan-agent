@@ -39,7 +39,14 @@
 - Planner backend fallback behavior should be regression-tested when touching `agents/react/controller.py` or `core/inference/local_reasoning.py`.
 - Local fallback command:
   - `python -m pytest tests/test_local_reasoning.py tests/test_chat_interface.py tests/test_layered_modules.py -q --disable-warnings`
-- Expected behavior: llama-cpp failures degrade immediately to classic planning and surface a debug-safe fallback reason in planner metadata.
+- Expected behavior: llama-cpp failures degrade immediately to classic planning when no candidate can succeed, preferred GGUF candidates can fall back to secondary routed candidates first, and planner metadata surfaces the selected route plus debug-safe fallback reasons.
+
+## Phase 4.5A Planning / Streaming Gate
+
+- When touching `core/inference/engine.py`, `agents/react/planner.py`, `agents/react/reflection.py`, `agents/react/agent.py`, or the prompt compaction path, run the focused 4.5A gate first.
+- Local command:
+  - `python -m pytest tests/test_inference_manager.py tests/test_local_reasoning.py tests/test_layered_modules.py tests/test_iterative_react.py tests/test_chat_interface.py -q --disable-warnings`
+- Expected behavior: planner metadata carries a validated or repaired 3-5 step plan, stream interception can orchestrate JSON or text-based tool triggers, execution-contract checks block payload drift before dispatch, older prompt state is compacted into role-aware summaries with preserved runtime-context edges, richer risk metadata appears in planner/log records, reflection decisions are explicit, and structured logs are emitted for agent/tool/error paths.
 
 ## Dashboard Health Gate
 
@@ -63,12 +70,15 @@
 - Checked-in trace regression fixture:
   - `tests/fixtures/benchmarks/phase43_trace_cases.json`
 - Local strict benchmark command:
-  - `python scripts/benchmark_tools.py --output temp/benchmarks/local_tool_benchmark.json --cases tests/fixtures/benchmarks/phase43_depth_cases.json --strict --min-tool-success 0.66 --min-refusal-quality 0.90 --max-error-rate 0.00 --max-latency-p95 2500 --required-category execution:1 --required-category confirmation:1 --required-category refusal:1 --min-category-match execution:0.90 --min-category-match confirmation:0.90 --min-category-match refusal:0.90 --required-distinct-actions execution:6 --required-distinct-actions confirmation:5 --required-distinct-actions refusal:2`
+  - `python scripts/benchmark_tools.py --output temp/benchmarks/local_tool_benchmark.json --cases tests/fixtures/benchmarks/phase43_depth_cases.json --strict --min-tool-success 0.66 --min-refusal-quality 0.90 --max-error-rate 0.00 --max-latency-p95 2500 --min-runtime-guard-match 1.00 --min-execution-contract-match 1.00 --min-routing-assertion-match 1.00 --min-compaction-assertion-match 1.00 --required-category execution:1 --required-category confirmation:1 --required-category refusal:1 --required-category orchestration:1 --min-category-match execution:0.90 --min-category-match confirmation:0.90 --min-category-match refusal:0.90 --min-category-match orchestration:0.90 --required-distinct-actions execution:6 --required-distinct-actions confirmation:5 --required-distinct-actions refusal:2 --required-distinct-actions orchestration:3`
 - Local strict trace-regression command:
-  - `python scripts/benchmark_tools.py --output temp/benchmarks/checked_in_trace_tool_benchmark.json --cases tests/fixtures/benchmarks/phase43_trace_cases.json --strict --min-tool-success 0.66 --min-refusal-quality 0.90 --max-error-rate 0.00 --max-latency-p95 2500 --required-category execution:1 --required-category confirmation:1 --required-category refusal:1 --min-category-match execution:0.90 --min-category-match confirmation:0.90 --min-category-match refusal:0.90 --required-distinct-actions execution:5 --required-distinct-actions confirmation:2 --required-distinct-actions refusal:1`
+  - `python scripts/benchmark_tools.py --output temp/benchmarks/checked_in_trace_tool_benchmark.json --cases tests/fixtures/benchmarks/phase43_trace_cases.json --strict --min-tool-success 0.66 --min-refusal-quality 0.90 --max-error-rate 0.00 --max-latency-p95 2500 --min-runtime-guard-match 1.00 --min-execution-contract-match 1.00 --min-routing-assertion-match 1.00 --min-compaction-assertion-match 1.00 --required-category execution:1 --required-category confirmation:1 --required-category refusal:1 --required-category orchestration:1 --min-category-match execution:0.90 --min-category-match confirmation:0.90 --min-category-match refusal:0.90 --min-category-match orchestration:0.90 --required-distinct-actions execution:5 --required-distinct-actions confirmation:2 --required-distinct-actions refusal:1 --required-distinct-actions orchestration:1`
 - Strict mode exits nonzero when any threshold fails.
 - CI runs the curated benchmark gate when router/safety or benchmark harness files change, and optionally runs the checked-in trace fixture alongside it when trace-benchmark files or builder workflow files change.
 - Use trace-derived case packs for local depth expansion when you want broader production-like request coverage without editing fixture JSON by hand.
 - Category coverage assertions are part of the Phase 4.3 gate so benchmark packs cannot silently lose execution, confirmation, or refusal coverage.
 - Per-category success thresholds are also part of the gate so a fixture cannot pass overall while one category degrades under the aggregate score.
 - Distinct action diversity thresholds are part of the gate as well, so a category cannot satisfy coverage with a single repeated action shape.
+- Runtime guard alignment is part of the gate: orchestration cases now assert `expected_guard_allowed`, and strict runs fail when `runtime_guard_decision_match_rate` drops below threshold.
+- Phase 4.5A hardening probes are part of the curated depth gate: cases can now assert `expected_execution_contract_valid`, attach a `routing_probe`, and attach a `compaction_probe`, with strict runs failing if `execution_contract_match_rate`, `routing_assertion_match_rate`, or `compaction_assertion_match_rate` regresses.
+- Benchmark reports now include a compact `probe_failures` summary section (evaluated count, failed count, first failed case names, and reason histogram when available) to speed CI triage.

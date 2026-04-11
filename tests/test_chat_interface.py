@@ -239,6 +239,62 @@ def test_chat_session_runs_multi_step_neural_loop(monkeypatch: Any) -> None:
     assert session.last_plan["mode"] == "reply"
 
 
+def test_chat_session_blocks_execution_when_contract_drift_is_detected(monkeypatch: Any) -> None:
+    session = ChatSession()
+    monkeypatch.setattr(
+        session, "_build_context", lambda text: {"query": text, "assembled_context": "context"}
+    )
+    monkeypatch.setattr("runtime.chat_interface.parse_natural_action", lambda message: None)
+
+    def fake_plan_iterative(**kwargs: Any) -> list[PlannedTurn]:
+        turn = PlannedTurn(
+            mode="action",
+            source="model_stream_trigger",
+            action_payload={
+                "thought": "Search memory for policy guidance.",
+                "action": "memory.search",
+                "args": {"query": "policy"},
+                "safety_level": "low",
+            },
+            raw_text='{"mode":"action"}',
+            metadata={
+                "runtime_guard": {"allowed": True, "reason": "runtime_guard_pass"},
+                "execution_contract": {
+                    "payload_signature": "deadbeef",
+                    "guard_allowed": True,
+                    "guard_reason": "runtime_guard_pass",
+                    "stream_payload_signature": None,
+                },
+            },
+        )
+        observe_action = kwargs.get("observe_action")
+        if callable(observe_action):
+            observe_action(turn)
+        return [turn]
+
+    monkeypatch.setattr(session.controller, "plan_iterative", fake_plan_iterative)
+
+    calls: list[dict[str, object]] = []
+
+    def fake_run(payload: dict[str, object], *, confirmed: bool = False) -> dict[str, Any]:
+        _ = confirmed
+        calls.append(payload)
+        return {
+            "status": "executed",
+            "action": str(payload.get("action", "")),
+            "policy_reason": "ok",
+            "observation": {"hits": []},
+        }
+
+    monkeypatch.setattr(session, "_run_payload", fake_run)
+
+    reply = session.handle_message("please use the neural controller")
+
+    assert calls == []
+    assert "status: blocked" in reply
+    assert "execution_contract:execution_contract_payload_mismatch" in reply
+
+
 def test_chat_session_recovers_after_reflection_retry(monkeypatch: Any) -> None:
     monkeypatch.setenv("AI_LAN_REFLECTION_RETRIES", "1")
     monkeypatch.setenv("AI_LAN_REFLECTION_RETRIES_PER_TURN", "3")

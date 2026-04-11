@@ -6,7 +6,10 @@ from dataclasses import dataclass
 import os
 from typing import Any
 
-from agents.react.controller import action_signature, build_reflection_payload, is_reflection_candidate
+from agents.react.controller import action_signature
+from agents.react.reflection import evaluate_reflection_policy
+from agents.react.structured_logging import append_structured_log
+from agents.react.tool_risk import get_tool_risk_profile
 from agents.react.state import ReactState
 from memory.short_term.buffer import ShortTermBuffer
 from router.router import dispatch_action, parse_and_dispatch
@@ -46,15 +49,46 @@ class ReactAgent:
         result: dict[str, Any] = {}
         retries_for_step = 0
         seen_signatures: set[str] = {action_signature(current_payload)}
+        reflection_notes: list[str] = []
+
+        append_structured_log(
+            "agent",
+            {
+                "event": "react_step_start",
+                "action": initial_action.action,
+                "thought": initial_action.thought,
+                "safety_level": initial_action.safety_level,
+                "risk_profile": get_tool_risk_profile(initial_action.action).to_dict(),
+            },
+        )
 
         while True:
             try:
+                append_structured_log(
+                    "tool",
+                    {
+                        "event": "tool_dispatch_attempt",
+                        "action": str(current_payload.get("action", "")),
+                        "args": dict(current_payload.get("args", {})) if isinstance(current_payload.get("args"), dict) else {},
+                        "confirmed": confirmed,
+                        "risk_profile": get_tool_risk_profile(str(current_payload.get("action", ""))).to_dict(),
+                    },
+                )
                 result = parse_and_dispatch(
                     current_payload,
                     confirmed=confirmed,
                     policy_context=policy_context,
                 )
-            except Exception:
+            except Exception as exc:
+                append_structured_log(
+                    "error",
+                    {
+                        "event": "tool_dispatch_exception",
+                        "action": str(current_payload.get("action", "")),
+                        "error": str(exc),
+                        "risk_profile": get_tool_risk_profile(str(current_payload.get("action", ""))).to_dict(),
+                    },
+                )
                 # Fallback to direct router dispatch if parse_and_dispatch fails unexpectedly.
                 result = dispatch_action(
                     current_payload,
@@ -62,30 +96,47 @@ class ReactAgent:
                     policy_context=policy_context,
                 )
 
-            can_retry = (
-                not confirmed
-                and retries_for_step < self.max_reflection_retries_per_step
-                and self.state.reflection_retries_used < self.max_reflection_retries_per_turn
-                and is_reflection_candidate(current_payload, result)
+            append_structured_log(
+                "tool",
+                {
+                    "event": "tool_dispatch_result",
+                    "action": str(result.get("action", current_payload.get("action", ""))),
+                    "status": str(result.get("status", "unknown")),
+                    "policy_reason": str(result.get("policy_reason", "")),
+                    "risk_profile": get_tool_risk_profile(str(result.get("action", current_payload.get("action", "")))).to_dict(),
+                },
             )
-            if not can_retry:
-                if (
-                    not confirmed
-                    and is_reflection_candidate(current_payload, result)
-                    and self.state.reflection_retries_used >= self.max_reflection_retries_per_turn
-                ):
-                    result.setdefault("reflection_skipped_reason", "retry_budget_exhausted")
-                break
 
-            reflected_payload = build_reflection_payload(
-                current_payload,
-                result,
+            decision = evaluate_reflection_policy(
+                action_payload=current_payload,
+                result=result,
                 retry_index=retries_for_step + 1,
+                retries_for_step=retries_for_step,
+                retries_for_turn=self.state.reflection_retries_used,
+                max_reflection_retries_per_step=self.max_reflection_retries_per_step,
+                max_reflection_retries_per_turn=self.max_reflection_retries_per_turn,
+                confirmed=confirmed,
             )
-            if reflected_payload is None:
-                result.setdefault("reflection_skipped_reason", "no_recovery_candidate")
+            reflection_notes.append(decision.note)
+            append_structured_log(
+                "agent",
+                {
+                    "event": "reflection_decision",
+                    "action": str(current_payload.get("action", "")),
+                    "decision": decision.reason,
+                    "retry_allowed": decision.retry_allowed,
+                    "note": decision.note,
+                    "risk_profile": get_tool_risk_profile(str(current_payload.get("action", ""))).to_dict(),
+                },
+            )
+            if not decision.retry_allowed:
+                result.setdefault("reflection_skipped_reason", decision.reason)
                 break
 
+            reflected_payload = decision.next_payload
+            if reflected_payload is None:
+                result.setdefault("reflection_skipped_reason", decision.reason)
+                break
             reflected_signature = action_signature(reflected_payload)
             if reflected_signature in seen_signatures:
                 result.setdefault("reflection_skipped_reason", "repeated_action_suppressed")
@@ -104,10 +155,21 @@ class ReactAgent:
         result["reflection_retry_count"] = retries_for_step
         if retries_for_step > 0:
             result["reflection_applied"] = True
+        result["reflection_notes"] = reflection_notes
 
         observation_text = str(result.get("observation") or result.get("policy_reason") or "")
         self.state.observations.append(observation_text)
         self.buffer.add(role="tool_observation", message=observation_text)
+        append_structured_log(
+            "agent",
+            {
+                "event": "react_step_complete",
+                "action": str(result.get("action", current_payload.get("action", ""))),
+                "status": str(result.get("status", "unknown")),
+                "reflection_retry_count": retries_for_step,
+                "risk_profile": get_tool_risk_profile(str(result.get("action", current_payload.get("action", "")))).to_dict(),
+            },
+        )
 
         return ReactStepResult(request=current_payload, result=result, state=self.state)
 

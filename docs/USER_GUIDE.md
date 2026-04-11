@@ -171,6 +171,20 @@ $env:AI_LAN_CHROMA_PATH = "temp/chroma"
 
 If Chroma is not available at runtime, AI Lan falls back to the local vector index automatically.
 
+Phase 5.1 memory controls:
+
+```powershell
+# Dry-run memory prune using configured retention boundaries
+python scripts/memory_store.py prune --dry-run
+
+# Apply prune with explicit boundaries
+python scripts/memory_store.py prune --retention-days 30 --max-entries 2000
+```
+
+Retention defaults are read from `config/settings.yaml` keys `memory_retention_days` and
+`memory_max_entries`, and can be overridden per-process with `AI_LAN_MEMORY_RETENTION_DAYS`
+and `AI_LAN_MEMORY_MAX_ENTRIES`.
+
 ### 📍 Storage Cleanup And Retention
 
 Use the storage cleanup tool to audit or remove old temporary artifacts safely:

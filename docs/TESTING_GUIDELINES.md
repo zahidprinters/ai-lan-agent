@@ -55,6 +55,13 @@
   - `python -m pytest tests/test_phase4_tools.py tests/test_perception_loop.py tests/test_chat_interface.py tests/test_vision_tool.py -q --disable-warnings`
 - Expected behavior: bounded perception sampling stays in range, OCR confidence filtering remains active, unsupported backend selection fails safely, backend/fallback/preprocess controls propagate through perception loop wiring, and runtime context includes perception source/confidence/backend metadata.
 
+## Phase 5.1 Memory Retention Gate
+
+- When touching `tools/memory_store.py`, `memory/long_term/chroma_store.py`, or `scripts/memory_store.py`, run the focused memory gate before merge.
+- Local command:
+  - `python -m pytest tests/test_memory_store.py tests/test_chroma_memory_backend.py -q --disable-warnings`
+- Expected behavior: retrieval quality remains stable, backend selection (`none`/`chroma`) still works, and memory retention boundaries (`retention_days`, `max_entries`) prune old/overflow entries deterministically.
+
 ## Dashboard Health Gate
 
 - Dashboard/API health telemetry changes should include focused dashboard API tests.

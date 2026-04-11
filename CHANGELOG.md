@@ -79,6 +79,7 @@ All notable changes to this project will be documented in this file.
 - Added compact benchmark `probe_failures` report output so CI artifacts summarize per-probe evaluated counts, failed counts, top failed case names, and failure reasons for faster triage
 - Added initial 4.5B perception runtime slice: vision capture service entrypoint with bounded per-tick sampling, OCR confidence-filtering facade output, and runtime-context wiring of perception source/confidence metadata without policy bypass
 - Added deeper 4.5B perception runtime completion: selectable OCR backend/fallback path (`auto`/`tesseract`/`easyocr`), optional OpenCV preprocessing before OCR, and propagation of OCR backend metadata through perception snapshots and runtime context assembly
+- Added Phase 5.1 memory-retention controls: configurable retention/max-entry boundaries in `tools/memory_store.py` plus `scripts/memory_store.py prune` for dry-run/apply cleanup of old or overflow memory entries
 
 ### Changed
 
@@ -118,6 +119,7 @@ All notable changes to this project will be documented in this file.
 - Updated benchmark testing guidance and CI strict benchmark commands to require explicit execution-contract, routing, and compaction assertion matches
 - Updated optional trace-derived strict benchmark gate and checked-in trace fixture so Phase 4.5A execution-contract, routing, and compaction probes are asserted there as well
 - Updated 4.5B runtime/config/testing docs to include OCR backend controls, OpenCV preprocessing toggle, a focused 4.5B pytest gate, and completion status in roadmap/context/status docs
+- Updated configuration, user guide, and testing docs with Phase 5.1 memory retention keys (`memory_retention_days`, `memory_max_entries`) and focused memory gate coverage
 
 ### Fixed
 

@@ -5,9 +5,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from tools.memory_store import (
     add_memory_entry,
     get_recent_memories,
+    prune_memory_entries,
+    resolve_memory_max_entries,
+    resolve_memory_retention_days,
     retrieve_relevant_memories,
     store_conversation_summary,
 )
@@ -128,3 +133,70 @@ def test_memory_store_cli_search(tmp_path: Path) -> None:
     payload = json.loads(result.stdout)
     assert payload
     assert payload[0]["score"] > 0
+
+
+def test_resolve_memory_controls_from_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    settings_path = tmp_path / "settings.yaml"
+    settings_path.write_text(
+        "memory_retention_days: 21\nmemory_max_entries: 123\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AI_LAN_SETTINGS_PATH", str(settings_path))
+    monkeypatch.delenv("AI_LAN_MEMORY_RETENTION_DAYS", raising=False)
+    monkeypatch.delenv("AI_LAN_MEMORY_MAX_ENTRIES", raising=False)
+
+    assert resolve_memory_retention_days() == 21
+    assert resolve_memory_max_entries() == 123
+
+
+def test_prune_memory_entries_enforces_max_entries(tmp_path: Path) -> None:
+    db_path = tmp_path / "memory.sqlite3"
+    for index in range(5):
+        add_memory_entry(
+            kind="notes",
+            content=f"note {index}",
+            metadata={"index": index},
+            db_path=db_path,
+        )
+
+    result = prune_memory_entries(db_path=db_path, max_entries=2, retention_days=365)
+    assert result["status"] == "ok"
+    assert result["pruned_count"] == 3
+
+    remaining = get_recent_memories(db_path=db_path, limit=10)
+    assert len(remaining) == 2
+
+
+def test_prune_memory_entries_honors_retention_days(tmp_path: Path) -> None:
+    db_path = tmp_path / "memory.sqlite3"
+    add_memory_entry(
+        kind="notes",
+        content="fresh memory",
+        metadata={"age": "new"},
+        db_path=db_path,
+    )
+
+    from tools.memory_store import _connect
+
+    with _connect(db_path) as connection:
+        connection.execute(
+            "UPDATE memories SET created_at = ? WHERE id = 1",
+            ("2000-01-01T00:00:00+00:00",),
+        )
+        connection.commit()
+
+    add_memory_entry(
+        kind="notes",
+        content="latest memory",
+        metadata={"age": "latest"},
+        db_path=db_path,
+    )
+
+    result = prune_memory_entries(db_path=db_path, retention_days=30, max_entries=50)
+    assert result["status"] == "ok"
+    assert result["age_candidates"] >= 1
+
+    remaining = get_recent_memories(db_path=db_path, limit=10)
+    summaries = " ".join(entry.summary for entry in remaining).lower()
+    assert "latest memory" in summaries
+    assert "fresh memory" not in summaries

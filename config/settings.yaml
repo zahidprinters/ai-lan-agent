@@ -9,4 +9,6 @@ storage_temp_retention_days: 14
 storage_benchmark_retention_days: 30
 storage_download_retention_days: 45
 storage_temp_soft_limit_mb: 2048
+memory_retention_days: 30
+memory_max_entries: 2000
 

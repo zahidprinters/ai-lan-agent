@@ -5,8 +5,9 @@ import os
 import re
 import sqlite3
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 
 from debug_utils import sentinel
 
@@ -18,6 +19,8 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MEMORY_DB = ROOT / "temp" / "memory" / "memory_store.sqlite3"
 TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_]+")
 SUPPORTED_MEMORY_BACKENDS = {"none", "chroma"}
+DEFAULT_MEMORY_RETENTION_DAYS = 30
+DEFAULT_MEMORY_MAX_ENTRIES = 2000
 
 
 @dataclass(frozen=True)
@@ -62,6 +65,76 @@ def resolve_chroma_path(chroma_path: Path | None = None) -> Path | None:
         return chroma_path
     configured = os.getenv("AI_LAN_CHROMA_PATH", "").strip()
     return Path(configured) if configured else None
+
+
+def _coerce_scalar(value: str) -> object:
+    normalized = value.strip()
+    if not normalized:
+        return ""
+    lowered = normalized.lower()
+    if lowered in {"true", "false"}:
+        return lowered == "true"
+    if lowered in {"1", "0"}:
+        return lowered == "1"
+    try:
+        if any(char in normalized for char in {".", "e", "E"}):
+            return float(normalized)
+        return int(normalized)
+    except ValueError:
+        return normalized.strip('"').strip("'")
+
+
+def _load_settings_values() -> dict[str, object]:
+    settings_path = Path(
+        os.getenv("AI_LAN_SETTINGS_PATH", str(ROOT / "config" / "settings.yaml"))
+    )
+    if not settings_path.exists():
+        return {}
+
+    values: dict[str, object] = {}
+    for raw_line in settings_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.split("#", 1)[0].rstrip()
+        if not line or ":" not in line:
+            continue
+        key, raw_value = line.split(":", 1)
+        values[key.strip()] = _coerce_scalar(raw_value)
+    return values
+
+
+def _coerce_positive_int(value: object, *, default: int, minimum: int = 1) -> int:
+    try:
+        numeric = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, numeric)
+
+
+@sentinel
+def resolve_memory_retention_days(retention_days: int | None = None) -> int:
+    if retention_days is not None:
+        return _coerce_positive_int(retention_days, default=DEFAULT_MEMORY_RETENTION_DAYS)
+
+    env_value = os.getenv("AI_LAN_MEMORY_RETENTION_DAYS", "").strip()
+    if env_value:
+        return _coerce_positive_int(env_value, default=DEFAULT_MEMORY_RETENTION_DAYS)
+
+    settings_values = _load_settings_values()
+    configured = settings_values.get("memory_retention_days", DEFAULT_MEMORY_RETENTION_DAYS)
+    return _coerce_positive_int(configured, default=DEFAULT_MEMORY_RETENTION_DAYS)
+
+
+@sentinel
+def resolve_memory_max_entries(max_entries: int | None = None) -> int:
+    if max_entries is not None:
+        return _coerce_positive_int(max_entries, default=DEFAULT_MEMORY_MAX_ENTRIES)
+
+    env_value = os.getenv("AI_LAN_MEMORY_MAX_ENTRIES", "").strip()
+    if env_value:
+        return _coerce_positive_int(env_value, default=DEFAULT_MEMORY_MAX_ENTRIES)
+
+    settings_values = _load_settings_values()
+    configured = settings_values.get("memory_max_entries", DEFAULT_MEMORY_MAX_ENTRIES)
+    return _coerce_positive_int(configured, default=DEFAULT_MEMORY_MAX_ENTRIES)
 
 
 @sentinel
@@ -323,3 +396,87 @@ def get_recent_memories(
                 )
             )
     return entries
+
+
+@sentinel
+def prune_memory_entries(
+    *,
+    db_path: Path | None = None,
+    retention_days: int | None = None,
+    max_entries: int | None = None,
+    kind: str | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    init_memory_store(db_path)
+    resolved_retention_days = resolve_memory_retention_days(retention_days)
+    resolved_max_entries = resolve_memory_max_entries(max_entries)
+
+    filters = ""
+    params: list[object] = []
+    normalized_kind = (kind or "").strip().lower()
+    if normalized_kind:
+        filters = " WHERE kind = ?"
+        params.append(normalized_kind)
+
+    now_utc = datetime.now(timezone.utc)
+    cutoff = now_utc - timedelta(days=resolved_retention_days)
+    cutoff_iso = cutoff.isoformat()
+
+    age_ids: list[int] = []
+    overflow_ids: list[int] = []
+    with _connect(db_path) as connection:
+        age_sql = f"SELECT id FROM memories{filters}{' AND' if filters else ' WHERE'} created_at < ?"
+        age_params = [*params, cutoff_iso]
+        age_ids = [int(row["id"]) for row in connection.execute(age_sql, tuple(age_params))]
+
+        count_sql = f"SELECT COUNT(*) as total FROM memories{filters}"
+        total_count = int(connection.execute(count_sql, tuple(params)).fetchone()["total"])
+        overflow = max(0, total_count - resolved_max_entries)
+        if overflow > 0:
+            overflow_sql = (
+                f"SELECT id FROM memories{filters} ORDER BY created_at ASC LIMIT ?"
+            )
+            overflow_ids = [
+                int(row["id"])
+                for row in connection.execute(overflow_sql, tuple([*params, overflow]))
+            ]
+
+        pruned_ids = sorted(set(age_ids) | set(overflow_ids))
+        if not dry_run and pruned_ids:
+            placeholders = ",".join("?" for _ in pruned_ids)
+            connection.execute(f"DELETE FROM memories WHERE id IN ({placeholders})", tuple(pruned_ids))
+            connection.commit()
+
+    return {
+        "status": "ok",
+        "kind": normalized_kind or "all",
+        "dry_run": dry_run,
+        "retention_days": resolved_retention_days,
+        "max_entries": resolved_max_entries,
+        "age_candidates": len(age_ids),
+        "overflow_candidates": len(overflow_ids),
+        "pruned_count": len(sorted(set(age_ids) | set(overflow_ids))),
+    }
+
+
+__all__ = [
+    "DEFAULT_MEMORY_DB",
+    "DEFAULT_MEMORY_MAX_ENTRIES",
+    "DEFAULT_MEMORY_RETENTION_DAYS",
+    "MemoryEntry",
+    "MemoryHit",
+    "add_memory_entry",
+    "get_memory_db_path",
+    "get_recent_memories",
+    "init_memory_store",
+    "prune_memory_entries",
+    "resolve_chroma_path",
+    "resolve_memory_backend",
+    "resolve_memory_max_entries",
+    "resolve_memory_retention_days",
+    "retrieve_relevant_memories",
+    "store_conversation_summary",
+    "summarize_entries",
+    "summarize_text",
+    "tokenize_text",
+]

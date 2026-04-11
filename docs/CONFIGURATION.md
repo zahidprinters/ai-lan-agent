@@ -159,6 +159,13 @@ Active in the current 4.5A foundation slice:
 - **`AI_LAN_VOSK_MODEL_PATH`**: Local path to Vosk model directory used by offline STT listener.
 - **`AI_LAN_MEMORY_BACKEND`**: Memory backend selector (`none` or `chroma`).
 - **`AI_LAN_CHROMA_PATH`**: Local storage path for Chroma backend.
+- **`AI_LAN_MEMORY_RETENTION_DAYS`**: Override memory retention window in days before old entries are pruned.
+- **`AI_LAN_MEMORY_MAX_ENTRIES`**: Override maximum retained memory entries before oldest entries are pruned.
+
+Memory retention defaults (`config/settings.yaml`):
+
+- **`memory_retention_days`**: Default prune window for memory entries (used when env override is not set).
+- **`memory_max_entries`**: Default maximum retained memory entries (used when env override is not set).
 
 Planned for later 4.5A slices (documented target, not active yet):
 

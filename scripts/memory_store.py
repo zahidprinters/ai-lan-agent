@@ -14,6 +14,7 @@ from tools.memory_store import (
     add_memory_entry,
     get_recent_memories,
     init_memory_store,
+    prune_memory_entries,
     retrieve_relevant_memories,
     store_conversation_summary,
 )
@@ -63,6 +64,14 @@ def parse_args() -> argparse.Namespace:
     recent_parser = subparsers.add_parser("recent", help="List recent memory entries.")
     recent_parser.add_argument("--limit", type=int, default=10)
     recent_parser.add_argument("--kind", default=None)
+
+    prune_parser = subparsers.add_parser(
+        "prune", help="Prune memory entries using retention and max-entry boundaries."
+    )
+    prune_parser.add_argument("--kind", default=None)
+    prune_parser.add_argument("--retention-days", type=int, default=None)
+    prune_parser.add_argument("--max-entries", type=int, default=None)
+    prune_parser.add_argument("--dry-run", action="store_true")
 
     return parser.parse_args()
 
@@ -131,6 +140,17 @@ def main() -> None:
                 ensure_ascii=True,
             )
         )
+        return
+
+    if args.command == "prune":
+        result = prune_memory_entries(
+            db_path=db_path,
+            kind=args.kind,
+            retention_days=args.retention_days,
+            max_entries=args.max_entries,
+            dry_run=args.dry_run,
+        )
+        print(json.dumps(result, indent=2, ensure_ascii=True))
         return
 
     raise SystemExit(f"Unsupported command: {args.command}")

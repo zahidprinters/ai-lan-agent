@@ -188,6 +188,17 @@ def run_ocr_with_confidence(
             "detail": f"Unsupported OCR backend: {backend}",
             "backend": "none",
         }
+    if not Path(image_path).exists():
+        return {
+            "status": "failed",
+            "text": "",
+            "filtered_text": "",
+            "average_confidence": None,
+            "tokens_considered": 0,
+            "tokens_kept": 0,
+            "detail": f"Image not found: {image_path}",
+            "backend": "none",
+        }
 
     last_error = ""
     try:

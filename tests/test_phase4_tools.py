@@ -146,8 +146,10 @@ class TestOcrTool:
         assert "Unsupported OCR backend" in str(result["detail"])
 
     def test_run_ocr_with_confidence_auto_falls_back_on_empty_tesseract(
-        self, monkeypatch: pytest.MonkeyPatch
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
+        image_path = tmp_path / "sample.png"
+        image_path.write_bytes(b"fake-image")
         monkeypatch.setattr("tools.perception.ocr._configure_tesseract", lambda: None)
         monkeypatch.setattr(
             "tools.perception.ocr._extract_tesseract_confidence",
@@ -178,7 +180,7 @@ class TestOcrTool:
 
         from tools.perception.ocr import run_ocr_with_confidence
 
-        result = run_ocr_with_confidence("/nonexistent.png", backend="auto")
+        result = run_ocr_with_confidence(str(image_path), backend="auto")
         assert result["status"] == "ok"
         assert result["backend"] == "easyocr"
         assert result["filtered_text"] == "fallback text"

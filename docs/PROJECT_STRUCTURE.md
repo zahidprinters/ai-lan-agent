@@ -24,7 +24,9 @@ ai-lan/
 │   │   ├── tokenizer.py
 │   │   └── config.py
 │   ├── inference/
+│   │   ├── inference_manager.py
 │   │   ├── generate.py
+│   │   ├── residency.py
 │   │   ├── sampler.py
 │   │   └── stopping.py
 │   └── quantization/
@@ -102,6 +104,10 @@ ai-lan/
 │   ├── actions.log
 │   ├── errors.log
 │   └── runs/
+├── models/
+│   ├── char_model.pt
+│   ├── char_model_best.pt
+│   └── gguf/
 ├── config/
 │   ├── settings.yaml
 │   ├── tools.yaml
@@ -120,16 +126,19 @@ ai-lan/
 ## Key Design Principles
 
 1. Strict separation
+
 - agents = thinking
 - tools = acting
 - memory = remembering
 - safety = controlling
 
-2. Tool abstraction layer
+1. Tool abstraction layer
+
 - Every tool should follow one common contract (`name`, input schema, `run`).
 - This keeps additions safe and predictable.
 
-3. ReAct loop flow
+1. ReAct loop flow
+
 - User input
 - Agent thought
 - Router selects action
@@ -139,13 +148,15 @@ ai-lan/
 - Memory update
 - Next thought
 
-4. Memory layers
+1. Memory layers
+
 - short-term: current conversation context
 - long-term: vector retrieval for prior knowledge
 - episodic: historical action/outcome traces
 - summaries: compressed durable context
 
-5. Safety-first operation
+1. Safety-first operation
+
 - deny dangerous shell actions
 - require confirmation for file delete, system control, and external side effects
 - log every action request and result
@@ -153,6 +164,7 @@ ai-lan/
 ## Minimal Working Version
 
 Start and harden this path first:
+
 - agents/react/
 - tools/web/search.py
 - tools/system/shell.py

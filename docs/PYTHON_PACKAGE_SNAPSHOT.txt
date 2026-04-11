@@ -1,6 +1,6 @@
 AI Lan local Python package snapshot
 Machine: D:\dextop\tempn\.venv
-Date: 2026-04-10
+Date: 2026-04-11
 Python: 3.11.9
 Executable: D:/dextop/tempn/.venv/Scripts/python.exe
 

@@ -1,0 +1,140 @@
+[
+  {
+    "name": "audit_001_pc_list_workspace_files_executed",
+    "payload": {
+      "thought": "List project docs for context.",
+      "action": "pc.list_workspace_files",
+      "args": {
+        "relative_path": "docs",
+        "limit": 5
+      },
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "confirmed": true,
+    "category": "execution"
+  },
+  {
+    "name": "audit_002_pc_execute_shell_rejected",
+    "payload": {
+      "thought": "Need shell command.",
+      "action": "pc.execute_shell",
+      "args": {
+        "command": "dir"
+      },
+      "safety_level": "high"
+    },
+    "expected_status": "rejected",
+    "confirmed": false,
+    "category": "refusal"
+  },
+  {
+    "name": "audit_003_memory_search_executed",
+    "payload": {
+      "thought": "Retrieve memory summary.",
+      "action": "memory.search",
+      "args": {
+        "query": "policy"
+      },
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "confirmed": true,
+    "category": "execution"
+  },
+  {
+    "name": "audit_004_pc_type_text_confirmation_required",
+    "payload": {
+      "thought": "Type text in UI.",
+      "action": "pc.type_text",
+      "args": {
+        "text": "hello"
+      },
+      "safety_level": "medium"
+    },
+    "expected_status": "confirmation_required",
+    "confirmed": false,
+    "category": "confirmation"
+  },
+  {
+    "name": "audit_005_pc_read_clipboard_executed",
+    "payload": {
+      "thought": "t",
+      "action": "pc.read_clipboard",
+      "args": {},
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "confirmed": true,
+    "category": "execution"
+  },
+  {
+    "name": "audit_006_pc_list_workspace_files_executed",
+    "payload": {
+      "thought": "t",
+      "action": "pc.list_workspace_files",
+      "args": {
+        "relative_path": "docs",
+        "limit": 2
+      },
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "confirmed": true,
+    "category": "execution"
+  },
+  {
+    "name": "audit_007_pc_get_system_status_executed",
+    "payload": {
+      "thought": "Get system status",
+      "action": "pc.get_system_status",
+      "args": {},
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "confirmed": true,
+    "category": "execution"
+  },
+  {
+    "name": "audit_008_web_search_executed",
+    "payload": {
+      "thought": "Search web for: ai lan roadmap",
+      "action": "web.search",
+      "args": {
+        "query": "ai lan roadmap"
+      },
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "confirmed": true,
+    "category": "execution"
+  },
+  {
+    "name": "audit_009_context_build_executed",
+    "payload": {
+      "thought": "Assemble runtime context.",
+      "action": "context.build",
+      "args": {
+        "query": "policy confirmation"
+      },
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "confirmed": true,
+    "category": "execution"
+  },
+  {
+    "name": "audit_010_android_launch_app_confirmation_required",
+    "payload": {
+      "thought": "Launch an app on Android.",
+      "action": "android.launch_app",
+      "args": {
+        "package_name": "com.example.app"
+      },
+      "safety_level": "medium"
+    },
+    "expected_status": "confirmation_required",
+    "confirmed": false,
+    "category": "confirmation"
+  }
+]

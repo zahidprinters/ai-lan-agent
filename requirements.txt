@@ -34,3 +34,5 @@ vosk==0.3.45
 pyttsx3==2.90
 PyAudio==0.2.14
 chromadb==0.5.23
+# CPU-first local brain runtime (prefer AVX2-capable wheels on Intel i5 hosts).
+llama-cpp-python==0.3.7

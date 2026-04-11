@@ -2,7 +2,19 @@
 
 **Project Lead:** Nadeem Abbas  
 **Status:** Active development (post Phase 3 stabilization)  
-**Last Update:** April 10, 2026
+**Last Update:** April 11, 2026
+
+## Active Machine Profile
+
+- Current execution baseline: i5-8350U, 16 GB RAM, integrated graphics, CPU-first.
+- Active operational lanes: run `X0` to `X4` now, defer `X5`/`X6` heavy workloads to stronger hardware.
+- Reference: `docs/PHASE_X_MACHINE_PLAN.md`.
+
+### Phase X Audit Snapshot (2026-04-11)
+
+- Automated audit command: `python scripts/phase_x_audit.py --strict`.
+- Latest gate outcome: `X0=pass`, `X1=pass`, `X2=pass`, `X3=manual`, `X4=in_progress`, `X5=deferred`, `X6=deferred`.
+- Latest report: `temp/benchmarks/phase_x_audit_report.json`.
 
 ## Architecture Snapshot
 
@@ -81,11 +93,12 @@ These are retained by design and are not duplicate/legacy remnants.
 
 ## Next Priorities
 
-1. **Phase 4.3:** strict benchmark gate is wired in CI for tool success/refusal quality/latency thresholds; continue expanding coverage and real-trace depth with broader datasets and traces.
-2. **Phase 4.5A (Reasoning-first):** prioritize stronger planner and local-brain quality (multi-step planning, reflection quality, tool-choice quality, GGUF backend reliability) before broader perception expansion.
-3. **Phase 4.5B (Embodied runtime):** once reasoning quality is stable, expand vision/audio runtime depth (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`) behind existing router/policy controls.
-4. **Phase 5.1:** integrate one persistent memory backend (`Chroma` or `Qdrant`) with explicit retention/user-control boundaries.
-5. **Phase 5.2+:** ship nightly offline learning with canary promotion gates, benchmark-regression blocking, model registry rollback, and orchestration hardening when workload scale requires it.
+1. **Phase 4.3:** completed (2026-04-11). Benchmark harness exit gate now includes curated CI thresholds, checked-in trace regression coverage, category coverage minimums, per-category success thresholds, and distinct action diversity thresholds.
+2. **Phase 4.5A (Reasoning-first):** execute the Strong Reasoning Core plan with GGUF-first runtime (`Phi-4` / `Llama 8B`, `Q4_K_M` baseline), memory-aware residency controls, mandatory 3-5 step planning, token-stream tool interception, and mandatory post-failure reflection.
+3. **Phase 4.5A hardening requirements:** enforce KV-cache reset/summarization policy, tool risk tiers (`safe`/`medium`/`dangerous`), multi-model fallback routing under pressure/task complexity, and structured agent/tool/error logging.
+4. **Phase 4.5B (Embodied runtime):** once reasoning quality is stable, expand vision/audio runtime depth (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`) behind existing router/policy controls.
+5. **Phase 5.1:** integrate one persistent memory backend (`Chroma` or `Qdrant`) with explicit retention/user-control boundaries.
+6. **Phase 5.2+:** ship nightly offline learning with canary promotion gates, benchmark-regression blocking, model registry rollback, and orchestration hardening when workload scale requires it.
 
 Direction lock: brain-before-eyes sequencing is active for remaining Phase 4 work.
 

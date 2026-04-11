@@ -1,5 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
+
+pytest.importorskip("pyttsx3")
+
 from tools.perception.audio.tts import Speaker
 
 

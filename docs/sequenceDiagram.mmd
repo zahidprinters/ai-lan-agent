@@ -1,0 +1,15 @@
+sequenceDiagram
+    participant Model as AI Lan Model
+  participant Planner as Plan/Reflect Controller
+    participant Router as Action Router
+    participant Tool as System Tool (PC/Web/Mobile)
+
+  Model->>Planner: Thought: I need to check the weather.
+  Planner-->>Model: Plan: 1) search weather 2) summarize result
+  Model->>Router: Action: web.search {query: "weather in London"}
+    Router->>Router: Evaluate Policy (Security Check)
+    Router->>Tool: Execute Request
+    Tool-->>Router: Result: "Cloudy, 15°C"
+    Router-->>Model: Observation: "Cloudy, 15°C"
+  Model->>Planner: Reflect: result succeeded, continue
+  Planner-->>Model: Final response to user

@@ -25,7 +25,8 @@ graph TD
 
 ### 🧠 Transformer Block Diagram
 
-The flagship architecture is the **StackedTransformer-v2**, featuring modern primitives for high-performance CPU inference.
+The **StackedTransformer-v2** is the flagship research/training architecture.
+For production agency runtime (Phase 4.5A), the primary reasoning core is the GGUF local-brain path (`llama-cpp-python`) with policy-gated tool execution.
 
 ```mermaid
 graph LR
@@ -58,21 +59,24 @@ graph LR
 
 ## 3. Phase 4.0: The ReAct Loop (Autonomous Agency)
 
-AI Lan is moving from "Chat" to "Action." The ReAct loop allows the model to reason about its environment and execute tools.
+AI Lan is moving from "Chat" to "Action." The ReAct++ loop adds explicit planning and reflection so failures do not devolve into repeated-action loops.
 
 ```mermaid
 sequenceDiagram
     participant Model as AI Lan Model
+  participant Planner as Plan/Reflect Controller
     participant Router as Action Router
     participant Tool as System Tool (PC/Web/Mobile)
-    
-    Note over Model: Thought: I need to check the weather.
-    Model->>Router: Action: web.search {query: "weather in London"}
+
+  Model->>Planner: Thought: I need to check the weather.
+  Planner-->>Model: Plan: 1) search weather 2) summarize result
+  Model->>Router: Action: web.search {query: "weather in London"}
     Router->>Router: Evaluate Policy (Security Check)
     Router->>Tool: Execute Request
     Tool-->>Router: Result: "Cloudy, 15°C"
     Router-->>Model: Observation: "Cloudy, 15°C"
-    Note over Model: Thought: It's cloudy. I'll inform the user.
+  Model->>Planner: Reflect: result succeeded, continue
+  Planner-->>Model: Final response to user
 ```
 
 ---
@@ -180,9 +184,24 @@ AI Lan is now extending into a CPU-first embodied loop that can see the screen, 
 - **Speech Input:** Use `Vosk` for the lightest offline speech-to-text path, then `whisper.cpp` if you need better accuracy and can afford extra CPU.
 - **Speech Output:** Use `pyttsx3` for a minimal offline voice, then `Coqui TTS` for higher-quality speech generation.
 - **Local Reasoning:** Use `llama.cpp` or `llama-cpp-python` for CPU-only local inference, tool selection, and context injection.
+- **Prompt Contract:** Use structured XML output sections (`<thought>`, `<plan>`, `<action>`, `<reflection>`) to stabilize ReAct parsing across Phi-4/Llama variants.
+- **Tool Schema Translator:** Auto-generate model-visible tool schema from `tools/*.py` signatures and router registry metadata (args, risk level, confirmation needs) instead of maintaining manual prompt schemas.
+- **Dynamic Planning:** Require full multi-step planning only for medium/high-complexity tasks; permit direct execution for low-risk/simple actions to reduce latency.
+- **Rolling Context:** Use summarization and memory compaction when context budget is near limit, rather than hard token truncation that drops task-critical early state.
+- **Telemetry:** Persist structured agent traces (thought/plan/action/result/reflection) for dashboard and replay debugging.
 - **Skill App Reference:** Study `OpenVoiceOS` for a maintained skills/plugin architecture around voice commands.
 - **Realtime Loop:** screen/audio -> perception -> LLM -> tool -> observation -> speech.
 - **Future Package Split:** extract the embodied layer into `perception/vision/` and `perception/audio/` while keeping the existing `tools/perception/` facade during migration.
+
+## 6.6. Smart Persistent Engine (InferenceManager)
+
+The production GGUF path uses an explicit inference abstraction layer rather than ad hoc direct calls.
+
+- **InferenceManager role:** centralize model loading, residency policy, stream decoding, token-level tool trigger interception, and planner fallback behavior.
+- **Residency policy (Option 4):** keep model resident by default; unload on memory pressure threshold instead of fixed idle timers.
+- **Hardware mapping (i5 baseline):** prefer AVX2-capable wheels/builds and default `n_threads=4` to match physical cores while preserving OS responsiveness.
+- **Tool-trigger streaming:** stop generation as soon as trigger text appears (for example `Action:`) and route to tool execution without waiting for full completion.
+- **Fallback contract:** if local runtime/model fails, degrade deterministically to classic planning so user turns never stall.
 
 ---
 
@@ -232,7 +251,7 @@ This enforces strict separation between thinking, acting, remembering, and contr
 
 The full target tree and migration details are documented in `docs/PROJECT_STRUCTURE.md`.
 
----  
+---
 
 ## 10. Recommended External Reference Stack
 
@@ -249,6 +268,7 @@ For Phase 4 and Phase 5 expansion, use the curated upstream shortlist in `docs/O
 - **Orchestration and IoT:** `Ray`, `Airflow`, `Home Assistant`, `ESPHome`
 
 Adoption rule of thumb:
+
 - pick one project per capability,
 - add tests before integrating,
 - keep the live path behind the repository's own `tools/`, `router/`, `memory/`, and `learning/` layers,
@@ -258,4 +278,4 @@ Adoption rule of thumb:
 
 ## Last Updated
 
-2026-04-05
+2026-04-10

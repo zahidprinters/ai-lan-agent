@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 import pytest
 
@@ -10,6 +11,17 @@ from runtime.context import build_runtime_context
 from safety.policy_engine import evaluate_policy, should_require_confirmation
 from tools.memory_store import add_memory_entry
 from tools.web.search import WebSearchTool
+
+
+@pytest.fixture(autouse=True)
+def _reset_policy_runtime(monkeypatch: pytest.MonkeyPatch) -> None:
+    root = Path(__file__).resolve().parents[1]
+    monkeypatch.setenv("AI_LAN_POLICY_CONFIG_PATH", str(root / "config" / "policies.yaml"))
+    monkeypatch.setenv("AI_LAN_SETTINGS_PATH", str(root / "config" / "settings.yaml"))
+
+    import safety.policy_engine as pe
+
+    importlib.reload(pe)
 
 
 def test_short_term_buffer_role_and_context_text() -> None:

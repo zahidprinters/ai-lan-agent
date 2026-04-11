@@ -8,10 +8,19 @@ As of 2026-04-06, the repository also includes a layered architecture scaffold f
 
 ## Current Scope
 
+- **Production Agency Core (Phase 4.5A):** GGUF runtime (`llama-cpp-python`) is the production reasoning path for local agent control, with CPU-first residency/fallback behavior.
+- **Research/Training Core:** StackedTransformer-v2 remains the training and experimentation baseline under `training/`.
 - **Neural Planner (ReAct):** Iterative multi-step reasoning using local transformers to plan actions (Thought -> Action -> Observation).
 - **Hybrid Memory:** Vector-based retrieval (ChromaDB/FAISS) combined with keyword scoring for semantic context injection.
 - **Vision Perception:** Screen capture and OCR (mss + Tesseract) for visual grounding and display analysis.
-- Character-level and BPE tokenization.
+- **Hardware Mapping (i5 baseline):** AVX2-capable `llama-cpp-python` runtime with default `n_threads=4` for responsive CPU-only operation.
+- **Adapter Maturity:** PC/Android adapters are intentionally constrained and policy-gated while broader side-effect coverage continues under planned adapter slices.
+
+Machine-specific execution planning is documented in `docs/PHASE_X_MACHINE_PLAN.md`.
+
+### Legacy/Research Scope
+
+- Character-level and BPE tokenization for baseline experiments.
 - Multiple model families: bigram, char-MLP, transformer, LSTM, and GRU.
 - Training utilities with warmup, early stopping, checkpoints, and run indexing.
 - Checkpoint-aware export, evaluation, generation, and resume paths that recover config and tokenizer metadata from saved artifacts.
@@ -33,6 +42,7 @@ As of 2026-04-06, the repository also includes a layered architecture scaffold f
 - `scripts/`: evaluation, export, quantization, and inference entry points.
 - `tests/`: unit and integration test suites.
 - `docs/`: user, architecture, configuration, testing, and API documentation.
+- `models/gguf/`: local GGUF production models (for example Phi-4/Llama 8B quantized variants).
 
 ## Quick Start
 
@@ -101,9 +111,13 @@ python scripts/launch.py --mode api
 The chat interface supports natural tool commands (for example `search ...`, `context ...`, `list docs`, `system status`) and confirmation/session commands (`/confirm`, `/reject`, `/history`, `/save`, `/load`, `/last`, `/help`).
 When neural planning is enabled, chat mode can also run a small bounded Thought -> Action -> Observation loop before replying, while still enforcing the same router, policy, and confirmation boundaries.
 The planner prompt now uses a structured tool schema derived from the router registry, including arg contracts, confirmation hints, and risk labels.
+Planner prompting for GGUF models follows a structured XML contract (`<thought>`, `<plan>`, `<action>`, `<reflection>`) to keep parser behavior deterministic across model families.
+Planning is dynamic by complexity: simple actions can skip full multi-step plans, while higher-complexity tasks require explicit multi-step planning before tool execution.
+Long-running sessions use rolling context with summarization instead of blunt truncation so older turns are compacted into memory blocks rather than dropped abruptly.
 When perception is enabled, the latest screen/OCR snapshot is also injected into runtime context so the local planner can reason over live situational summaries.
 The dashboard/API surfaces now expose that live perception summary, and CLI/voice chat shut down session resources cleanly on exit.
 For lower machine load, runtime context assembly now applies a configurable section-size budget and perception sampling can adaptively back off when the screen state is unchanged.
+Runtime telemetry should include agent reasoning traces (thought/plan/action/result/reflection) so planner quality can be debugged in real time.
 
 ### Run CLI Dashboard
 
@@ -130,10 +144,10 @@ Runtime behavior is controlled by environment variables read in `training/config
 
 Common examples:
 
-- `AI_LAN_EXP_PROFILE=debug`
+- `AI_LAN_EXP_PROFILE=transformer_small`
 - `AI_LAN_MODEL_TYPE=transformer`
 - `AI_LAN_EPOCHS=50`
-- `AI_LAN_BATCH_SIZE=32`
+- `AI_LAN_BATCH_SIZE=8`
 - `AI_LAN_DEVICE=cpu`
 
 See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for the full variable reference.
@@ -221,6 +235,28 @@ scrcpy --version
 - Model/run outputs belong in `models/` and `runs/`.
 - Do not commit transient cache folders such as `__pycache__/`.
 
+## Low-Bandwidth Prefetch
+
+For slow or unstable internet, prefetch package and model/data assets to `temp/downloads`:
+
+```powershell
+python scripts/prefetch_low_bandwidth_assets.py --all-phases --with-model-assets --sync-runtime-paths
+```
+
+If you only want resumable model/data downloads (no pip wheel prefetch), use:
+
+```powershell
+python scripts/prefetch_low_bandwidth_assets.py --skip-packages --with-model-assets
+```
+
+To fetch a single HTTP asset (useful on very slow links), repeat `--asset` as needed:
+
+```powershell
+python scripts/prefetch_low_bandwidth_assets.py --skip-packages --with-model-assets --asset tinystories_text
+```
+
+This keeps offline-friendly caches for Phase 4/4.5/5 package wheels and key model/data downloads.
+
 ## Documentation Index
 
 - [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
@@ -242,3 +278,14 @@ Use that guide before adding new third-party agent, training, browser, perceptio
 Start with one project per capability: agent framework, browser stack, search stack, OCR stack, Android stack, memory backend, finetuning stack, dataset pipeline, orchestration layer, and home automation target.
 The next embodied slice is CPU-first vision + voice + local reasoning: `mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`, and `llama.cpp`.
 If you want a skills-app reference for voice commands and reusable plugins, start with `OpenVoiceOS`.
+
+## Phase X Execution Lanes (Current Machine)
+
+- Run now on i5/16GB: `X0` through `X4` in `docs/PHASE_X_MACHINE_PLAN.md`.
+- Defer to stronger hardware: `X5` and `X6` (heavy training/inference sweeps, long-horizon benchmarks, extended concurrency).
+
+Audit command (machine-ready report):
+
+```powershell
+python scripts/phase_x_audit.py --strict
+```

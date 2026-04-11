@@ -8,15 +8,20 @@ the same `ChatSession` core behavior and only changes input/output surfaces.
 
 from training.config import load_config
 from runtime.chat_interface import ChatSession, _close_session
-from tools.perception.audio import OfflineSpeechListener, Speaker
+
+try:
+    from tools.perception.audio import OfflineSpeechListener, Speaker
+except Exception:
+    OfflineSpeechListener = None
+    Speaker = None
 
 
 def run_voice_chat_cli() -> int:
     config = load_config()
     session = ChatSession()
 
-    listener = OfflineSpeechListener() if config.stt_enabled else None
-    speaker = Speaker() if config.tts_enabled else None
+    listener = OfflineSpeechListener() if (config.stt_enabled and OfflineSpeechListener) else None
+    speaker = Speaker() if (config.tts_enabled and Speaker) else None
 
     print("AI Lan Voice Chat (offline-first)")
     print("Type /quit to exit. If STT is disabled or unavailable, typed input is used.")

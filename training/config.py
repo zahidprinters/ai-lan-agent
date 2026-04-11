@@ -4,7 +4,6 @@ from debug_utils import sentinel
 # Copyright (c) 2026 Nadeem Abbas
 
 import os
-import torch
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -34,7 +33,7 @@ class ProjectConfig:
     epochs: int = 50
     learning_rate: float = 1e-3
     train_ratio: float = 0.9
-    batch_size: int = 32
+    batch_size: int = 8
     sample_every: int = 10
     sample_start_text: str = ""
     sample_length: int = 50
@@ -106,7 +105,7 @@ def load_config() -> ProjectConfig:
         },
         "transformer_small": {
             "epochs": 50,
-            "batch_size": 16,
+            "batch_size": 8,
             "block_size": 16,
             "hidden_size": 32,
             "learning_rate": 1e-3,
@@ -116,7 +115,7 @@ def load_config() -> ProjectConfig:
         },
         "transformer_medium": {
             "epochs": 50,
-            "batch_size": 16,
+            "batch_size": 8,
             "block_size": 16,
             "hidden_size": 64,
             "learning_rate": 1e-3,
@@ -136,7 +135,8 @@ def load_config() -> ProjectConfig:
         },
     }
 
-    profile_name = os.getenv("AI_LAN_EXP_PROFILE", "").strip().lower()
+    # Keep defaults aligned with the active i5/16GB CPU baseline unless explicitly overridden.
+    profile_name = os.getenv("AI_LAN_EXP_PROFILE", "transformer_small").strip().lower()
     profile = profiles.get(profile_name, {})
 
     @sentinel
@@ -162,9 +162,7 @@ def load_config() -> ProjectConfig:
     version = "0.3.0"
     patience = int(get_profiled_env("AI_LAN_PATIENCE", "50", int))
     use_amp = os.getenv("AI_LAN_USE_AMP", "0").strip().lower() in ("1", "true")
-    device = (
-        os.getenv("AI_LAN_DEVICE", "cuda" if torch.cuda.is_available() else "cpu").strip().lower()
-    )
+    device = os.getenv("AI_LAN_DEVICE", "cpu").strip().lower()
     debug_settings = DebugSettings(
         debug_enabled=os.getenv("AI_LAN_DEBUG", "0") == "1",
         trace_enabled=os.getenv("AI_LAN_TRACE", "0") == "1",
@@ -189,10 +187,10 @@ def load_config() -> ProjectConfig:
         run_all_index_path=runs_dir / "all_runs.json",
         block_size=int(get_profiled_env("AI_LAN_BLOCK_SIZE", "16", int)),
         hidden_size=int(get_profiled_env("AI_LAN_HIDDEN_SIZE", "64", int)),
-        epochs=int(get_profiled_env("AI_LAN_EPOCHS", "200", int)),
+        epochs=int(get_profiled_env("AI_LAN_EPOCHS", "50", int)),
         learning_rate=float(get_profiled_env("AI_LAN_LEARNING_RATE", "1e-3", float)),
         train_ratio=train_ratio,
-        batch_size=int(get_profiled_env("AI_LAN_BATCH_SIZE", "32", int)),
+        batch_size=int(get_profiled_env("AI_LAN_BATCH_SIZE", "8", int)),
         sample_every=int(get_profiled_env("AI_LAN_SAMPLE_EVERY", "20", int)),
         sample_start_text=get_profiled_env("AI_LAN_SAMPLE_START_TEXT", "AI "),
         sample_length=int(get_profiled_env("AI_LAN_SAMPLE_LENGTH", "120", int)),

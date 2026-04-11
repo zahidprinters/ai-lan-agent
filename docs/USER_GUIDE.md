@@ -50,15 +50,20 @@ For production or edge deployment, use the **ONNX** or **Quantization** pipeline
 
 The export path now checks for `onnx` and `onnxruntime` up front, and the ONNX inference path reads the metadata sidecar written during export. Quantized checkpoints are currently intended for the PyTorch inference path, so keep them out of generic export workflows.
 
-### 📍 Cross-Platform Training (Linux/WSL)
+### 📍 Current Machine Baseline (i5 / 16 GB)
 
-AI Lan is fully cross-platform. Use standard environment variables for acceleration:
+For this machine, keep training and runtime in CPU-safe mode:
 
-```bash
-export AI_LAN_DEVICE='cuda'  # For NVIDIA GPUs
-export AI_LAN_USE_AMP='1'     # For high-speed training
+```powershell
+$env:AI_LAN_DEVICE = "cpu"
+$env:AI_LAN_USE_AMP = "0"
+$env:AI_LAN_EXP_PROFILE = "transformer_small"
+$env:AI_LAN_BATCH_SIZE = "8"
+$env:AI_LAN_BLOCK_SIZE = "16"
 python training/train_char_model.py
 ```
+
+If a workflow requires higher memory, longer sweeps, or GPU-dependent acceleration, move it to `Phase X5/X6` in `docs/PHASE_X_MACHINE_PLAN.md`.
 
 ### 📍 Real-World Workflow: Agentic ReAct
 
@@ -183,12 +188,43 @@ Retention windows are controlled in `config/settings.yaml` via:
 - `storage_download_retention_days`
 - `storage_temp_soft_limit_mb`
 
+### 📍 Low-Speed Internet Prefetch (Temp Cache)
+
+To keep working when internet is slow or unstable, prefetch dependencies and model/data assets into `temp/downloads`:
+
+```powershell
+python scripts/prefetch_low_bandwidth_assets.py --all-phases --with-model-assets --sync-runtime-paths
+```
+
+For model/data-only caching (skip wheel downloads):
+
+```powershell
+python scripts/prefetch_low_bandwidth_assets.py --skip-packages --with-model-assets
+```
+
+For very slow links, prefetch one HTTP asset at a time:
+
+```powershell
+python scripts/prefetch_low_bandwidth_assets.py --skip-packages --with-model-assets --asset tinystories_text
+```
+
+This command populates:
+
+- `temp/downloads/phase4`
+- `temp/downloads/phase45`
+- `temp/downloads/phase5`
+- `temp/downloads/models`
+
+After prefetching, `scripts/fetch_tinystories.py` reuses the local cache before attempting network download.
+
 ### 📍 Phase 4/5 Expansion Note
 
 If you are extending AI Lan beyond the current user workflows, start from [OPEN_SOURCE_REFERENCE.md](OPEN_SOURCE_REFERENCE.md) and keep to one project per capability.
 The shortest safe Phase 4 path is `Playwright` + `Tavily` + `Tesseract` + `ADB`/`scrcpy` behind the router.
 The shortest safe Phase 4.5 path is `mss`/`OpenCV` + `Tesseract` + `Vosk` + `pyttsx3` + `llama.cpp`.
 The shortest safe Phase 5 path is `Chroma` or `Qdrant` plus `PEFT` + `LoRA` + `QLoRA` + `TRL`.
+
+Machine execution rule: run only `X0` to `X4` on the current i5/16 GB machine, and queue heavy runs to `X5/X6` in `docs/PHASE_X_MACHINE_PLAN.md`.
 
 Optional Phase 4 install commands (Windows-first):
 
@@ -252,9 +288,9 @@ python scripts/replay_audit.py --assume-confirmed
 
 | Issue | Potential Solution |
 | :--- | :--- |
-| **CUDA Out of Memory (OOM)** | Decrease `AI_LAN_BATCH_SIZE` or `AI_LAN_HIDDEN_SIZE`. |
+| **High RAM pressure on i5 machine** | Keep `AI_LAN_EXP_PROFILE=transformer_small`, set `AI_LAN_BATCH_SIZE=8`, and defer heavy runs to `Phase X5/X6`. |
 | **Loss is 'NaN'** | Ensure `AI_LAN_LEARNING_RATE` is not too high (e.g., 1e-4). |
-| **Slow Training on CPU** | Enable `AI_LAN_USE_AMP='1'`. |
+| **Slow Training on CPU** | Reduce epochs and model size; keep `AI_LAN_USE_AMP='0'` for consistent CPU behavior. |
 | **Generation is Repetitive** | Increase `AI_LAN_GENERATE_TEMPERATURE` (1.2+) or set `top_p=0.9`. |
 | **FileNotFound in Tests** | Ensure your isolated test environment has established a `runs/` directory. |
 

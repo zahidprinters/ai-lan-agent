@@ -17,6 +17,13 @@ This document outlines the technical evolution of the **AI Lan** project, tracki
 |**4.5**|**Embodiment**|🛠️|Vision, speech, screen understanding, and real-time local thinking on CPU.|CPU-only Edge|
 |**5.0**|**Autonomy**|⏳|Persistent Vector Memory, Recursive Self-Learning, IoT control.|Distributed|
 
+### Phase X (Machine-Specific Execution Lanes)
+
+Use `docs/PHASE_X_MACHINE_PLAN.md` as the operational lane map for the active i5/16 GB machine.
+
+- Run now: `X0` to `X4` (stability, reasoning reliability, safety verification, embodied-lite, heavy-run readiness).
+- Defer: `X5` and `X6` on stronger hardware (large sweeps, long-horizon benchmarks, extended concurrency, heavy promotion loops).
+
 ---
 
 ## 📚 Reference Stack and Build Order
@@ -43,6 +50,8 @@ This sequence is the implementation order to follow one step at a time.
 1. **Phase 4.3: Evaluation + Regression Control**
 
   Add offline eval datasets for tool selection, argument quality, and safety behavior. Add online-style telemetry checks (latency, refusal quality, action success) on real traces. **Exit gate:** benchmark harness in CI with pass/fail thresholds and regression guardrails.
+
+  Status: completed (2026-04-11).
 
 1. **Phase 4.4: Reliability + Verification Layer**
 
@@ -160,7 +169,10 @@ Technical polish for this overlay:
 - [ ] **Vision Loop:** Add `mss`/`OpenCV` screen capture, `Tesseract` OCR, `EasyOCR` fallback, and optional `Ultralytics` detection.
 - [ ] **Voice Input:** Add `Vosk` first, then `whisper.cpp` for higher-accuracy offline transcription when CPU budget allows.
 - [ ] **Voice Output:** Add `pyttsx3` as the minimum fallback, then `Coqui TTS` for higher-quality speech.
-- [ ] **Local Brain Runtime:** Add `llama.cpp` or `llama-cpp-python` for CPU-only local reasoning and tool selection.
+- [ ] **Local Brain Runtime (Priority First):** Add `llama.cpp` or `llama-cpp-python` for CPU-only local reasoning and tool selection.
+- [ ] **Vision Loop:** Add `mss`/`OpenCV` screen capture, `Tesseract` OCR, `EasyOCR` fallback, and optional `Ultralytics` detection.
+- [ ] **Voice Input:** Add `Vosk` first, then `whisper.cpp` for higher-accuracy offline transcription when CPU budget allows.
+- [ ] **Voice Output:** Add `pyttsx3` as the minimum fallback, then `Coqui TTS` for higher-quality speech.
 - [ ] **Realtime Loop:** Wire mic/screen input -> perception -> LLM -> tool execution -> observation -> speech output.
 - [ ] **Package Boundary:** Split the future embodied layer into `perception/vision/` and `perception/audio/` while keeping `tools/perception/` as the safe facade during migration.
 
@@ -175,6 +187,55 @@ Technical polish for this overlay:
 - [ ] **Safety Gates:** Keep all embodied actions behind router/policy checks and explicit confirmation where needed.
 - [ ] **Dynamic Context Safety:** Use perception context to automatically elevate safety levels for sensitive screens and data.
 - [x] **Health Dashboard Signals:** Expose runtime health telemetry (CPU pressure, RAM headroom, confidence) for embodied operations.
+
+### Phase 4.5A Strong Reasoning Core Standard (2026-04-10)
+
+This is the approved design target for the reasoning-first slice before deeper perception expansion.
+
+1. **Core Reasoning Engine (GGUF Standard)**
+
+    - Use a production GGUF backend (`Phi-4` preferred, `Llama 3.1/4 8B` acceptable alternate).
+    - Default quantization target: `Q4_K_M` for CPU-friendly quality/performance balance.
+    - Runtime backend: `llama-cpp-python` embedded in-process for low overhead and token-level interception control.
+
+1. **Resource Strategy (Smart Residency)**
+
+    - Keep model resident in RAM by default for low-latency replies.
+    - Add memory-pressure fallback that unloads the model when host RAM pressure crosses threshold.
+    - Keep default thread mapping conservative and physical-core aware (for i5 baseline: `n_threads=4`).
+
+1. **ReAct++ Logic Loop**
+
+    - Mandatory 3-5 step plan before first action.
+    - Token-stream interception: detect `Action: <tool>` while streaming and pause generation immediately to execute tools.
+    - Mandatory reflection after action failure before retry to prevent repeated-loop failure patterns.
+
+1. **Required Hardening Addenda (Not Optional)**
+
+    - **KV cache budget/reset policy:** summarize and compact context before cache bloat degrades runtime stability.
+    - **Tool risk tiers:** classify actions as `safe`, `medium`, or `dangerous` and escalate controls accordingly.
+    - **Streaming-first interception:** never wait for full completion when a tool trigger is already present in token stream.
+    - **Multi-model fallback path:** route to smaller/faster model under memory pressure or simple-task profile.
+    - **Structured logs:** persist thought/action/error flow to dedicated agent/tool/error logs for deterministic debugging.
+
+1. **Target Directory Structure for This Slice**
+
+    - `core/inference/engine.py`: llama-cpp runtime wrapper.
+    - `core/inference/residency.py`: memory-aware residency monitor.
+    - `core/inference/context_manager.py`: sliding-window context handling.
+    - `core/inference/kv_cache_manager.py`: KV-cache budgeting and reset policy.
+    - `core/inference/model_router.py`: model fallback and task-class routing.
+    - `agents/react/planner.py`: mandatory multi-step plan generation.
+    - `agents/react/agent.py`: upgraded ReAct++ orchestration.
+    - `agents/react/reflection.py`: post-failure reflection policy.
+    - `agents/react/tool_executor.py`: streaming-trigger execution and risk-tier control.
+    - `agents/react/prompt_library.py`: Phi-4/GGUF-optimized system prompts.
+
+1. **Implementation Sequence (Execution Plan)**
+
+    - **Step 1 (Foundation):** install/build `llama-cpp-python`, stage GGUF models under `models/gguf/`, ship inference manager + residency controls.
+    - **Step 2 (Agent Logic):** add planning/reflection/tool-trigger streaming and bind short-term memory into GGUF context window.
+    - **Step 3 (Power Features):** continue with perception and voice depth only after reasoning reliability gates pass.
 
 ---
 

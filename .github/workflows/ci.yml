@@ -12,6 +12,7 @@ jobs:
     outputs:
       replay_gate: ${{ steps.filter.outputs.replay_gate }}
       eval_gate: ${{ steps.filter.outputs.eval_gate }}
+      trace_eval_gate: ${{ steps.filter.outputs.trace_eval_gate }}
     steps:
     - uses: actions/checkout@v4
     - uses: dorny/paths-filter@v3
@@ -30,6 +31,16 @@ jobs:
             - 'safety/**'
             - 'scripts/benchmark_tools.py'
             - 'tests/test_benchmark_harness.py'
+            - 'tests/fixtures/benchmarks/**'
+            - '.github/workflows/ci.yml'
+          trace_eval_gate:
+            - 'router/**'
+            - 'safety/**'
+            - 'scripts/benchmark_tools.py'
+            - 'scripts/build_benchmark_cases_from_audit.py'
+            - 'tests/test_benchmark_harness.py'
+            - 'tests/test_benchmark_case_builder.py'
+            - 'tests/fixtures/benchmarks/phase43_trace_cases.json'
             - '.github/workflows/ci.yml'
 
   test:
@@ -88,4 +99,8 @@ jobs:
         python -m pip install -r dev-requirements.txt
     - name: Run strict benchmark eval gate
       run: |
-        python scripts/benchmark_tools.py --output temp/benchmarks/ci_tool_benchmark.json --strict --min-tool-success 0.66 --min-refusal-quality 0.90 --max-latency-p95 2500
+        python scripts/benchmark_tools.py --output temp/benchmarks/ci_tool_benchmark.json --cases tests/fixtures/benchmarks/phase43_depth_cases.json --strict --min-tool-success 0.66 --min-refusal-quality 0.90 --max-error-rate 0.00 --max-latency-p95 2500 --required-category execution:1 --required-category confirmation:1 --required-category refusal:1 --min-category-match execution:0.90 --min-category-match confirmation:0.90 --min-category-match refusal:0.90 --required-distinct-actions execution:6 --required-distinct-actions confirmation:5 --required-distinct-actions refusal:2
+    - name: Run optional strict trace benchmark gate
+      if: needs.changes.outputs.trace_eval_gate == 'true'
+      run: |
+        python scripts/benchmark_tools.py --output temp/benchmarks/ci_trace_tool_benchmark.json --cases tests/fixtures/benchmarks/phase43_trace_cases.json --strict --min-tool-success 0.66 --min-refusal-quality 0.90 --max-error-rate 0.00 --max-latency-p95 2500 --required-category execution:1 --required-category confirmation:1 --required-category refusal:1 --min-category-match execution:0.90 --min-category-match confirmation:0.90 --min-category-match refusal:0.90 --required-distinct-actions execution:5 --required-distinct-actions confirmation:2 --required-distinct-actions refusal:1

@@ -47,11 +47,17 @@ Keep Phase 4 and Phase 5 intake narrow: one framework per capability, tests firs
 
 ## Immediate Next Build Sequence
 
-1. **Phase 4.3:** expand integration + benchmark gates (tool success, refusal quality, latency) and enforce thresholds with broader datasets and trace depth.
-2. **Phase 4.5A (Reasoning-first):** strengthen local reasoning before vision by improving planner quality, multi-step plan/reflection behavior, tool-aware prompting, and GGUF backend reliability (`llama.cpp` path + deterministic fallback).
-3. **Phase 4.5B (Embodied perception):** after reasoning gates are stable, build the embodied CPU stack (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`) behind local facades and safety checks.
-4. **Phase 5.1:** integrate one persistent memory backend and verify retrieval quality under tests.
-5. **Phase 5.2+:** run offline learning with model-registry promotion/rollback gates plus benchmark-regression blocking, then add orchestration only when scale requires it.
+1. **Phase X lane enforcement (current machine):** execute only `X0` through `X4` from `docs/PHASE_X_MACHINE_PLAN.md` on the active i5/16 GB host; queue heavy jobs to `X5/X6`.
+2. **Phase 4.3:** evaluation + regression control exit gate is complete: CI now enforces curated benchmark thresholds, checked-in trace regression coverage, category coverage minimums, per-category success thresholds, and distinct action diversity thresholds.
+3. **Phase 4.5A (Reasoning-first):** strengthen local reasoning before vision by implementing the Strong Reasoning Core standard:
+    - GGUF-first local runtime (`Phi-4` or `Llama 3.1/4 8B`) with `Q4_K_M` as the default CPU-friendly quantization target.
+    - `llama-cpp-python` backend for in-process low-latency inference and token-stream interception.
+    - Memory-aware residency policy: keep model warm in RAM by default, unload on high pressure (for example >85% host RAM use), and pin default threads to physical-core-safe limits.
+    - ReAct++ controller behavior: mandatory 3-5 step plan, token-level tool trigger interception, and required post-failure reflection before retry.
+    - Hardening addenda now required for this slice: KV-cache budget/reset policy, tool risk tiers (`safe`/`medium`/`dangerous`), streaming interception (no full-response wait), model fallback routing, and structured agent/tool/error logs.
+4. **Phase 4.5B (Embodied perception):** after reasoning gates are stable, build the embodied CPU stack (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`) behind local facades and safety checks.
+5. **Phase 5.1:** integrate one persistent memory backend and verify retrieval quality under tests.
+6. **Phase 5.2+:** run offline learning with model-registry promotion/rollback gates plus benchmark-regression blocking, then add orchestration only when scale requires it.
 
 Execution rule for this cycle: prefer brain-first upgrades (reasoning/planning quality) before eye/ear expansion (vision/audio perception depth).
 
@@ -64,6 +70,8 @@ Execution rule for this cycle: prefer brain-first upgrades (reasoning/planning q
 - Deterministic dry-run replay: validate new policy/router behavior against historical logs before rollout.
 
 Current Phase 4.4 status: reflection retries, post-action verification, quality benchmark gating for model promotion, dynamic context-aware safety escalation, graceful local-brain degradation, health dashboard telemetry, and strict deterministic replay gating are now implemented as the reliability foundation.
+
+Phase 4.5A direction lock (2026-04-10): prioritize reasoning-core depth over new perception depth until multi-step planning quality, reflection reliability, KV-cache stability, and tool-trigger interception are benchmark-stable.
 
 ## Safety & Control Requirements
 

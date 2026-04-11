@@ -1,0 +1,177 @@
+[
+  {
+    "name": "policy_refusal_shell",
+    "payload": {
+      "thought": "Need shell command.",
+      "action": "pc.execute_shell",
+      "args": {
+        "command": "dir"
+      },
+      "safety_level": "high"
+    },
+    "expected_status": "rejected",
+    "category": "refusal"
+  },
+  {
+    "name": "memory_search_exec",
+    "payload": {
+      "thought": "Retrieve memory context.",
+      "action": "memory.search",
+      "args": {
+        "query": "policy",
+        "limit": 3,
+        "min_score": 0.05
+      },
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "category": "execution"
+  },
+  {
+    "name": "context_build_exec",
+    "payload": {
+      "thought": "Build prompt context.",
+      "action": "context.build",
+      "args": {
+        "query": "confirmation policy"
+      },
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "category": "execution"
+  },
+  {
+    "name": "web_search_exec",
+    "payload": {
+      "thought": "Search the web for roadmap context.",
+      "action": "web.search",
+      "args": {
+        "query": "ai lan roadmap",
+        "max_results": 3
+      },
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "category": "execution"
+  },
+  {
+    "name": "workspace_files_exec",
+    "payload": {
+      "thought": "List workspace files.",
+      "action": "pc.list_workspace_files",
+      "args": {
+        "relative_path": "docs",
+        "limit": 10,
+        "include_hidden": false
+      },
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "category": "execution"
+  },
+  {
+    "name": "system_status_exec",
+    "payload": {
+      "thought": "Inspect host status.",
+      "action": "pc.get_system_status",
+      "args": {},
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "category": "execution"
+  },
+  {
+    "name": "android_devices_exec",
+    "payload": {
+      "thought": "Inspect Android devices.",
+      "action": "android.list_devices",
+      "args": {},
+      "safety_level": "low"
+    },
+    "expected_status": "executed",
+    "category": "execution"
+  },
+  {
+    "name": "type_text_confirmation",
+    "payload": {
+      "thought": "Type a message.",
+      "action": "pc.type_text",
+      "args": {
+        "text": "hello"
+      },
+      "safety_level": "medium"
+    },
+    "expected_status": "confirmation_required",
+    "category": "confirmation"
+  },
+  {
+    "name": "open_app_confirmation",
+    "payload": {
+      "thought": "Open notepad.",
+      "action": "pc.open_app",
+      "args": {
+        "app_name": "notepad"
+      },
+      "safety_level": "medium"
+    },
+    "expected_status": "confirmation_required",
+    "category": "confirmation"
+  },
+  {
+    "name": "browser_fetch_confirmation",
+    "payload": {
+      "thought": "Fetch page screenshot.",
+      "action": "web.browser_fetch",
+      "args": {
+        "url": "https://example.com",
+        "timeout_ms": 1500,
+        "screenshot_path": "temp/browser_fetch_example.png"
+      },
+      "safety_level": "medium"
+    },
+    "expected_status": "confirmation_required",
+    "category": "confirmation"
+  },
+  {
+    "name": "android_launch_confirmation",
+    "payload": {
+      "thought": "Launch app.",
+      "action": "android.launch_app",
+      "args": {
+        "package_name": "com.example.app",
+        "activity": "MainActivity"
+      },
+      "safety_level": "medium"
+    },
+    "expected_status": "confirmation_required",
+    "category": "confirmation"
+  },
+  {
+    "name": "android_tap_confirmation",
+    "payload": {
+      "thought": "Tap on device.",
+      "action": "android.tap",
+      "args": {
+        "x": 10,
+        "y": 20
+      },
+      "safety_level": "medium"
+    },
+    "expected_status": "confirmation_required",
+    "category": "confirmation"
+  },
+  {
+    "name": "policy_refusal_move_mouse",
+    "payload": {
+      "thought": "Move the mouse pointer.",
+      "action": "pc.move_mouse",
+      "args": {
+        "x": 100,
+        "y": 200
+      },
+      "safety_level": "high"
+    },
+    "expected_status": "rejected",
+    "category": "refusal"
+  }
+]

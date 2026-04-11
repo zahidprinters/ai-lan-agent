@@ -7,6 +7,11 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added `docs/PHASE_X_MACHINE_PLAN.md` with machine-specific execution lanes (`X0`-`X6`) to separate i5-safe work from heavy-machine-only workloads
+- Added `scripts/phase_x_audit.py` to run reproducible Phase X gate audits (`X0`/`X1`/`X2`) and write a machine-readable report under `temp/benchmarks/`
+- Added `scripts/prefetch_low_bandwidth_assets.py` to prefetch packages and resumable model/data assets into `temp/downloads` for low-speed internet workflows
+- Added low-bandwidth prefetch controls in `scripts/prefetch_low_bandwidth_assets.py`: `--skip-packages` for HTTP-only caching and repeatable `--asset` for per-asset prefetch
+
 - Added `docs/SECURITY_POLICY.md` documenting safe mode, confirmation gates, audit logging, and local machine protection rules for tool use
 - Added `scripts/install_system_deps.ps1` to install and verify Tesseract OCR, Android Platform Tools, and scrcpy on Windows
 - One-command resource audit workflow: `scripts/regenerate_resource_inventory.py` plus `scripts/audit_resources.ps1` now regenerate the local resource inventory and Python package snapshot automatically
@@ -55,8 +60,20 @@ All notable changes to this project will be documented in this file.
 - Phase 4.2 completion slices: deterministic timeout handling for Android ADB and PC process-list probes, ingestion score-threshold enforcement (`--min-final-score`) with filtered-count reporting, and integration exit-gate coverage for router-policy-adapter reliability plus ingestion trust filtering
 - Storage hardening package: retention settings keys in `config/settings.yaml`, storage health telemetry in dashboard/API (`/api/health`, `/api/state`, `/api/storage`), and safe cleanup automation via `scripts/storage_cleanup.py` (dry-run default)
 - Phase 4.3 benchmark-depth slice: benchmark harness now supports external case datasets (`--cases`) and richer metrics (`status_match_rate`, `executed_action_success_rate`, per-category match rates)
+- Phase 4.3 benchmark-depth hardening: benchmark harness now records per-case execution errors without aborting runs, emits `error_rate`/`error_count`, and supports strict `--max-error-rate` gating with deeper fixture-driven CI coverage
+- Added `scripts/build_benchmark_cases_from_audit.py` to derive deduplicated benchmark case packs from `action_audit.jsonl` for trace-based Phase 4.3 eval expansion
+- Added `tests/fixtures/benchmarks/phase43_trace_cases.json` as a checked-in trace regression fixture promoted from audited action history for local Phase 4.3 benchmark runs
+- Expanded Phase 4.3 benchmark gating with required category coverage assertions (`execution`, `confirmation`, `refusal`) and optional CI execution of the checked-in trace fixture alongside the curated depth fixture
+- Expanded Phase 4.3 benchmark gating with per-category success thresholds so `execution`, `confirmation`, and `refusal` categories must each meet their own match-rate floor in addition to aggregate pass/error/latency thresholds
+- Expanded Phase 4.3 benchmark gating with distinct action diversity thresholds so each benchmark category must cover multiple action shapes rather than passing on repeated single-action cases
+- Added `models/gguf/` folder marker and pinned `llama-cpp-python` in base dependencies for the Phase 4.5A local-brain path on Windows/i5-class hosts
 
 ### Changed
+
+- Updated machine-default config behavior for the active i5/16 GB profile: `AI_LAN_EXP_PROFILE` now defaults to `transformer_small`, training defaults are CPU-first, and default batch sizing is reduced to keep local runs stable
+- Synchronized `README.md`, `ROADMAP.md`, `docs/AI_CONTEXT.md`, `docs/CONFIGURATION.md`, `docs/USER_GUIDE.md`, `docs/HARDWARE_PROFILE.md`, and `docs/PROJECT_STATUS.md` with the new Phase X machine-specific execution policy
+- Updated `scripts/fetch_tinystories.py` to reuse `temp/downloads/models/TinyStories-train.txt` cache before network download and fail fast when no cache is available instead of silently writing a dummy dataset
+- Updated `scripts/regenerate_resource_inventory.py` so model asset reporting includes `temp/downloads/models` and resolves Vosk/TinyLlama archive paths from either runtime or temp caches
 
 - Default environment setup no longer installs experiment tracking packages automatically; `wandb` and `mlflow` are now opt-in via `python -m pip install .[experiment]` so the active `.venv` can stay conflict-free
 - Updated base packaging pin to `packaging==24.2` to align with `pyproject-api==1.7.1`
@@ -77,6 +94,8 @@ All notable changes to this project will be documented in this file.
 - Updated `docs/CONFIGURATION.md` with Phase 4.5 environment variable reference for local brain and embodied runtime controls
 - Updated `README.md` and `docs/USER_GUIDE.md` with voice-mode launch and STT/TTS setup guidance
 - Updated roadmap/status/context docs to mark Phase 4.2 complete and move immediate priority to Phase 4.3 benchmark and regression-depth expansion
+- Updated roadmap/context/status/config docs with the Phase 4.5A Strong Reasoning Core standard (GGUF-first local brain, residency policy, ReAct++ planning/reflection loop) plus required hardening addenda (KV-cache controls, tool risk tiers, streaming interception, fallback routing, and structured logs)
+- Updated `README.md`, `docs/ARCHITECTURE.md`, and `project_plan.md` to clarify production GGUF agency core vs research transformer path, dynamic planning policy, XML prompt contract, rolling context summarization, tool-schema translation, and reasoning telemetry expectations
 
 ### Fixed
 

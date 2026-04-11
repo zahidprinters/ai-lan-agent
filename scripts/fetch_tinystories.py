@@ -1,5 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
+import shutil
 
 from _bootstrap import ensure_repo_root
 
@@ -11,6 +12,8 @@ from debug_utils import sentinel
 TINY_STORIES_URL = (
     "https://huggingface.co/datasets/roneneldan/TinyStories/resolve/main/TinyStories-train.txt"
 )
+ROOT = Path(__file__).resolve().parents[1]
+TEMP_CACHE_PATH = ROOT / "temp" / "downloads" / "models" / "TinyStories-train.txt"
 
 
 @sentinel
@@ -37,6 +40,13 @@ def fetch_tinystories(data_dir: Path) -> Path:
         print(f"[INFO] TinyStories already exists at {output_path}")
         return output_path
 
+    if TEMP_CACHE_PATH.exists():
+        print(f"[INFO] Reusing TinyStories cache from {TEMP_CACHE_PATH}")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(TEMP_CACHE_PATH, output_path)
+        preprocess_tinystories(output_path)
+        return output_path
+
     print(f"[INFO] Fetching TinyStories from Hugging Face...")
     try:
         import requests  # type: ignore[import-untyped]
@@ -51,18 +61,25 @@ def fetch_tinystories(data_dir: Path) -> Path:
                 if chunk:
                     f.write(chunk)
 
+        TEMP_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(output_path, TEMP_CACHE_PATH)
+
         preprocess_tinystories(output_path)
         print(f"[SUCCESS] Downloaded and Preprocessed TinyStories: {output_path}")
         return output_path
     except Exception as e:
         print(f"[ERROR] Failed to download TinyStories: {e}")
-        # Fallback to a dummy text if the network is down
-        print("[WARN] Using fallback dummy dataset for stability.")
-        output_path.write_text(
-            "Once upon a time, there was a little robot named Lan. Lan loved to learn and build things.",
-            encoding="utf-8",
-        )
-        return output_path
+        if TEMP_CACHE_PATH.exists():
+            print(f"[WARN] Falling back to cached TinyStories at {TEMP_CACHE_PATH}")
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(TEMP_CACHE_PATH, output_path)
+            preprocess_tinystories(output_path)
+            return output_path
+
+        raise RuntimeError(
+            "TinyStories download failed and no cache is available. "
+            "Run scripts/prefetch_low_bandwidth_assets.py --with-model-assets first."
+        ) from e
 
 
 def main() -> None:

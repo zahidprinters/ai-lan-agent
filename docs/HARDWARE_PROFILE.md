@@ -49,3 +49,5 @@ powershell -ExecutionPolicy Bypass -File scripts/hardware_profile.ps1
 Default output path:
 
 - `temp/hardware/hardware_profile.json`
+
+For execution gating on this machine, follow `docs/PHASE_X_MACHINE_PLAN.md`.

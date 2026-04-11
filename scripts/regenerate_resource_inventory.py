@@ -103,6 +103,7 @@ def build_inventory_markdown(
     phase4_summary = _directory_summary(temp_dir / "downloads" / "phase4")
     phase45_summary = _directory_summary(temp_dir / "downloads" / "phase45")
     phase5_summary = _directory_summary(temp_dir / "downloads" / "phase5")
+    temp_model_cache_summary = _directory_summary(temp_dir / "downloads" / "models")
     downloads_summary = _directory_summary(models_dir / "downloads")
     vosk_summary = _directory_summary(models_dir / "vosk-model-small-en-us-0.15")
     venv_summary = _directory_summary(root / ".venv")
@@ -141,8 +142,18 @@ def build_inventory_markdown(
         ]
     )
 
-    vosk_archive = models_dir / "downloads" / "vosk-model-small-en-us-0.15.zip"
-    tinyllama_path = models_dir / "downloads" / "tinyllama-1.1b-chat-v1.0.Q2_K.gguf"
+    vosk_archive = _find_existing(
+        [
+            models_dir / "downloads" / "vosk-model-small-en-us-0.15.zip",
+            temp_dir / "downloads" / "models" / "vosk-model-small-en-us-0.15.zip",
+        ]
+    )
+    tinyllama_path = _find_existing(
+        [
+            models_dir / "downloads" / "tinyllama-1.1b-chat-v1.0.Q2_K.gguf",
+            temp_dir / "downloads" / "models" / "tinyllama-1.1b-chat-v1.0.Q2_K.gguf",
+        ]
+    )
     tinystories_path = data_dir / "tinystories.txt"
 
     temp_items = _list_names(temp_dir)
@@ -350,19 +361,20 @@ Current top-level model items:
 Downloaded model assets summary:
 
 - Model download cache: `{_format_path(downloads_summary.path)}` with `{downloads_summary.file_count}` files, about `{downloads_summary.size_mb} MB`
+- Temp model/data cache: `{_format_path(temp_model_cache_summary.path)}` with `{temp_model_cache_summary.file_count}` files, about `{temp_model_cache_summary.size_mb} MB`
 - Extracted Vosk model: `{_format_path(vosk_summary.path)}` with `{vosk_summary.file_count}` files, about `{vosk_summary.size_mb} MB`
 
 ### Vosk offline STT model
 
-- Archive path: `{_format_path(vosk_archive)}`
+- Archive path: `{_format_path(vosk_archive) if vosk_archive else _format_path(models_dir / 'downloads' / 'vosk-model-small-en-us-0.15.zip')}`
 - Extracted path: `{_format_path(models_dir / 'vosk-model-small-en-us-0.15')}`
-- Archive size: `{vosk_archive.stat().st_size if vosk_archive.exists() else 0}` bytes
+- Archive size: `{vosk_archive.stat().st_size if vosk_archive else 0}` bytes
 - Download source URL: `https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip`
 
 ### TinyLlama GGUF model
 
-- Path: `{_format_path(tinyllama_path)}`
-- Size: `{tinyllama_path.stat().st_size if tinyllama_path.exists() else 0}` bytes
+- Path: `{_format_path(tinyllama_path) if tinyllama_path else _format_path(models_dir / 'downloads' / 'tinyllama-1.1b-chat-v1.0.Q2_K.gguf')}`
+- Size: `{tinyllama_path.stat().st_size if tinyllama_path else 0}` bytes
 - Download source URL: `https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q2_K.gguf`
 
 ## Training Data And Data Sources

@@ -12,9 +12,11 @@ Experiment profiles are pre-configured sets of hyperparameters. Set the **`AI_LA
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `debug` | Fast logic testing | 2 | 4 | 8 | 16 | `char_mlp` |
 | `baseline` | Simple Bigram floor | 50 | 32 | 16 | 64 | `bigram` |
-| `transformer_small` | Entry transformer | 50 | 16 | 16 | 32 | `transformer` |
-| `transformer_medium` | Deep experiment | 50 | 16 | 16 | 64 | `transformer` |
+| `transformer_small` | Entry transformer (i5 default) | 50 | 8 | 16 | 32 | `transformer` |
+| `transformer_medium` | Deep experiment (i5-safe) | 50 | 8 | 16 | 64 | `transformer` |
 | `transformer_large` | Large transformer | 50 | 8 | 16 | 128 | `transformer` |
+
+When `AI_LAN_EXP_PROFILE` is not set, runtime config now defaults to `transformer_small` to stay aligned with the active i5/16 GB machine profile.
 
 ---
 
@@ -38,7 +40,7 @@ You can override any individual setting by setting its corresponding environment
 - **`AI_LAN_STOCHASTIC_DEPTH`**: Stochastic depth rate.
 - **`AI_LAN_LR_WARMUP_STEPS`**: Warmup steps for LR schedule.
 - **`AI_LAN_LR_WARMUP_EPOCHS`**: Warmup epochs for LR schedule.
-- **`AI_LAN_DEVICE`**: Runtime device selection (`cpu` or `cuda` when available).
+- **`AI_LAN_DEVICE`**: Runtime device selection. Project default is `cpu` for machine-safe behavior.
 - **`AI_LAN_USE_AMP`**: Enable mixed precision (`0`/`1`).
 
 ### Tokenization
@@ -119,6 +121,32 @@ Adaptive perception reduces idle CPU load by increasing sample interval when the
 - **`AI_LAN_MEMORY_BACKEND`**: Memory backend selector (`none` or `chroma`).
 - **`AI_LAN_CHROMA_PATH`**: Local storage path for Chroma backend.
 
+Planned for Phase 4.5A (documented target, not all keys active yet):
+
+- **`AI_LAN_LLAMACPP_MODEL_PROFILE`**: Preferred GGUF profile (`phi4_q4km`, `llama8b_q4km`, and fallback profiles).
+- **`AI_LAN_LLAMACPP_RESIDENT`**: Keep model loaded between turns (`0`/`1`).
+- **`AI_LAN_LLAMACPP_UNLOAD_RAM_PCT`**: Host RAM pressure threshold that triggers background model unload.
+- **`AI_LAN_REASONING_PLAN_STEPS_MIN`**: Minimum required plan length before tool execution.
+- **`AI_LAN_REASONING_PLAN_STEPS_MAX`**: Maximum plan length cap for bounded planning.
+- **`AI_LAN_REASONING_DYNAMIC_PLANNING`**: Enable complexity-aware planning (`0`/`1`) so simple tasks can skip full multi-step plans.
+- **`AI_LAN_STREAM_TOOL_TRIGGER_ENABLED`**: Enable token-stream interception for `Action:` triggers (`0`/`1`).
+- **`AI_LAN_STREAM_TOOL_TRIGGER_PATTERN`**: Trigger pattern used to pause generation and execute tools.
+- **`AI_LAN_REFLECTION_REQUIRED_ON_FAILURE`**: Require a reflection pass after tool failure (`0`/`1`).
+- **`AI_LAN_REFLECTION_MAX_RETRIES`**: Reflection/retry ceiling per turn.
+- **`AI_LAN_KV_CACHE_MAX_TURNS`**: Maximum raw-turn window before context summarization + cache reset.
+- **`AI_LAN_CONTEXT_SUMMARY_ENABLED`**: Enable rolling context summarization before buffer pressure causes truncation (`0`/`1`).
+- **`AI_LAN_CONTEXT_SUMMARY_TARGET_TOKENS`**: Token budget for compacted memory summaries.
+- **`AI_LAN_PROMPT_XML_MODE`**: Enforce XML-structured prompt contract for planner output (`0`/`1`).
+- **`AI_LAN_TOOL_SCHEMA_TRANSLATOR_ENABLED`**: Enable automatic translation of tool signatures/metadata into model prompt schema (`0`/`1`).
+- **`AI_LAN_MODEL_ROUTER_ENABLED`**: Enable multi-model routing/fallback (`0`/`1`).
+- **`AI_LAN_MODEL_ROUTER_SIMPLE_MODEL_PATH`**: GGUF path for low-cost/simple tasks.
+- **`AI_LAN_MODEL_ROUTER_COMPLEX_MODEL_PATH`**: GGUF path for complex tasks.
+- **`AI_LAN_TOOL_RISK_POLICY_PATH`**: Optional risk-tier mapping file (`safe`/`medium`/`dangerous`) for tool execution controls.
+- **`AI_LAN_REASONING_TELEMETRY_ENABLED`**: Enable structured thought/plan/action/result/reflection telemetry (`0`/`1`).
+- **`AI_LAN_AGENT_LOG_PATH`**: Structured thought/planning log output path.
+- **`AI_LAN_TOOL_LOG_PATH`**: Structured tool execution log output path.
+- **`AI_LAN_ERROR_LOG_PATH`**: Structured runtime error/failure log path.
+
 When `AI_LAN_MEMORY_BACKEND=chroma`, runtime context retrieval and memory search use ChromaDB first for vector scoring and automatically fall back to the local JSON vector index if Chroma is unavailable.
 
 ### Model Promotion Guardrails
@@ -151,7 +179,7 @@ Managed automatically but overrideable:
 
 ## Last Updated
 
-2026-04-10
+2026-04-11
 
 ---
 
@@ -166,5 +194,7 @@ Recommended baseline for reliable local runs:
 - `AI_LAN_EXP_PROFILE=transformer_small`
 - `AI_LAN_BATCH_SIZE=8`
 - `AI_LAN_BLOCK_SIZE=16`
+
+Work that exceeds this machine profile should be queued to the heavy-machine lanes (`Phase X5/X6`) documented in `docs/PHASE_X_MACHINE_PLAN.md`.
 
 For full hardware details, see `docs/HARDWARE_PROFILE.md`.

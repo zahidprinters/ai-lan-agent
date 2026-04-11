@@ -40,8 +40,19 @@ To build a high-fidelity, local-first language model that transitions from passi
 - [ ] **Vision Pipeline:** Add `mss`/`OpenCV` capture, `Tesseract` OCR, `EasyOCR` fallback, and optional `Ultralytics` object detection.
 - [ ] **Voice Input:** Add `Vosk` first, then `whisper.cpp` for stronger offline speech recognition.
 - [ ] **Voice Output:** Add `pyttsx3` as the lightweight fallback and `Coqui TTS` for higher-quality speech.
-- [ ] **CPU Brain Runtime:** Add `llama.cpp` or `llama-cpp-python` for local reasoning on CPU-only hardware.
+- [ ] **CPU Brain Runtime:** Add `llama.cpp` or `llama-cpp-python` for local reasoning on CPU-only hardware, with memory-pressure residency unload instead of fixed idle timers.
 - [ ] **Realtime Loop:** Connect screen/audio perception to the agent loop and back to spoken output.
+
+### 🧠 Phase 4.5A: Strong Reasoning Core (Brain Before Eyes)
+
+- [ ] **Dependency + Model Layout:** Pin `llama-cpp-python` and keep GGUF artifacts under `models/gguf/`.
+- [ ] **Inference Manager:** Build smart persistent residency with RAM-pressure fallback and i5-safe default thread mapping.
+- [ ] **ReAct++ Controller:** Add dynamic planning (complexity-gated), token-stream tool interception, and mandatory post-failure reflection.
+- [ ] **Prompting Contract:** Standardize XML-structured responses (`<thought>`, `<plan>`, `<action>`, `<reflection>`) for parser reliability.
+- [ ] **Tool Schema Translator:** Generate model-visible tool schemas from `tools/*.py` and router metadata.
+- [ ] **Rolling Context:** Add summarization-based context compaction to avoid hard truncation memory loss.
+- [ ] **Reasoning Telemetry:** Stream thought/plan/action/result/reflection traces into dashboard-visible logs.
+- [ ] **Docs Sync:** Update `README.md` and `docs/ARCHITECTURE.md` as implementation source-of-truth for the 2026 agentic standard.
 
 ### 🧠 Phase 5.0: Autonomy & Self-Learning (Future)
 

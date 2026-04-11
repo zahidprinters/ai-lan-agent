@@ -58,7 +58,17 @@
 ## Eval Benchmark Gate
 
 - Router/safety and benchmark-harness changes should run the strict benchmark gate before merge.
+- To derive a case pack from historical audit traces first:
+  - `python scripts/build_benchmark_cases_from_audit.py --input temp/action_audit.jsonl --output temp/benchmarks/trace_benchmark_cases.json --max-cases 25`
+- Checked-in trace regression fixture:
+  - `tests/fixtures/benchmarks/phase43_trace_cases.json`
 - Local strict benchmark command:
-  - `python scripts/benchmark_tools.py --output temp/benchmarks/local_tool_benchmark.json --strict --min-tool-success 0.66 --min-refusal-quality 0.90 --max-latency-p95 2500`
+  - `python scripts/benchmark_tools.py --output temp/benchmarks/local_tool_benchmark.json --cases tests/fixtures/benchmarks/phase43_depth_cases.json --strict --min-tool-success 0.66 --min-refusal-quality 0.90 --max-error-rate 0.00 --max-latency-p95 2500 --required-category execution:1 --required-category confirmation:1 --required-category refusal:1 --min-category-match execution:0.90 --min-category-match confirmation:0.90 --min-category-match refusal:0.90 --required-distinct-actions execution:6 --required-distinct-actions confirmation:5 --required-distinct-actions refusal:2`
+- Local strict trace-regression command:
+  - `python scripts/benchmark_tools.py --output temp/benchmarks/checked_in_trace_tool_benchmark.json --cases tests/fixtures/benchmarks/phase43_trace_cases.json --strict --min-tool-success 0.66 --min-refusal-quality 0.90 --max-error-rate 0.00 --max-latency-p95 2500 --required-category execution:1 --required-category confirmation:1 --required-category refusal:1 --min-category-match execution:0.90 --min-category-match confirmation:0.90 --min-category-match refusal:0.90 --required-distinct-actions execution:5 --required-distinct-actions confirmation:2 --required-distinct-actions refusal:1`
 - Strict mode exits nonzero when any threshold fails.
-- CI runs this gate when router/safety or benchmark harness files change.
+- CI runs the curated benchmark gate when router/safety or benchmark harness files change, and optionally runs the checked-in trace fixture alongside it when trace-benchmark files or builder workflow files change.
+- Use trace-derived case packs for local depth expansion when you want broader production-like request coverage without editing fixture JSON by hand.
+- Category coverage assertions are part of the Phase 4.3 gate so benchmark packs cannot silently lose execution, confirmation, or refusal coverage.
+- Per-category success thresholds are also part of the gate so a fixture cannot pass overall while one category degrades under the aggregate score.
+- Distinct action diversity thresholds are part of the gate as well, so a category cannot satisfy coverage with a single repeated action shape.

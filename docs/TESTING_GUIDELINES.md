@@ -48,6 +48,13 @@
   - `python -m pytest tests/test_inference_manager.py tests/test_local_reasoning.py tests/test_layered_modules.py tests/test_iterative_react.py tests/test_chat_interface.py -q --disable-warnings`
 - Expected behavior: planner metadata carries a validated or repaired 3-5 step plan, stream interception can orchestrate JSON or text-based tool triggers, execution-contract checks block payload drift before dispatch, older prompt state is compacted into role-aware summaries with preserved runtime-context edges, richer risk metadata appears in planner/log records, reflection decisions are explicit, and structured logs are emitted for agent/tool/error paths.
 
+## Phase 4.5B Perception Runtime Gate
+
+- When touching `tools/perception/ocr.py`, `tools/perception/vision.py`, `runtime/perception_loop.py`, `runtime/context.py`, or runtime chat perception wiring, run the focused 4.5B gate before merge.
+- Local command:
+  - `python -m pytest tests/test_phase4_tools.py tests/test_perception_loop.py tests/test_chat_interface.py tests/test_vision_tool.py -q --disable-warnings`
+- Expected behavior: bounded perception sampling stays in range, OCR confidence filtering remains active, unsupported backend selection fails safely, backend/fallback/preprocess controls propagate through perception loop wiring, and runtime context includes perception source/confidence/backend metadata.
+
 ## Dashboard Health Gate
 
 - Dashboard/API health telemetry changes should include focused dashboard API tests.

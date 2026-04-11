@@ -19,6 +19,7 @@ class PerceptionSnapshot:
     source: str = "screen_ocr"
     average_confidence: float | None = None
     sample_count: int = 1
+    ocr_backend: str = "tesseract"
 
     def to_dict(self) -> dict[str, str]:
         return asdict(self)
@@ -51,6 +52,9 @@ class PerceptionLoop:
         backoff_multiplier: float = 1.5,
         min_ocr_confidence: float = 45.0,
         max_samples_per_tick: int = 1,
+        ocr_backend: str = "auto",
+        easyocr_fallback: bool = True,
+        preprocess_for_ocr: bool = True,
         on_snapshot: Callable[[PerceptionSnapshot], None] | None = None,
     ) -> None:
         self.interval_sec = max(1, int(interval_sec))
@@ -59,6 +63,9 @@ class PerceptionLoop:
         self.backoff_multiplier = max(1.1, float(backoff_multiplier))
         self.min_ocr_confidence = max(0.0, float(min_ocr_confidence))
         self.max_samples_per_tick = max(1, min(5, int(max_samples_per_tick)))
+        self.ocr_backend = ocr_backend.strip().lower() or "auto"
+        self.easyocr_fallback = bool(easyocr_fallback)
+        self.preprocess_for_ocr = bool(preprocess_for_ocr)
         self.on_snapshot = on_snapshot
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
@@ -83,6 +90,9 @@ class PerceptionLoop:
         sample = capture_vision_sample(
             min_confidence=self.min_ocr_confidence,
             max_samples=self.max_samples_per_tick,
+            ocr_backend=self.ocr_backend,
+            enable_easyocr_fallback=self.easyocr_fallback,
+            preprocess_for_ocr=self.preprocess_for_ocr,
         )
         average_confidence = sample.get("average_confidence")
         snapshot = PerceptionSnapshot(
@@ -93,6 +103,7 @@ class PerceptionLoop:
                 float(average_confidence) if average_confidence is not None else None
             ),
             sample_count=max(1, int(sample.get("sample_count", 1))),
+            ocr_backend=str(sample.get("ocr_backend", "tesseract")) or "tesseract",
         )
 
         if self.adaptive and previous_summary is not None:

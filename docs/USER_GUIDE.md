@@ -154,6 +154,8 @@ If perception is enabled, the latest OCR/screen summary is kept in session state
 That same summary is visible through the dashboard/API state views, and chat sessions now stop background perception resources cleanly when the CLI exits.
 For CPU-friendly runtime handling, perception sampling now backs off automatically when the visible screen summary is unchanged, and runtime context sections are capped by a configurable character budget.
 Perception sampling also uses a bounded sample count per tick and confidence-filtered OCR extraction so low-confidence tokens do not dominate runtime context.
+Perception OCR can now be pinned to a backend (`auto`, `tesseract`, or `easyocr`) with optional EasyOCR fallback and optional OpenCV preprocessing before extraction.
+Runtime context now records perception source, confidence, and OCR backend metadata so troubleshooting can distinguish extractor behavior without bypassing policy-routed actions.
 
 Recommended toggles:
 

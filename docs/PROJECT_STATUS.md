@@ -95,11 +95,11 @@ These are retained by design and are not duplicate/legacy remnants.
 
 1. **Phase 4.3:** completed (2026-04-11). Benchmark harness exit gate now includes curated CI thresholds, checked-in trace regression coverage, category coverage minimums, per-category success thresholds, and distinct action diversity thresholds.
 2. **Phase 4.5A (Reasoning-first):** completed (2026-04-11). Exit-gated with model-validated planning, stream-trigger orchestration, runtime guard + execution-contract enforcement, pressure-aware routing fallback, upgraded context compaction quality, and strict benchmark assertions for runtime guard/routing/execution-contract/compaction behavior.
-3. **Phase 4.5B (Embodied runtime):** active next phase. Expand vision/audio runtime depth (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`) behind existing router/policy controls while preserving 4.5A reasoning and safety gates.
+3. **Phase 4.5B (Embodied runtime):** completed (2026-04-11). Runtime perception now includes bounded capture depth, confidence-filtered OCR summaries, OCR backend selection/fallback controls (`auto`/`tesseract`/`easyocr`), optional OpenCV preprocessing, and session/context metadata propagation (`source`, `confidence`, `ocr_backend`) without bypassing router/policy ownership.
 4. **Phase 5.1:** integrate one persistent memory backend (`Chroma` or `Qdrant`) with explicit retention/user-control boundaries.
 5. **Phase 5.2+:** ship nightly offline learning with canary promotion gates, benchmark-regression blocking, model registry rollback, and orchestration hardening when workload scale requires it.
 
-Direction lock: 4.5A is complete; continue brain-before-eyes sequencing by preserving 4.5A gates while expanding 4.5B perception depth.
+Direction lock: 4.5A and 4.5B are complete; keep reasoning/safety regression gates preserved while moving into Phase 5 memory and offline-learning execution.
 
 ## Strategic Reliability Pillars
 

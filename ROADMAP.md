@@ -64,7 +64,7 @@ This sequence is the implementation order to follow one step at a time.
   **4.5B Perception slice:** expand `mss`/`OpenCV` + `Tesseract` + `Vosk` + `pyttsx3` embodied loop once 4.5A reasoning gates are stable.
   **Exit gate:** end-to-end embodied loop demo with bounded latency and confirmation gates preserved.
 
-  Status (2026-04-11): 4.5A completed and exit-gated. Active execution focus is now 4.5B perception depth while retaining strict 4.5A reasoning/safety benchmark gates.
+  Status (2026-04-11): 4.5A and 4.5B completed and exit-gated. Perception depth now includes bounded sampling, confidence-filtered OCR summaries, backend selection/fallback (`auto`/`tesseract`/`easyocr`), optional OpenCV preprocessing, and runtime-context metadata propagation without policy bypass. Continue preserving strict 4.5A reasoning/safety benchmark gates as baseline protections.
 
 1. **Phase 5.1: Persistent Memory + Personalization**
 

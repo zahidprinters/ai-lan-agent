@@ -47,11 +47,115 @@ def _coerce_confidence(raw_value: object) -> float | None:
     return value
 
 
+def _extract_tesseract_confidence(
+    image_path: str,
+    *,
+    min_confidence: float,
+) -> dict[str, object]:
+    import pytesseract  # type: ignore[import-untyped]
+    from PIL import Image
+
+    img = Image.open(image_path)
+    raw_text = str(pytesseract.image_to_string(img)).strip()
+
+    try:
+        data = pytesseract.image_to_data(  # type: ignore[attr-defined]
+            img,
+            output_type=pytesseract.Output.DICT,
+        )
+        words = data.get("text", [])
+        confidences = data.get("conf", [])
+    except Exception:
+        words = []
+        confidences = []
+
+    kept_tokens: list[str] = []
+    kept_confidences: list[float] = []
+    considered_count = 0
+    for word, confidence_raw in zip(words, confidences):
+        token = str(word).strip()
+        if not token:
+            continue
+        confidence = _coerce_confidence(confidence_raw)
+        if confidence is None:
+            continue
+        considered_count += 1
+        if confidence >= float(min_confidence):
+            kept_tokens.append(token)
+            kept_confidences.append(confidence)
+
+    filtered_text = " ".join(kept_tokens).strip()
+    average_confidence = (
+        round(sum(kept_confidences) / len(kept_confidences), 3)
+        if kept_confidences
+        else None
+    )
+    return {
+        "status": "ok",
+        "text": raw_text,
+        "filtered_text": filtered_text,
+        "average_confidence": average_confidence,
+        "tokens_considered": considered_count,
+        "tokens_kept": len(kept_tokens),
+        "detail": "",
+        "backend": "tesseract",
+    }
+
+
+def _extract_easyocr_confidence(
+    image_path: str,
+    *,
+    min_confidence: float,
+) -> dict[str, object]:
+    import easyocr  # type: ignore[import-untyped]
+
+    reader = easyocr.Reader(["en"], gpu=False)
+    results = reader.readtext(image_path)
+    all_tokens: list[str] = []
+    kept_tokens: list[str] = []
+    kept_confidences: list[float] = []
+
+    for item in results:
+        if not isinstance(item, (list, tuple)) or len(item) < 3:
+            continue
+        token = str(item[1]).strip()
+        confidence_raw = item[2]
+        if not token:
+            continue
+        all_tokens.append(token)
+        confidence = _coerce_confidence(float(confidence_raw) * 100.0)
+        if confidence is None:
+            continue
+        if confidence >= float(min_confidence):
+            kept_tokens.append(token)
+            kept_confidences.append(confidence)
+
+    raw_text = " ".join(all_tokens).strip()
+    filtered_text = " ".join(kept_tokens).strip()
+    average_confidence = (
+        round(sum(kept_confidences) / len(kept_confidences), 3)
+        if kept_confidences
+        else None
+    )
+    return {
+        "status": "ok",
+        "text": raw_text,
+        "filtered_text": filtered_text,
+        "average_confidence": average_confidence,
+        "tokens_considered": len(all_tokens),
+        "tokens_kept": len(kept_tokens),
+        "detail": "",
+        "backend": "easyocr",
+    }
+
+
 @sentinel
 def run_ocr_with_confidence(
     image_path: str,
     *,
     min_confidence: float = 45.0,
+    backend: str = "auto",
+    enable_easyocr_fallback: bool = True,
 ) -> dict[str, object]:
     """Run OCR and keep only tokens above the configured confidence threshold.
 
@@ -59,55 +163,8 @@ def run_ocr_with_confidence(
     ``tokens_considered``, ``tokens_kept``, and ``detail``.
     """
     _configure_tesseract()
-    try:
-        import pytesseract  # type: ignore[import-untyped]
-        from PIL import Image
-
-        img = Image.open(image_path)
-        raw_text = str(pytesseract.image_to_string(img)).strip()
-
-        try:
-            data = pytesseract.image_to_data(  # type: ignore[attr-defined]
-                img,
-                output_type=pytesseract.Output.DICT,
-            )
-            words = data.get("text", [])
-            confidences = data.get("conf", [])
-        except Exception:
-            words = []
-            confidences = []
-
-        kept_tokens: list[str] = []
-        kept_confidences: list[float] = []
-        considered_count = 0
-        for word, confidence_raw in zip(words, confidences):
-            token = str(word).strip()
-            if not token:
-                continue
-            confidence = _coerce_confidence(confidence_raw)
-            if confidence is None:
-                continue
-            considered_count += 1
-            if confidence >= float(min_confidence):
-                kept_tokens.append(token)
-                kept_confidences.append(confidence)
-
-        filtered_text = " ".join(kept_tokens).strip()
-        average_confidence = (
-            round(sum(kept_confidences) / len(kept_confidences), 3)
-            if kept_confidences
-            else None
-        )
-        return {
-            "status": "ok",
-            "text": raw_text,
-            "filtered_text": filtered_text,
-            "average_confidence": average_confidence,
-            "tokens_considered": considered_count,
-            "tokens_kept": len(kept_tokens),
-            "detail": "",
-        }
-    except ImportError as exc:
+    resolved_backend = backend.strip().lower()
+    if resolved_backend not in {"auto", "tesseract", "easyocr"}:
         return {
             "status": "failed",
             "text": "",
@@ -115,7 +172,64 @@ def run_ocr_with_confidence(
             "average_confidence": None,
             "tokens_considered": 0,
             "tokens_kept": 0,
-            "detail": f"pytesseract not installed: {exc}",
+            "detail": f"Unsupported OCR backend: {backend}",
+            "backend": "none",
+        }
+
+    last_error = ""
+    try:
+        if resolved_backend in {"auto", "tesseract"}:
+            return _extract_tesseract_confidence(
+                image_path,
+                min_confidence=min_confidence,
+            )
+    except ImportError as exc:
+        last_error = f"tesseract unavailable: {exc}"
+        if not enable_easyocr_fallback or resolved_backend == "tesseract":
+            return {
+                "status": "failed",
+                "text": "",
+                "filtered_text": "",
+                "average_confidence": None,
+                "tokens_considered": 0,
+                "tokens_kept": 0,
+                "detail": last_error,
+                "backend": "tesseract",
+            }
+    except Exception as exc:
+        last_error = str(exc)
+        if not enable_easyocr_fallback or resolved_backend == "tesseract":
+            return {
+                "status": "failed",
+                "text": "",
+                "filtered_text": "",
+                "average_confidence": None,
+                "tokens_considered": 0,
+                "tokens_kept": 0,
+                "detail": last_error,
+                "backend": "tesseract",
+            }
+
+    try:
+        if resolved_backend in {"auto", "easyocr"}:
+            return _extract_easyocr_confidence(
+                image_path,
+                min_confidence=min_confidence,
+            )
+    except ImportError as exc:
+        if last_error:
+            detail = f"{last_error}; easyocr unavailable: {exc}"
+        else:
+            detail = f"easyocr unavailable: {exc}"
+        return {
+            "status": "failed",
+            "text": "",
+            "filtered_text": "",
+            "average_confidence": None,
+            "tokens_considered": 0,
+            "tokens_kept": 0,
+            "detail": detail,
+            "backend": "easyocr",
         }
     except FileNotFoundError as exc:
         return {
@@ -126,6 +240,7 @@ def run_ocr_with_confidence(
             "tokens_considered": 0,
             "tokens_kept": 0,
             "detail": f"Image not found: {exc}",
+            "backend": "none",
         }
     except Exception as exc:
         return {
@@ -136,7 +251,19 @@ def run_ocr_with_confidence(
             "tokens_considered": 0,
             "tokens_kept": 0,
             "detail": str(exc),
+            "backend": "none",
         }
+
+    return {
+        "status": "failed",
+        "text": "",
+        "filtered_text": "",
+        "average_confidence": None,
+        "tokens_considered": 0,
+        "tokens_kept": 0,
+        "detail": "No OCR backend was selected.",
+        "backend": "none",
+    }
 
 
 @sentinel

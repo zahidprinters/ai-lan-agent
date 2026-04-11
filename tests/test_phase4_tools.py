@@ -138,6 +138,13 @@ class TestOcrTool:
         assert "tokens_kept" in result
         assert "detail" in result
 
+    def test_run_ocr_with_confidence_rejects_unknown_backend(self) -> None:
+        from tools.perception.ocr import run_ocr_with_confidence
+
+        result = run_ocr_with_confidence("/nonexistent.png", backend="invalid")
+        assert result["status"] == "failed"
+        assert "Unsupported OCR backend" in str(result["detail"])
+
 
 # ---------------------------------------------------------------------------
 # tools.android.scrcpy — safety guard

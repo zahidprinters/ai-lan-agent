@@ -50,7 +50,7 @@ Keep Phase 4 and Phase 5 intake narrow: one framework per capability, tests firs
 1. **Phase X lane enforcement (current machine):** execute only `X0` through `X4` from `docs/PHASE_X_MACHINE_PLAN.md` on the active i5/16 GB host; queue heavy jobs to `X5/X6`.
 2. **Phase 4.3:** evaluation + regression control exit gate is complete: CI now enforces curated benchmark thresholds, checked-in trace regression coverage, category coverage minimums, per-category success thresholds, and distinct action diversity thresholds.
 3. **Phase 4.5A (Reasoning-first):** completed (2026-04-11) and exit-gated. The Strong Reasoning Core baseline now includes GGUF inference management, memory-aware residency fallback, plan validation/repair, stream-trigger tool orchestration, runtime guard + execution-contract enforcement, pressure-aware routing, structured logs, context compaction hardening, and strict benchmark assertions for these behaviors.
-4. **Phase 4.5B (Embodied perception):** active next phase. Build the embodied CPU stack (`mss`/`OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`) behind local facades and safety checks while preserving 4.5A benchmark gates.
+4. **Phase 4.5B (Embodied perception):** completed (2026-04-11). The perception runtime now provides bounded sampling, confidence-filtered OCR summaries, selectable OCR backend/fallback (`auto`/`tesseract`/`easyocr`), optional OpenCV preprocessing, and runtime-context metadata propagation (`source`, `confidence`, `ocr_backend`) without direct policy bypass.
 5. **Phase 5.1:** integrate one persistent memory backend and verify retrieval quality under tests.
 6. **Phase 5.2+:** run offline learning with model-registry promotion/rollback gates plus benchmark-regression blocking, then add orchestration only when scale requires it.
 
@@ -66,7 +66,7 @@ Execution rule for this cycle: prefer brain-first upgrades (reasoning/planning q
 
 Current Phase 4.4 status: reflection retries, post-action verification, quality benchmark gating for model promotion, dynamic context-aware safety escalation, graceful local-brain degradation, health dashboard telemetry, and strict deterministic replay gating are now implemented as the reliability foundation.
 
-Phase 4.5A direction lock (2026-04-10) outcome: achieved on 2026-04-11. Continue into 4.5B without relaxing reasoning/safety regression gates.
+Phase 4.5A direction lock (2026-04-10) outcome: achieved on 2026-04-11. Phase 4.5B is now also complete; retain the same reasoning/safety regression gates as mandatory pre-merge checks while advancing Phase 5 work.
 
 ## Safety & Control Requirements
 

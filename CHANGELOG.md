@@ -78,6 +78,7 @@ All notable changes to this project will be documented in this file.
 - Added Phase 4.5A benchmark-depth hardening: `scripts/benchmark_tools.py` now supports execution-contract, routing, and compaction probes with strict match-rate gates backed by updated curated fixtures and CI thresholds
 - Added compact benchmark `probe_failures` report output so CI artifacts summarize per-probe evaluated counts, failed counts, top failed case names, and failure reasons for faster triage
 - Added initial 4.5B perception runtime slice: vision capture service entrypoint with bounded per-tick sampling, OCR confidence-filtering facade output, and runtime-context wiring of perception source/confidence metadata without policy bypass
+- Added deeper 4.5B perception runtime completion: selectable OCR backend/fallback path (`auto`/`tesseract`/`easyocr`), optional OpenCV preprocessing before OCR, and propagation of OCR backend metadata through perception snapshots and runtime context assembly
 
 ### Changed
 
@@ -116,6 +117,7 @@ All notable changes to this project will be documented in this file.
 - Updated 4.5A runtime docs and tests to reflect richer KV-cache/runtime-context compaction behavior
 - Updated benchmark testing guidance and CI strict benchmark commands to require explicit execution-contract, routing, and compaction assertion matches
 - Updated optional trace-derived strict benchmark gate and checked-in trace fixture so Phase 4.5A execution-contract, routing, and compaction probes are asserted there as well
+- Updated 4.5B runtime/config/testing docs to include OCR backend controls, OpenCV preprocessing toggle, a focused 4.5B pytest gate, and completion status in roadmap/context/status docs
 
 ### Fixed
 

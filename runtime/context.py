@@ -117,6 +117,7 @@ def build_runtime_context(
     perception_summary: str | None = None,
     perception_source: str | None = None,
     perception_confidence: float | None = None,
+    perception_ocr_backend: str | None = None,
     max_context_chars: int = 4000,
     merged_corpus_path: Path | None = None,
 ) -> dict[str, Any]:
@@ -140,6 +141,9 @@ def build_runtime_context(
     perception_text = (perception_summary or "").strip() or "(no live perception context)"
     perception_text = _truncate_preserving_tail(perception_text, max_context_chars)
     perception_source_text = (perception_source or "screen_ocr").strip() or "screen_ocr"
+    perception_ocr_backend_text = (
+        (perception_ocr_backend or "tesseract").strip().lower() or "tesseract"
+    )
     confidence_text = (
         f" ({perception_confidence:.1f}% confidence)"
         if isinstance(perception_confidence, (int, float))
@@ -155,6 +159,7 @@ def build_runtime_context(
             short_term_text,
             "Perception Context:",
             f"Source: {perception_source_text}{confidence_text}",
+            f"OCR Backend: {perception_ocr_backend_text}",
             perception_text,
             "Retrieved Context:",
             retrieved_text,
@@ -169,6 +174,7 @@ def build_runtime_context(
         "perception_summary": perception_text,
         "perception_source": perception_source_text,
         "perception_confidence": perception_confidence,
+        "perception_ocr_backend": perception_ocr_backend_text,
         "sensitive_context": sensitive_context,
         "retrieval": retrieval_context,
         "assembled_context": assembled_text,

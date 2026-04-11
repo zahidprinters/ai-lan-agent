@@ -131,11 +131,15 @@ Android screenshot captures are also constrained to paths under `temp/` to keep 
 - **`AI_LAN_PERCEPTION_ADAPTIVE`**: Enable adaptive backoff when screen summary is unchanged (`0`/`1`).
 - **`AI_LAN_PERCEPTION_MIN_OCR_CONFIDENCE`**: Minimum OCR token confidence (0-100) used by the perception OCR facade before tokens are promoted into runtime summary.
 - **`AI_LAN_PERCEPTION_MAX_SAMPLES_PER_TICK`**: Bounded number of screen samples captured per perception tick (1-5) before selecting the best-confidence summary.
+- **`AI_LAN_PERCEPTION_OCR_BACKEND`**: OCR backend selector (`auto`, `tesseract`, or `easyocr`) for perception sampling.
+- **`AI_LAN_PERCEPTION_EASYOCR_FALLBACK`**: Allow fallback to EasyOCR when the preferred OCR path is unavailable (`0`/`1`).
+- **`AI_LAN_PERCEPTION_PREPROCESS_ENABLED`**: Enable optional OpenCV preprocessing before OCR extraction (`0`/`1`).
 - **`AI_LAN_RUNTIME_CONTEXT_MAX_CHARS`**: Character budget used to cap each runtime-context section.
 
 When enabled, the latest compact OCR/screen summary is stored in session state and injected into runtime context for the planner.
 Adaptive perception reduces idle CPU load by increasing sample interval when the screen summary stays unchanged.
 Perception context now keeps source/confidence metadata in runtime context assembly without directly invoking perception tools from context-builder code paths.
+Perception context also records OCR backend metadata in runtime context assembly (`perception_ocr_backend`) so planner/debug surfaces can see which extractor produced the current summary.
 
 Active in the current 4.5A foundation slice:
 

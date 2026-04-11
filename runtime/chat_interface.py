@@ -449,6 +449,15 @@ class ChatSession:
     perception_max_samples_per_tick: int = field(
         default_factory=lambda: _env_int("AI_LAN_PERCEPTION_MAX_SAMPLES_PER_TICK", 1)
     )
+    perception_ocr_backend: str = field(
+        default_factory=lambda: os.getenv("AI_LAN_PERCEPTION_OCR_BACKEND", "auto").strip().lower()
+    )
+    perception_easyocr_fallback: bool = field(
+        default_factory=lambda: _env_bool("AI_LAN_PERCEPTION_EASYOCR_FALLBACK", True)
+    )
+    perception_preprocess_enabled: bool = field(
+        default_factory=lambda: _env_bool("AI_LAN_PERCEPTION_PREPROCESS_ENABLED", True)
+    )
     runtime_context_max_chars: int = field(
         default_factory=lambda: _env_int("AI_LAN_RUNTIME_CONTEXT_MAX_CHARS", 4000, minimum=256)
     )
@@ -465,6 +474,9 @@ class ChatSession:
                 adaptive=self.perception_adaptive,
                 min_ocr_confidence=self.perception_min_ocr_confidence,
                 max_samples_per_tick=self.perception_max_samples_per_tick,
+                ocr_backend=self.perception_ocr_backend,
+                easyocr_fallback=self.perception_easyocr_fallback,
+                preprocess_for_ocr=self.perception_preprocess_enabled,
                 on_snapshot=self._handle_perception_snapshot,
             )
         except TypeError:
@@ -523,6 +535,9 @@ class ChatSession:
                 perception_source=(self.perception_snapshot.source if self.perception_snapshot else None),
                 perception_confidence=(
                     self.perception_snapshot.average_confidence if self.perception_snapshot else None
+                ),
+                perception_ocr_backend=(
+                    self.perception_snapshot.ocr_backend if self.perception_snapshot else None
                 ),
                 max_context_chars=self.runtime_context_max_chars,
                 merged_corpus_path=self.merged_corpus_path,
@@ -774,6 +789,9 @@ class ChatSession:
         perception_adaptive_obj = payload_obj.get("perception_adaptive")
         perception_min_ocr_confidence_obj = payload_obj.get("perception_min_ocr_confidence")
         perception_max_samples_per_tick_obj = payload_obj.get("perception_max_samples_per_tick")
+        perception_ocr_backend_obj = payload_obj.get("perception_ocr_backend")
+        perception_easyocr_fallback_obj = payload_obj.get("perception_easyocr_fallback")
+        perception_preprocess_enabled_obj = payload_obj.get("perception_preprocess_enabled")
         runtime_context_max_chars_obj = payload_obj.get("runtime_context_max_chars")
         perception_snapshot_obj = payload_obj.get("perception_snapshot")
 
@@ -805,12 +823,21 @@ class ChatSession:
             self.perception_min_ocr_confidence = float(perception_min_ocr_confidence_obj)
         if isinstance(perception_max_samples_per_tick_obj, int):
             self.perception_max_samples_per_tick = max(1, perception_max_samples_per_tick_obj)
+        if isinstance(perception_ocr_backend_obj, str) and perception_ocr_backend_obj.strip():
+            self.perception_ocr_backend = perception_ocr_backend_obj.strip().lower()
+        if isinstance(perception_easyocr_fallback_obj, bool):
+            self.perception_easyocr_fallback = perception_easyocr_fallback_obj
+        if isinstance(perception_preprocess_enabled_obj, bool):
+            self.perception_preprocess_enabled = perception_preprocess_enabled_obj
         if isinstance(runtime_context_max_chars_obj, int):
             self.runtime_context_max_chars = runtime_context_max_chars_obj
         if isinstance(perception_snapshot_obj, dict):
             timestamp = str(perception_snapshot_obj.get("timestamp", "")).strip()
             summary = str(perception_snapshot_obj.get("summary", "")).strip()
             source = str(perception_snapshot_obj.get("source", "screen_ocr")).strip() or "screen_ocr"
+            ocr_backend = (
+                str(perception_snapshot_obj.get("ocr_backend", "tesseract")).strip() or "tesseract"
+            )
             average_confidence_obj = perception_snapshot_obj.get("average_confidence")
             sample_count_obj = perception_snapshot_obj.get("sample_count")
             average_confidence = (
@@ -828,6 +855,7 @@ class ChatSession:
                     source=source,
                     average_confidence=average_confidence,
                     sample_count=sample_count,
+                    ocr_backend=ocr_backend,
                 )
         self._reset_short_term_buffer()
         return target
@@ -864,6 +892,9 @@ class ChatSession:
             "perception_adaptive": self.perception_adaptive,
             "perception_min_ocr_confidence": self.perception_min_ocr_confidence,
             "perception_max_samples_per_tick": self.perception_max_samples_per_tick,
+            "perception_ocr_backend": self.perception_ocr_backend,
+            "perception_easyocr_fallback": self.perception_easyocr_fallback,
+            "perception_preprocess_enabled": self.perception_preprocess_enabled,
             "runtime_context_max_chars": self.runtime_context_max_chars,
             "perception_snapshot": (
                 self.perception_snapshot.to_dict() if self.perception_snapshot is not None else None

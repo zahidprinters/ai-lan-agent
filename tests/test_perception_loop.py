@@ -86,19 +86,32 @@ def test_perception_adaptive_interval_resets_on_content_change(monkeypatch: pyte
 @pytest.mark.unit
 def test_perception_collect_once_uses_bounded_sample_count(monkeypatch: pytest.MonkeyPatch) -> None:
     seen: list[int] = []
+    seen_backend: list[str] = []
+    seen_preprocess: list[bool] = []
 
     def fake_capture(**kwargs: object) -> dict[str, object]:
         seen.append(int(kwargs.get("max_samples", 0)))
+        seen_backend.append(str(kwargs.get("ocr_backend", "")))
+        seen_preprocess.append(bool(kwargs.get("preprocess_for_ocr", False)))
         return {
             "text": "status panel visible",
             "filtered_text": "status panel visible",
             "sample_count": int(kwargs.get("max_samples", 1)),
+            "ocr_backend": str(kwargs.get("ocr_backend", "tesseract")),
         }
 
     monkeypatch.setattr("runtime.perception_loop.capture_vision_sample", fake_capture)
 
-    loop = PerceptionLoop(interval_sec=1, max_samples_per_tick=3)
+    loop = PerceptionLoop(
+        interval_sec=1,
+        max_samples_per_tick=3,
+        ocr_backend="easyocr",
+        preprocess_for_ocr=True,
+    )
     snapshot = loop.collect_once()
 
     assert seen == [3]
+    assert seen_backend == ["easyocr"]
+    assert seen_preprocess == [True]
     assert snapshot.sample_count == 3
+    assert snapshot.ocr_backend == "easyocr"

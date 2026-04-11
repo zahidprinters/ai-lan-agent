@@ -182,6 +182,8 @@ AI Lan is now extending into a CPU-first embodied loop that can see the screen, 
 - **Vision Input:** Use `mss` for fast screenshots, `OpenCV` for frame processing, and `Tesseract` or `EasyOCR` for text extraction.
 - **Bounded Perception Sampling:** Use a bounded per-tick capture loop (1-5 samples) and select the best-confidence OCR result so perception loops remain CPU-safe.
 - **Confidence-Filtered OCR:** Keep low-confidence OCR tokens out of runtime context by applying a minimum token-confidence threshold before summary assembly.
+- **Backend Selection + Fallback:** Support `auto`/`tesseract`/`easyocr` OCR backend selection with optional EasyOCR fallback when the preferred OCR path is unavailable.
+- **Optional OCR Preprocessing:** Apply lightweight OpenCV grayscale/denoise/threshold preprocessing before OCR when enabled.
 - **Optional Visual Grounding:** Add `Ultralytics` only if object detection is truly needed for a workflow.
 - **Speech Input:** Use `Vosk` for the lightest offline speech-to-text path, then `whisper.cpp` if you need better accuracy and can afford extra CPU.
 - **Speech Output:** Use `pyttsx3` for a minimal offline voice, then `Coqui TTS` for higher-quality speech generation.
@@ -195,6 +197,7 @@ AI Lan is now extending into a CPU-first embodied loop that can see the screen, 
 - **Skill App Reference:** Study `OpenVoiceOS` for a maintained skills/plugin architecture around voice commands.
 - **Realtime Loop:** screen/audio -> perception -> LLM -> tool -> observation -> speech.
 - **Runtime Context Wiring:** Inject perception summary/source/confidence metadata into assembled runtime context from session snapshot state only; do not bypass policy routes with direct runtime action dispatch.
+- **Perception Provenance:** Include `perception_ocr_backend` metadata in runtime context payloads so planner/debug paths can attribute screen summaries to the OCR extractor used.
 - **Future Package Split:** extract the embodied layer into `perception/vision/` and `perception/audio/` while keeping the existing `tools/perception/` facade during migration.
 
 ## 6.6. Smart Persistent Engine (InferenceManager)

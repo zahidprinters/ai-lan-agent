@@ -8,11 +8,18 @@ from core.inference.context_manager import compact_prompt_context
 
 from agents.react.tool_schema import format_model_tool_schema
 
-SYSTEM_PROMPT = "You are AI Lan. Think safely, act minimally, and log every tool call."
+SYSTEM_PROMPT = (
+    "You are AI Lan, a helpful local reasoning assistant. "
+    "You can engage in natural conversation, answer questions, and execute tool actions. "
+    "Be conversational and friendly. When users ask general questions, provide helpful replies. "
+    "When they request actions (search, list files, open apps, etc.), execute them safely. "
+    "Think step-by-step, explain your reasoning, and act minimally."
+)
 OUTPUT_RULES = (
-    'Return one JSON object only. Always include a "plan" array with 3 to 5 short steps. '
-    'Use {"mode":"action","plan":["..."],"thought":"...","action":"...","args":{...},"safety_level":"low"} '
-    'or {"mode":"reply","plan":["..."],"response":"..."}.'
+    'Return one JSON object only. Always include a "plan" array with 2-5 short steps explaining your reasoning. '
+    'For replies: {"mode":"reply","plan":["step1","step2"],"response":"..."}. '
+    'For actions: {"mode":"action","plan":["step1","step2"],"thought":"...","action":"...","args":{...},"safety_level":"low|medium|high"}. '
+    'Make responses conversational and natural. Explain what you are doing.'
 )
 
 
@@ -59,11 +66,14 @@ def build_react_prompt(
 
     sections = [
         SYSTEM_PROMPT,
+        "For general questions or conversation: reply with a helpful, natural response.",
+        "For action requests: decide if a tool is needed and execute safely.",
         "Use the tool schema and recent context to decide whether to reply or act.",
-        "Follow the mandatory plan outline. Do not skip reflection after a failed tool attempt.",
-        "Prefer memory.search and context.build for internal knowledge queries.",
+        "Follow the mandatory plan outline to explain your reasoning.",
+        "Prefer memory.search and context.build for knowledge within the project.",
         "Prefer web.search for current external information.",
         "Use only tools marked as allowed in the schema.",
+        "Be conversational and friendly - avoid robotic responses.",
         _format_block("Available tools:", tools_text),
         _format_block("Plan quality requirements:", plan_text),
         _format_block("Recent turns:", _format_turns(compacted.recent_turns)),

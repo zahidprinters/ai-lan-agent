@@ -8,13 +8,30 @@
 
 - Current execution baseline: i5-8350U, 16 GB RAM, integrated graphics, CPU-first.
 - Active operational lanes: run `X0` to `X4` now, defer `X5`/`X6` heavy workloads to stronger hardware.
-- Reference: `docs/PHASE_X_MACHINE_PLAN.md`.
+- Reference: `docs/plans/PHASE_X_MACHINE_PLAN.md`.
 
 ### Phase X Audit Snapshot (2026-04-11)
 
 - Automated audit command: `python scripts/phase_x_audit.py --strict`.
 - Latest gate outcome: `X0=pass`, `X1=pass`, `X2=pass`, `X3=manual`, `X4=in_progress`, `X5=deferred`, `X6=deferred`.
 - Latest report: `temp/benchmarks/phase_x_audit_report.json`.
+
+### Ecosystem Audit Snapshot (2026-04-13)
+
+Current strategic position: AI Lan is beyond a PC-only assistant baseline and is now in an ecosystem-core transition stage.
+
+|Area|Status|Current Truth|What Remains|
+|:---|:-----|:------------|:-----------|
+|Safety kernel and policy governance|✅|Schema validation, policy gating, confirmation, and replay are active.|Expand long-horizon failure benchmarking for orchestrated agent tasks.|
+|PC and Android action plane|✅|Adapters are policy-gated with deterministic timeout/allowlist behavior.|Increase post-action verification depth for additional side-effect tools.|
+|Internet intelligence|🛠️|Ingestion, trust scoring, and context merge are implemented.|Add scheduler profiles, freshness weighting, and source drift alarms.|
+|Memory and personalization|🛠️|SQLite + optional Chroma path and retrieval interfaces are available.|Improve retrieval precision, retention policy automation, and user profile segmentation.|
+|Voice/perception interface|🛠️|Voice chat and bounded perception loop are integrated.|Add ecosystem-grade voice satellites and stronger wake-word/device lifecycle support.|
+|Client surfaces|✅|CLI, Web, and API are aligned around shared runtime/session logic.|Add mobile companion workflows and device federation model.|
+|Home/IoT plane|⬜|Planned in architecture and roadmap only.|Implement Home Assistant/ESPHome adapters with strict policy profiles and simulator tests.|
+|Guarded self-evolution|⬜|Defined as guarded concept only.|Implement proposal-only meta-agent pipeline with mandatory gate enforcement.|
+
+Legend: ✅ completed, 🛠️ in progress, ⬜ not started.
 
 ## Architecture Snapshot
 
@@ -75,6 +92,7 @@ AI Lan uses a modular layout with direct package folders (not a single `ai_lan.*
 - Reduced default test overhead by avoiding global trace/profile activation.
 - Aligned dependency grouping: base runtime vs dev/optional experiment tracking.
 - Verified deployment runtime sync in the active `.venv`, including `onnxruntime==1.20.1` for ONNX CPU inference.
+- Archive-first cleanup policy is now the expected workflow for old, unused, duplicate, or extra project material: move to `archive/` and log in `archive/ARCHIVE_LOG.md` before any permanent deletion.
 
 ## Known Intentional Stubs
 
@@ -91,15 +109,25 @@ These are retained by design and are not duplicate/legacy remnants.
 - Active runtime surfaces (current source of truth): `api/`, `router/`, `tools/web/search.py`, `tools/memory_store.py`, `tools/web_ingest.py`, `safety/`, and the Phase 3 training stack under `training/` and `tokenizer/`.
 - Legacy snapshot has been retired from the active tree; historical migration context now lives in the repository history and docs.
 
+## Archive Policy
+
+- `archive/` is the reversible holding area for unused, duplicate, uncertain, or retired material.
+- Use `archive/code/`, `archive/docs/`, `archive/assets/`, `archive/tools/`, and `archive/tmp_snapshots/`.
+- Any cleanup of stale temp downloads, debug outputs, old specs, compatibility layers, or non-attached extras should land in `archive/` first.
+- Every archive move should be recorded in `archive/ARCHIVE_LOG.md`.
+
 ## Next Priorities
 
-1. **Phase 4.3:** completed (2026-04-11). Benchmark harness exit gate now includes curated CI thresholds, checked-in trace regression coverage, category coverage minimums, per-category success thresholds, and distinct action diversity thresholds.
-2. **Phase 4.5A (Reasoning-first):** completed (2026-04-11). Exit-gated with model-validated planning, stream-trigger orchestration, runtime guard + execution-contract enforcement, pressure-aware routing fallback, upgraded context compaction quality, and strict benchmark assertions for runtime guard/routing/execution-contract/compaction behavior.
-3. **Phase 4.5B (Embodied runtime):** completed (2026-04-11). Runtime perception now includes bounded capture depth, confidence-filtered OCR summaries, OCR backend selection/fallback controls (`auto`/`tesseract`/`easyocr`), optional OpenCV preprocessing, and session/context metadata propagation (`source`, `confidence`, `ocr_backend`) without bypassing router/policy ownership.
-4. **Phase 5.1:** active (kickoff). Persistent memory backend integration is in place with initial retention/user-control boundaries (`memory_retention_days`, `memory_max_entries`) and CLI prune flow (`scripts/memory_store.py prune`); continue with broader retrieval-quality and policy-boundary hardening.
-5. **Phase 5.2+:** ship nightly offline learning with canary promotion gates, benchmark-regression blocking, model registry rollback, and orchestration hardening when workload scale requires it.
+Canonical implementation guide: `docs/plans/ULTIMATE_JARVIS_MASTER_PLAN.md`
+Canonical ecosystem audit guide: `docs/plans/ECOSYSTEM_PHASE_REAUDIT_2026-04-13.md`
 
-Direction lock: 4.5A and 4.5B are complete; keep reasoning/safety regression gates preserved while moving into Phase 5 memory and offline-learning execution.
+1. **Phase 3.0 Knowledge Mesh (Immediate):** complete scheduler-driven ingestion, freshness/trust weighting, and source drift diagnostics.
+2. **Phase 3.1 Memory Persona Layer (Immediate):** improve long-term retrieval precision and deterministic retention for personalized behavior.
+3. **Phase 4.0 Ecosystem Client Surfaces (Immediate):** expand from CLI/Web/API into companion/mobile and satellite-capable control surfaces.
+4. **Phase 4.1 Home/IoT Orchestration (Next):** integrate Home Assistant controls through policy-gated tool adapters and explicit confirmation for high-risk home actions.
+5. **Phase 5.0 Guarded Self-Evolution (Last):** permit autonomous logic updates only after mandatory CI, safety replay, and quality benchmarks pass.
+
+Direction lock: preserve existing reasoning/safety regression gates while executing **3.0 -> 3.1 -> 4.0** before IoT automation and any self-modifying behavior.
 
 ## Strategic Reliability Pillars
 
@@ -112,3 +140,4 @@ Direction lock: 4.5A and 4.5B are complete; keep reasoning/safety regression gat
 Implementation ticket pack:
 
 - `docs/superpowers/todos/2026-04-10-phase-4-4-reliability-tickets.md`
+

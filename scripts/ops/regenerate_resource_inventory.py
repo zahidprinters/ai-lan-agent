@@ -1,0 +1,519 @@
+from __future__ import annotations
+
+import argparse
+import os
+import subprocess
+import sys
+from dataclasses import dataclass
+from datetime import date
+from importlib import metadata
+from pathlib import Path
+from typing import Iterable
+
+from _bootstrap import ensure_repo_root
+
+ensure_repo_root()
+
+
+@dataclass(frozen=True)
+class DirectorySummary:
+    path: Path
+    file_count: int
+    size_mb: float
+
+
+def _format_path(path: Path) -> str:
+    return str(path)
+
+
+def _directory_summary(path: Path) -> DirectorySummary:
+    files = [item for item in path.rglob("*") if item.is_file()] if path.exists() else []
+    size_mb = round(sum(item.stat().st_size for item in files) / (1024 * 1024), 2)
+    return DirectorySummary(path=path, file_count=len(files), size_mb=size_mb)
+
+
+def _list_names(path: Path) -> list[str]:
+    if not path.exists():
+        return []
+    return sorted(item.name for item in path.iterdir())
+
+
+def _try_command(command: list[str]) -> str | None:
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, check=True)
+    except Exception:
+        return None
+    stdout = result.stdout.strip()
+    return stdout or None
+
+
+def _find_existing(paths: Iterable[Path]) -> Path | None:
+    for path in paths:
+        if path.exists():
+            return path
+    return None
+
+
+def _package_snapshot_lines() -> list[str]:
+    packages: list[tuple[str, str]] = []
+    for distribution in metadata.distributions():
+        name = distribution.metadata.get("Name")
+        if not name:
+            continue
+        packages.append((name, distribution.version))
+    packages.sort(key=lambda item: item[0].lower())
+    return [f"{name}=={version}" for name, version in packages]
+
+
+def _current_date_text() -> str:
+    return date.today().isoformat()
+
+
+def build_package_snapshot_text(
+    python_executable: Path,
+    python_version: str,
+    generated_on: str | None = None,
+) -> str:
+    generated_on = generated_on or _current_date_text()
+    lines = [
+        "AI Lan local Python package snapshot",
+        f"Machine: {python_executable.parents[1]}",
+        f"Date: {generated_on}",
+        f"Python: {python_version}",
+        f"Executable: {python_executable.as_posix()}",
+        "",
+    ]
+    lines.extend(_package_snapshot_lines())
+    return "\n".join(lines) + "\n"
+
+
+def build_inventory_markdown(
+    root: Path,
+    python_executable: Path,
+    python_version: str,
+    generated_on: str | None = None,
+) -> str:
+    generated_on = generated_on or _current_date_text()
+    temp_dir = root / "temp"
+    models_dir = root / "models"
+    data_dir = root / "data"
+    runs_dir = root / "runs"
+    docs_dir = root / "docs"
+
+    phase4_summary = _directory_summary(temp_dir / "downloads" / "phase4")
+    phase45_summary = _directory_summary(temp_dir / "downloads" / "phase45")
+    phase5_summary = _directory_summary(temp_dir / "downloads" / "phase5")
+    temp_model_cache_summary = _directory_summary(temp_dir / "downloads" / "models")
+    downloads_summary = _directory_summary(models_dir / "downloads")
+    vosk_summary = _directory_summary(models_dir / "vosk-model-small-en-us-0.15")
+    venv_summary = _directory_summary(root / ".venv")
+
+    local_app_data = Path(os.environ.get("LOCALAPPDATA", ""))
+    playwright_cache_root = local_app_data / "ms-playwright"
+    playwright_cache_dirs = _list_names(playwright_cache_root)
+    playwright_version = _try_command([str(python_executable), "-m", "playwright", "--version"])
+
+    tesseract_path = _find_existing(
+        [
+            Path(r"C:\Program Files\Tesseract-OCR\tesseract.exe"),
+            Path(r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe"),
+        ]
+    )
+    adb_path = _find_existing(
+        [
+            local_app_data
+            / "Microsoft"
+            / "WinGet"
+            / "Packages"
+            / "Google.PlatformTools_Microsoft.Winget.Source_8wekyb3d8bbwe"
+            / "platform-tools"
+            / "adb.exe",
+        ]
+    )
+    scrcpy_path = _find_existing(
+        [
+            local_app_data
+            / "Microsoft"
+            / "WinGet"
+            / "Packages"
+            / "Genymobile.scrcpy_Microsoft.Winget.Source_8wekyb3d8bbwe"
+            / "scrcpy-win64-v3.3.4"
+            / "scrcpy.exe",
+        ]
+    )
+
+    vosk_archive = _find_existing(
+        [
+            models_dir / "downloads" / "vosk-model-small-en-us-0.15.zip",
+            temp_dir / "downloads" / "models" / "vosk-model-small-en-us-0.15.zip",
+        ]
+    )
+    tinyllama_path = _find_existing(
+        [
+            models_dir / "downloads" / "tinyllama-1.1b-chat-v1.0.Q2_K.gguf",
+            temp_dir / "downloads" / "models" / "tinyllama-1.1b-chat-v1.0.Q2_K.gguf",
+        ]
+    )
+    tinystories_path = data_dir / "tinystories.txt"
+
+    temp_items = _list_names(temp_dir)
+    model_items = _list_names(models_dir)
+
+    inventory = f'''# AI Lan Resource Inventory
+
+Last updated: {generated_on}
+Generated by: `python scripts/regenerate_resource_inventory.py`
+
+## Purpose
+
+This document records the machine-local resources currently available to AI Lan, why they exist, where they live on this Windows machine, how they were created or downloaded, and which roadmap phases they support.
+
+Use this as the source of truth for:
+
+- the project virtual environment,
+- temporary working directories and cached downloads,
+- downloaded model and dataset assets,
+- external programs installed outside the repository,
+- approved upstream sources for future phase expansion.
+
+## Acceptance Rules For Future Resources
+
+AI Lan should only adopt new external resources under these rules:
+
+1. Prefer official repositories and official documentation first.
+2. Choose one primary project per capability before adding alternatives.
+3. Keep every dependency behind local facades in `core/`, `agents/`, `tools/`, `memory/`, `learning/`, `router/`, or `safety/`.
+4. Add tests before wiring a new dependency into live runtime paths.
+5. Keep the stack Windows-first and CPU-friendly.
+6. Review license, maintenance status, and install size before adoption.
+7. Use `docs/OPEN_SOURCE_REFERENCE.md` as the curated source list for coming phases.
+
+## Machine-Local Root Paths
+
+Repository root on this machine:
+
+- `{_format_path(root)}`
+
+Primary local resource roots:
+
+- Project virtual environment: `{_format_path(root / '.venv')}`
+- Temporary working area: `{_format_path(temp_dir)}`
+- Models and model downloads: `{_format_path(models_dir)}`
+- Training and sample data: `{_format_path(data_dir)}`
+- Run artifacts: `{_format_path(runs_dir)}`
+
+## Project Virtual Environment
+
+Current environment summary:
+
+- Type: `VirtualEnvironment`
+- Python version: `{python_version}`
+- Python executable: `{python_executable.as_posix()}`
+- Approximate footprint: about `{venv_summary.size_mb} MB`
+- Approximate file count: `{venv_summary.file_count}`
+
+How it is created:
+
+- Manual Windows command: `python -m venv .venv`
+- Project setup script: `scripts/setup.ps1`
+
+How it is filled:
+
+- Base runtime packages come from `requirements.txt`
+- Development packages come from `dev-requirements.txt`
+- Optional extras are declared in `pyproject.toml`
+
+Primary package sources in this repository:
+
+- Base runtime: `requirements.txt`
+- Dev tooling: `dev-requirements.txt`
+- Optional extras groups: `pyproject.toml`
+
+### Core Package Groups Present In `.venv`
+
+Training and inference:
+
+- `torch==2.5.1`
+- `tokenizers==0.20.3`
+- `onnx==1.17.0`
+- `onnxruntime==1.20.1`
+- `onnxscript==0.1.0`
+- `numpy==1.26.4`
+- `scipy==1.13.1`
+
+Testing and development:
+
+- `pytest==9.0.2`
+- `pytest-cov==7.1.0`
+- `black==26.3.1`
+- `mypy==1.19.1`
+
+Phase 4 and memory/runtime packages currently installed:
+
+- `playwright==1.58.0`
+- `tavily-python==0.7.23`
+- `mss==10.1.0`
+- `pytesseract==0.3.13`
+- `Pillow==12.2.0`
+- `vosk==0.3.45`
+- `pyttsx3==2.90`
+- `PyAudio==0.2.14`
+- `chromadb==0.5.23`
+
+Experiment tracking packages are now optional and should only be installed explicitly with:
+
+```powershell
+d:/dextop/tempn/.venv/Scripts/python.exe -m pip install .[experiment]
+```
+
+How to inspect the full local package list:
+
+```powershell
+d:/dextop/tempn/.venv/Scripts/python.exe -m pip list
+```
+
+Machine snapshot file stored in the repository:
+
+- `docs/PYTHON_PACKAGE_SNAPSHOT.txt`
+
+## Temporary Working Area
+
+Root path:
+
+- `{_format_path(temp_dir)}`
+
+Current top-level items in `temp/`:
+
+{chr(10).join(f'- `{name}`' for name in temp_items)}
+
+What `temp/` is for:
+
+- ephemeral test data,
+- cached downloads,
+- OCR snapshots,
+- local audit logs,
+- scratch memory stores,
+- temporary benchmark outputs,
+- experiment staging that should not be committed.
+
+How `temp/` is created and used:
+
+- `tests/conftest.py` redirects `TMP`, `TEMP`, and `TMPDIR` into `temp/`
+- `debug_utils.ensure_project_temp()` ensures the project temp directory exists
+- scripts and tests are expected to write temporary artifacts under `temp/`
+
+### Download Caches Inside `temp/downloads`
+
+#### Phase 4 cache
+
+- Path: `{_format_path(phase4_summary.path)}`
+- Approximate file count: `{phase4_summary.file_count}`
+- Approximate size: `{phase4_summary.size_mb} MB`
+
+How it was downloaded:
+
+```powershell
+d:/dextop/tempn/.venv/Scripts/python.exe -m pip download -d temp/downloads/phase4 playwright==1.58.0 tavily-python==0.7.23 mss==10.1.0 pytesseract==0.3.13 Pillow==12.2.0 vosk==0.3.45 pyttsx3==2.90 PyAudio==0.2.14 chromadb==0.5.23
+```
+
+#### Phase 4.5 cache
+
+- Path: `{_format_path(phase45_summary.path)}`
+- Approximate file count: `{phase45_summary.file_count}`
+- Approximate size: `{phase45_summary.size_mb} MB`
+
+How it was downloaded:
+
+```powershell
+d:/dextop/tempn/.venv/Scripts/python.exe -m pip download -d temp/downloads/phase45 opencv-python easyocr ultralytics llama-cpp-python
+```
+
+#### Phase 5 cache
+
+- Path: `{_format_path(phase5_summary.path)}`
+- Approximate file count: `{phase5_summary.file_count}`
+- Approximate size: `{phase5_summary.size_mb} MB`
+
+How core Phase 5 packages were downloaded:
+
+```powershell
+d:/dextop/tempn/.venv/Scripts/python.exe -m pip download --only-binary=:all: -d temp/downloads/phase5 datasets peft trl qdrant-client ray
+```
+
+How top-level app wheels were downloaded without full dependency expansion:
+
+```powershell
+d:/dextop/tempn/.venv/Scripts/python.exe -m pip download --no-deps -d temp/downloads/phase5 apache-airflow
+d:/dextop/tempn/.venv/Scripts/python.exe -m pip download --no-deps -d temp/downloads/phase5 homeassistant
+d:/dextop/tempn/.venv/Scripts/python.exe -m pip download --no-deps -d temp/downloads/phase5 esphome
+```
+
+## Models And Downloaded Assets
+
+Model root:
+
+- `{_format_path(models_dir)}`
+
+Current top-level model items:
+
+{chr(10).join(f'- `{name}`' for name in model_items)}
+
+Downloaded model assets summary:
+
+- Model download cache: `{_format_path(downloads_summary.path)}` with `{downloads_summary.file_count}` files, about `{downloads_summary.size_mb} MB`
+- Temp model/data cache: `{_format_path(temp_model_cache_summary.path)}` with `{temp_model_cache_summary.file_count}` files, about `{temp_model_cache_summary.size_mb} MB`
+- Extracted Vosk model: `{_format_path(vosk_summary.path)}` with `{vosk_summary.file_count}` files, about `{vosk_summary.size_mb} MB`
+
+### Vosk offline STT model
+
+- Archive path: `{_format_path(vosk_archive) if vosk_archive else _format_path(models_dir / 'downloads' / 'vosk-model-small-en-us-0.15.zip')}`
+- Extracted path: `{_format_path(models_dir / 'vosk-model-small-en-us-0.15')}`
+- Archive size: `{vosk_archive.stat().st_size if vosk_archive else 0}` bytes
+- Download source URL: `https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip`
+
+### TinyLlama GGUF model
+
+- Path: `{_format_path(tinyllama_path) if tinyllama_path else _format_path(models_dir / 'downloads' / 'tinyllama-1.1b-chat-v1.0.Q2_K.gguf')}`
+- Size: `{tinyllama_path.stat().st_size if tinyllama_path else 0}` bytes
+- Download source URL: `https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q2_K.gguf`
+
+## Training Data And Data Sources
+
+Local data directory:
+
+- `{_format_path(data_dir)}`
+
+### TinyStories dataset
+
+- Local path: `{_format_path(tinystories_path)}`
+- Download source URL: `https://huggingface.co/datasets/roneneldan/TinyStories/resolve/main/TinyStories-train.txt`
+- Acquisition command:
+
+```powershell
+d:/dextop/tempn/.venv/Scripts/python.exe scripts/fetch_tinystories.py
+```
+
+## External Programs Installed Outside The Repository
+
+### Playwright browser runtime
+
+- Python package version: `{playwright_version or 'unknown'}`
+- Browser cache root: `{_format_path(playwright_cache_root)}`
+{chr(10).join(f'- Cache item: `{name}`' for name in playwright_cache_dirs)}
+
+Install command:
+
+```powershell
+d:/dextop/tempn/.venv/Scripts/python.exe -m playwright install chromium
+```
+
+### Tesseract OCR
+
+- Executable path: `{_format_path(tesseract_path) if tesseract_path else 'not found'}`
+- Install command:
+
+```powershell
+winget install --id UB-Mannheim.TesseractOCR -e --accept-package-agreements --accept-source-agreements
+```
+
+### Android Debug Bridge (ADB)
+
+- Executable path: `{_format_path(adb_path) if adb_path else 'not found'}`
+- Install command:
+
+```powershell
+winget install --id Google.PlatformTools -e --accept-package-agreements --accept-source-agreements
+```
+
+### scrcpy
+
+- Executable path: `{_format_path(scrcpy_path) if scrcpy_path else 'not found'}`
+- Install command:
+
+```powershell
+winget install --id Genymobile.scrcpy -e --accept-package-agreements --accept-source-agreements
+```
+
+## Phase-To-Resource Mapping
+
+### Phase 3.x
+
+- local training data under `data/`
+- local checkpoints and tokenizer artifacts under `models/`
+- run summaries and indexes under `runs/`
+- the base `.venv` training and inference stack
+
+### Phase 4.x
+
+- `temp/downloads/phase4`
+- Playwright runtime under `ms-playwright`
+- Tesseract OCR
+- ADB
+- scrcpy
+- Chroma package support in `.venv`
+
+### Phase 4.5
+
+- `temp/downloads/phase45`
+- `models/downloads/tinyllama-1.1b-chat-v1.0.Q2_K.gguf`
+- `models/vosk-model-small-en-us-0.15`
+- `mss`, `pytesseract`, `vosk`, `pyttsx3`, and `PyAudio` in `.venv`
+
+### Phase 5.x
+
+- `temp/downloads/phase5`
+- cached wheels for `datasets`, `peft`, `trl`, `qdrant-client`, `ray`
+- top-level wheels for `apache-airflow`, `homeassistant`, and `esphome`
+
+## Where To Get Future Resources
+
+Use `docs/OPEN_SOURCE_REFERENCE.md` as the canonical shortlist for official URLs and approved project families.
+
+## One-Command Audit Workflow
+
+PowerShell wrapper:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/audit_resources.ps1
+```
+
+Direct Python command:
+
+```powershell
+d:/dextop/tempn/.venv/Scripts/python.exe scripts/regenerate_resource_inventory.py
+```
+
+## Limits And Cautions
+
+1. `.venv` should stay conflict-free for the default project stack.
+2. Experiment tracking remains opt-in because it can introduce dependency pressure that is unnecessary for normal local development.
+3. `temp/` is intentionally disposable except where a specific downloaded cache or audit file is needed.
+4. Some large Phase 5 applications were cached as top-level wheels only; install them later in isolated environments if full dependency resolution is required.
+5. Downloaded public models are bootstrap assets and should still be validated against final runtime quality, licensing, and hardware limits before production use.
+'''
+    return inventory
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Regenerate the local resource inventory docs.")
+    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    root = args.root.resolve()
+    python_executable = Path(sys.executable).resolve()
+    python_version = ".".join(str(part) for part in sys.version_info[:3])
+    docs_dir = root / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+
+    package_snapshot = build_package_snapshot_text(python_executable, python_version)
+    (docs_dir / "PYTHON_PACKAGE_SNAPSHOT.txt").write_text(package_snapshot, encoding="utf-8")
+
+    inventory_markdown = build_inventory_markdown(root, python_executable, python_version)
+    (docs_dir / "RESOURCE_INVENTORY.md").write_text(inventory_markdown, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()

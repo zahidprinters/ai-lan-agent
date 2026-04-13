@@ -43,6 +43,12 @@ $env:AI_LAN_BLOCK_SIZE="16"
 Regenerate the raw hardware snapshot JSON at any time:
 
 ```powershell
+powershell -ExecutionPolicy Bypass -File scripts/ops/hardware_profile.ps1
+```
+
+Compatibility wrapper (still supported):
+
+```powershell
 powershell -ExecutionPolicy Bypass -File scripts/hardware_profile.ps1
 ```
 
@@ -50,4 +56,5 @@ Default output path:
 
 - `temp/hardware/hardware_profile.json`
 
-For execution gating on this machine, follow `docs/PHASE_X_MACHINE_PLAN.md`.
+For execution gating on this machine, follow `docs/plans/PHASE_X_MACHINE_PLAN.md`.
+

@@ -18,6 +18,13 @@ ai-lan/
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   ├── SECURITY.md
 │   └── copilot-instructions.md
+├── archive/
+│   ├── code/
+│   ├── docs/
+│   ├── assets/
+│   ├── tools/
+│   ├── tmp_snapshots/
+│   └── ARCHIVE_LOG.md
 ├── core/
 │   ├── model/
 │   │   ├── transformer.py
@@ -33,8 +40,11 @@ ai-lan/
 │   │   ├── residency.py
 │   │   ├── sampler.py
 │   │   └── stopping.py
-│   └── quantization/
-│       └── dynamic_int8.py
+│   ├── quantization/
+│   │   └── dynamic_int8.py
+│   └── utils/
+│       ├── bootstrap.py
+│       └── debug.py
 ├── agents/
 │   ├── react/
 │   │   ├── agent.py
@@ -122,14 +132,32 @@ ai-lan/
 │   ├── settings.yaml
 │   ├── tools.yaml
 │   └── policies.yaml
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── USER_GUIDE.md
+│   ├── CONFIGURATION.md
+│   ├── API_REFERENCE.md
+│   ├── TESTING_GUIDELINES.md
+│   └── plans/
+│       ├── PHASE_X_MACHINE_PLAN.md
+│       ├── ULTIMATE_JARVIS_MASTER_PLAN.md
+│       └── FINAL_GOAL_IMPLEMENTATION_PLAN_2026-04-11.md
+├── requirements/
+│   ├── base.txt
+│   └── dev.txt
 ├── scripts/
 │   ├── train.py
 │   ├── evaluate.py
-│   └── benchmark.py
+│   ├── benchmark.py
+│   └── ops/
+│       ├── audit_resources.ps1
+│       ├── hardware_profile.ps1
+│       └── regenerate_resource_inventory.py
 ├── api/
 │   ├── server.py
 │   └── routes/
-├── main.py
+├── _bootstrap.py
+├── debug_utils.py
 └── README.md
 ```
 
@@ -181,12 +209,30 @@ Start and harden this path first:
 - memory/short_term/buffer.py
 - router/router.py
 - safety/policy_engine.py
-- main.py
+- scripts/launch.py
 
 ## Migration Note
 
 The new structure is scaffolded without deleting the current implementation modules. Existing production paths under actions/, tools/, training/, and scripts/ continue to work while migration proceeds incrementally.
 Use [OPEN_SOURCE_REFERENCE.md](OPEN_SOURCE_REFERENCE.md) as the upstream shortlist for any new `agents/`, `tools/`, `memory/`, or `learning/` integration, and keep the selected dependency behind the repository's own facades.
+Compatibility wrappers at repository root (`_bootstrap.py`, `debug_utils.py`) are intentionally retained so legacy imports continue to work while canonical utility implementations live in `core/utils/`.
+
+## Archive Policy
+
+`archive/` is the reversible holding area for anything old, unused, duplicate, extra, or no longer attached to the active project path.
+
+- `archive/code/`: retired modules, old experiments, deprecated compatibility code, unused scripts.
+- `archive/docs/`: superseded plans, duplicate writeups, old specs, obsolete guides.
+- `archive/assets/`: stale model/data downloads, debug exports, screenshots, binary leftovers, packaged extras.
+- `archive/tools/`: retired helper tools, old facades, unused maintenance utilities.
+- `archive/tmp_snapshots/`: snapshots from `temp/`, old debug captures, and reversible cleanup bundles.
+- `archive/ARCHIVE_LOG.md`: required ledger for every archive move and restore.
+
+Archive-first rule:
+
+- Do not permanently delete cleanup candidates first.
+- Move them into `archive/` and log the move.
+- Only consider hard deletion after the archive copy is stable and the project no longer depends on the item.
 
 ## Embodied AI Package Split
 

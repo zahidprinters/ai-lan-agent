@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Iterable, Literal, cast
 
@@ -20,6 +21,7 @@ class IngestionSource:
     source_type: SourceType
     location: str
     trust_score: float = 0.5
+    last_updated: str | None = None
 
 
 @dataclass(frozen=True)
@@ -30,6 +32,7 @@ class IngestedDocument:
     normalized_text: str
     trust_score: float
     quality_score: float
+    freshness_score: float
     final_score: float
     line_count: int
     char_count: int
@@ -48,6 +51,8 @@ class IngestionReport:
     filtered_low_score_count: int
     merged_line_count: int
     merged_char_count: int
+    profile_name: str
+    freshness_half_life_days: float
     documents: list[IngestedDocument]
 
     def to_dict(self) -> dict[str, object]:
@@ -58,6 +63,50 @@ class IngestionReport:
 
 def _clamp_score(value: float) -> float:
     return round(max(0.0, min(1.0, value)), 3)
+
+
+def _parse_timestamp(value: str | None) -> datetime | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        return None
+    try:
+        parsed = datetime.fromisoformat(normalized.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
+def _resolve_source_timestamp(source: IngestionSource) -> datetime | None:
+    from_config = _parse_timestamp(source.last_updated)
+    if from_config is not None:
+        return from_config
+    if source.source_type != "file":
+        return None
+    path = Path(source.location)
+    if not path.exists():
+        return None
+    return datetime.fromtimestamp(path.stat().st_mtime, tz=UTC)
+
+
+def _freshness_score(
+    source: IngestionSource,
+    *,
+    half_life_days: float,
+    as_of: datetime | None,
+) -> float:
+    timestamp = _resolve_source_timestamp(source)
+    if timestamp is None:
+        return 1.0
+
+    half_life = max(0.1, float(half_life_days))
+    reference = as_of.astimezone(UTC) if as_of is not None else datetime.now(tz=UTC)
+    age_days = max(0.0, (reference - timestamp).total_seconds() / 86400.0)
+    score = 0.5 ** (age_days / half_life)
+    return _clamp_score(score)
 
 
 @sentinel
@@ -79,6 +128,9 @@ def load_ingestion_sources(config_path: Path) -> list[IngestionSource]:
                 source_type=cast(SourceType, source_type_raw),
                 location=str(item["location"]),
                 trust_score=float(item.get("trust_score", 0.5)),
+                last_updated=(
+                    str(item["last_updated"]) if item.get("last_updated") is not None else None
+                ),
             )
         )
     return sources
@@ -153,11 +205,21 @@ def score_source_quality(text: str, trust_score: float) -> tuple[float, float]:
 
 
 @sentinel
-def build_ingested_document(source: IngestionSource) -> IngestedDocument:
+def build_ingested_document(
+    source: IngestionSource,
+    *,
+    freshness_half_life_days: float = 30.0,
+    as_of: datetime | None = None,
+) -> IngestedDocument:
     raw_text = fetch_source_text(source)
     normalized_text = normalize_ingested_text(raw_text)
     trust_score, quality_score = score_source_quality(normalized_text, source.trust_score)
-    final_score = _clamp_score((trust_score + quality_score) / 2.0)
+    freshness_score = _freshness_score(
+        source,
+        half_life_days=freshness_half_life_days,
+        as_of=as_of,
+    )
+    final_score = _clamp_score((trust_score * 0.4) + (quality_score * 0.4) + (freshness_score * 0.2))
     line_count = len(normalized_text.splitlines()) if normalized_text else 0
     char_count = len(normalized_text)
     content_hash = hashlib.sha256(normalized_text.encode("utf-8")).hexdigest()
@@ -168,6 +230,7 @@ def build_ingested_document(source: IngestionSource) -> IngestedDocument:
         normalized_text=normalized_text,
         trust_score=trust_score,
         quality_score=quality_score,
+        freshness_score=freshness_score,
         final_score=final_score,
         line_count=line_count,
         char_count=char_count,
@@ -212,12 +275,22 @@ def run_ingestion_pipeline(
     merged_output_path: Path,
     report_output_path: Path,
     min_final_score: float = 0.3,
+    freshness_half_life_days: float = 30.0,
+    profile_name: str = "custom",
+    as_of: datetime | None = None,
 ) -> IngestionReport:
     merged_output_path.parent.mkdir(parents=True, exist_ok=True)
     report_output_path.parent.mkdir(parents=True, exist_ok=True)
 
     bounded_min_final_score = _clamp_score(min_final_score)
-    documents = [build_ingested_document(source) for source in sources]
+    documents = [
+        build_ingested_document(
+            source,
+            freshness_half_life_days=freshness_half_life_days,
+            as_of=as_of,
+        )
+        for source in sources
+    ]
     score_filtered_documents = [
         document for document in documents if document.final_score >= bounded_min_final_score
     ]
@@ -235,6 +308,8 @@ def run_ingestion_pipeline(
         filtered_low_score_count=filtered_low_score_count,
         merged_line_count=len(merged_text.splitlines()),
         merged_char_count=len(merged_text),
+        profile_name=profile_name,
+        freshness_half_life_days=max(0.1, float(freshness_half_life_days)),
         documents=deduped_documents,
     )
     report_output_path.write_text(

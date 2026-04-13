@@ -16,7 +16,7 @@ As of 2026-04-06, the repository also includes a layered architecture scaffold f
 - **Hardware Mapping (i5 baseline):** AVX2-capable `llama-cpp-python` runtime with default `n_threads=4` for responsive CPU-only operation.
 - **Adapter Maturity:** PC/Android adapters are intentionally constrained and policy-gated while broader side-effect coverage continues under planned adapter slices.
 
-Machine-specific execution planning is documented in `docs/PHASE_X_MACHINE_PLAN.md`.
+Machine-specific execution planning is documented in `docs/plans/PHASE_X_MACHINE_PLAN.md`.
 
 ### Legacy/Research Scope
 
@@ -39,9 +39,12 @@ Machine-specific execution planning is documented in `docs/PHASE_X_MACHINE_PLAN.
 - `memory/`: short-term, long-term, episodic, and summary memory scaffolding.
 - `safety/`: policy, validation, sandbox, and confirmation facades.
 - `router/`: action routing and schema interfaces.
-- `scripts/`: evaluation, export, quantization, and inference entry points.
+- `scripts/`: evaluation, export, quantization, inference, and compatibility wrapper entry points.
+- `scripts/ops/`: canonical operational maintenance scripts (resource audit and hardware profiling).
 - `tests/`: unit and integration test suites.
 - `docs/`: user, architecture, configuration, testing, and API documentation.
+- `docs/plans/`: canonical planning documents for roadmap, machine lanes, and final-goal execution.
+- `requirements/`: canonical dependency pin sets (`base.txt`, `dev.txt`) used by root compatibility wrappers.
 - `models/gguf/`: local GGUF production models (for example Phi-4/Llama 8B quantized variants).
 
 ## Quick Start
@@ -87,12 +90,6 @@ python scripts/model_registry.py --settings config/settings.yaml --quality-dir r
 
 The registry activation step enforces the quality benchmark artifact for the target version and blocks promotion if the score is missing, below the configured minimum, or below the configured baseline model.
 
-### Run Layered Runtime Demo
-
-```powershell
-python main.py
-```
-
 ### Run CLI Chat Interface
 
 ```powershell
@@ -106,7 +103,12 @@ python scripts/launch.py --mode cli
 python scripts/launch.py --mode voice
 python scripts/launch.py --mode web
 python scripts/launch.py --mode api
+python scripts/launch.py --mode companion   # API server surfaced as companion (port 8766)
+python scripts/launch.py --mode satellite   # API server surfaced as satellite (port 8767)
+python scripts/launch.py --mode api --profile work  # attach a named session profile
 ```
+
+The legacy `main.py` demo entrypoint has been retired. Use `scripts/launch.py`, `scripts/chat_cli.py`, `scripts/chat_web.py`, or `main.ps1` for active workflows.
 
 The chat interface supports natural tool commands (for example `search ...`, `context ...`, `list docs`, `system status`) and confirmation/session commands (`/confirm`, `/reject`, `/history`, `/save`, `/load`, `/last`, `/help`).
 When neural planning is enabled, chat mode can also run a small bounded Thought -> Action -> Observation loop before replying, while still enforcing the same router, policy, and confirmation boundaries.
@@ -163,7 +165,7 @@ See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for the full variable referen
 
 ## Observability
 
-The `@sentinel` decorator in `debug_utils.py` supports:
+The `@sentinel` decorator in `core/utils/debug.py` supports:
 
 - entry/exit debug logs (`AI_LAN_DEBUG=1`)
 - variable tracing (`AI_LAN_TRACE=1`)
@@ -171,10 +173,12 @@ The `@sentinel` decorator in `debug_utils.py` supports:
 
 See [docs/DEBUGGING_GUIDE.md](docs/DEBUGGING_GUIDE.md).
 
+Compatibility note: legacy imports from `debug_utils.py` and `_bootstrap.py` remain supported as thin wrappers while canonical implementations live under `core/utils/`.
+
 ## Dependency Groups
 
-- Base runtime dependencies are in [requirements.txt](requirements.txt).
-- Development dependencies are in [dev-requirements.txt](dev-requirements.txt).
+- Base runtime dependencies are canonically maintained in [requirements/base.txt](requirements/base.txt) and installed via [requirements.txt](requirements.txt).
+- Development dependencies are canonically maintained in [requirements/dev.txt](requirements/dev.txt) and installed via [dev-requirements.txt](dev-requirements.txt).
 - Optional experiment extras are declared in [pyproject.toml](pyproject.toml) under `project.optional-dependencies.experiment` and should be installed only when needed.
 - Optional Phase 4 Python extras are declared in [pyproject.toml](pyproject.toml) under `project.optional-dependencies.phase4`.
 - ONNX inference/export runtime is pinned in base dependencies (`onnxruntime==1.20.1`).
@@ -191,6 +195,12 @@ powershell -ExecutionPolicy Bypass -File scripts/install_system_deps.ps1
 ### Resource Audit
 
 Regenerate the machine-local resource inventory and Python package snapshot with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/ops/audit_resources.ps1
+```
+
+Compatibility wrapper (still supported):
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/audit_resources.ps1
@@ -243,6 +253,16 @@ scrcpy --version
 - Temporary files and generated caches should stay inside `temp/`.
 - Model/run outputs belong in `models/` and `runs/`.
 - Do not commit transient cache folders such as `__pycache__/`.
+- Archive-first cleanup is mandatory for anything old, unused, duplicate, extra, or no longer attached to the active project path.
+- Move cleanup candidates into `archive/` instead of deleting them first.
+- Use these archive buckets:
+  - `archive/code/`
+  - `archive/docs/`
+  - `archive/assets/`
+  - `archive/tools/`
+  - `archive/tmp_snapshots/`
+- Record every move in `archive/ARCHIVE_LOG.md`, including original path, archive path, date, reason, and restore notes.
+- Keep active project code/features in the normal working tree; move stale temp downloads, debug leftovers, old snapshots, and retired compatibility material into `archive/` when they are no longer needed.
 
 ## Low-Bandwidth Prefetch
 
@@ -269,6 +289,7 @@ This keeps offline-friendly caches for Phase 4/4.5/5 package wheels and key mode
 ## Documentation Index
 
 - [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
+- [docs/plans/ULTIMATE_JARVIS_MASTER_PLAN.md](docs/plans/ULTIMATE_JARVIS_MASTER_PLAN.md)
 - [docs/RESOURCE_INVENTORY.md](docs/RESOURCE_INVENTORY.md)
 - [docs/SECURITY_POLICY.md](docs/SECURITY_POLICY.md)
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
@@ -290,7 +311,7 @@ If you want a skills-app reference for voice commands and reusable plugins, star
 
 ## Phase X Execution Lanes (Current Machine)
 
-- Run now on i5/16GB: `X0` through `X4` in `docs/PHASE_X_MACHINE_PLAN.md`.
+- Run now on i5/16GB: `X0` through `X4` in `docs/plans/PHASE_X_MACHINE_PLAN.md`.
 - Defer to stronger hardware: `X5` and `X6` (heavy training/inference sweeps, long-horizon benchmarks, extended concurrency).
 
 Audit command (machine-ready report):
@@ -298,3 +319,4 @@ Audit command (machine-ready report):
 ```powershell
 python scripts/phase_x_audit.py --strict
 ```
+

@@ -194,6 +194,7 @@ def add_memory_entry(
     kind: str,
     content: str,
     metadata: dict[str, object] | None = None,
+    profile: str | None = None,
     db_path: Path | None = None,
     memory_backend: str | None = None,
     chroma_path: Path | None = None,
@@ -207,7 +208,11 @@ def add_memory_entry(
     created_at = datetime.now(timezone.utc).isoformat()
     tokens = tokenize_text(content)
     summary = summarize_text(content)
-    metadata_payload = metadata or {}
+    metadata_payload = dict(metadata or {})
+    if profile is not None:
+        normalized_profile = profile.strip().lower()
+        if normalized_profile:
+            metadata_payload["profile"] = normalized_profile
 
     with _connect(db_path) as connection:
         cursor = connection.execute(
@@ -264,6 +269,7 @@ def store_conversation_summary(
     user_text: str,
     assistant_text: str,
     metadata: dict[str, object] | None = None,
+    profile: str | None = None,
     db_path: Path | None = None,
     memory_backend: str | None = None,
     chroma_path: Path | None = None,
@@ -274,6 +280,7 @@ def store_conversation_summary(
         kind="conversation",
         content=content,
         metadata=merged_metadata,
+        profile=profile,
         db_path=db_path,
         memory_backend=memory_backend,
         chroma_path=chroma_path,
@@ -297,6 +304,7 @@ def retrieve_relevant_memories(
     limit: int = 5,
     min_score: float = 0.05,
     kind: str | None = None,
+    profile: str | None = None,
     db_path: Path | None = None,
     memory_backend: str | None = None,
     chroma_path: Path | None = None,
@@ -362,6 +370,13 @@ def retrieve_relevant_memories(
                 )
             )
 
+    normalized_profile = (profile or "").strip().lower()
+    if normalized_profile:
+        hits = [
+            hit for hit in hits
+            if str(hit.metadata.get("profile", "")).strip().lower() == normalized_profile
+        ]
+
     hits.sort(key=lambda item: (item.score, item.created_at), reverse=True)
     return hits[:limit]
 
@@ -371,6 +386,7 @@ def get_recent_memories(
     *,
     limit: int = 10,
     kind: str | None = None,
+    profile: str | None = None,
     db_path: Path | None = None,
 ) -> list[MemoryEntry]:
     init_memory_store(db_path)
@@ -379,22 +395,27 @@ def get_recent_memories(
     if kind:
         sql += " WHERE kind = ?"
         params = (kind.strip().lower(),)
-    sql += " ORDER BY created_at DESC LIMIT ?"
-    params = (*params, limit)
+    sql += " ORDER BY created_at DESC"
 
+    normalized_profile = (profile or "").strip().lower()
     entries: list[MemoryEntry] = []
     with _connect(db_path) as connection:
         for row in connection.execute(sql, params):
+            meta = json.loads(row["metadata_json"])
+            if normalized_profile and str(meta.get("profile", "")).strip().lower() != normalized_profile:
+                continue
             entries.append(
                 MemoryEntry(
                     memory_id=int(row["id"]),
                     kind=str(row["kind"]),
                     content=str(row["content"]),
                     summary=str(row["summary"]),
-                    metadata=json.loads(row["metadata_json"]),
+                    metadata=meta,
                     created_at=str(row["created_at"]),
                 )
             )
+            if len(entries) >= limit:
+                break
     return entries
 
 

@@ -11,7 +11,6 @@ applyTo:
   - "runtime/**/*.py"
   - "api/**/*.py"
   - "scripts/**/*.py"
-  - "main.py"
   - "main.ps1"
 ---
 # Docs Sync Guidelines

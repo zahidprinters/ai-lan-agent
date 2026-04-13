@@ -1,7 +1,1 @@
--r requirements.txt
-# Runtime pins above include the current optional Phase 4 browser/search stack.
-# Experiment tracking is intentionally opt-in to keep the default .venv conflict-free.
-# Install it only when needed with: python -m pip install .[experiment]
-pytest
-black
-mypy
+-r requirements/dev.txt

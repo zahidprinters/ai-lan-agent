@@ -11,6 +11,7 @@ Thank you for considering contributing to this project! Your help is welcome and
 5. Submit a pull request with a clear description of your changes.
 6. If your change introduces a new agent, browser, memory, training, or learning dependency, consult [docs/OPEN_SOURCE_REFERENCE.md](docs/OPEN_SOURCE_REFERENCE.md) first and keep the integration behind a local facade.
 7. If your change touches embodied AI, use the CPU-first shortlist (`mss`, `OpenCV`, `Tesseract`, `Vosk`, `pyttsx3`, `llama.cpp`) before adding heavier alternatives.
+8. Follow the archive-first cleanup policy: move old, unused, duplicate, or extra project material into `archive/` and record it in `archive/ARCHIVE_LOG.md` before considering permanent deletion.
 
 ## Code Style
 
@@ -18,6 +19,7 @@ Thank you for considering contributing to this project! Your help is welcome and
 - Use descriptive variable and function names.
 - Add docstrings to all public modules, classes, and functions.
 - Use type hints where possible.
+- Keep active project code/features in the working tree; move retired or uncertain material into the appropriate `archive/` bucket instead of deleting it immediately.
 
 ## Reporting Issues
 

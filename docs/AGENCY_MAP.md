@@ -46,6 +46,10 @@ AI Lan combines semantic (Vector) and exact (Keyword) retrieval to inject the mo
 | `pc.type_text` | `type_text` | Desktop | Medium (Conf. Req) |
 | `pc.open_app` | `open_app` | System | Medium (Conf. Req) |
 | `android.tap` | `tap_screen` | Mobile | Medium (Conf. Req) |
+| `home.list_entities` | `list_entities` | Home | Low |
+| `home.call_service` | `call_service` | Home | Medium (Conf. Req) |
+| `iot.list_nodes` | `list_nodes` | IoT | Low |
+| `iot.reboot_node` | `reboot_node` | IoT | Medium (Conf. Req) |
 
 ---
 

@@ -43,6 +43,8 @@
 
 ## Conventions
 - Keep temporary files, caches, and generated scratch data inside `temp/`. Do not introduce hardcoded user-profile paths or system temp usage; tests already redirect temp via `tests/conftest.py`.
+- Use archive-first cleanup for anything old, unused, duplicate, debug-only, downloaded, or otherwise extra and not attached to the active project path.
+- Move cleanup candidates into `archive/code/`, `archive/docs/`, `archive/assets/`, `archive/tools/`, or `archive/tmp_snapshots/` and log every move in `archive/ARCHIVE_LOG.md`.
 - Prefer script entrypoints over ad hoc invocation: `main.ps1` for Windows orchestration and `scripts/launch.py` for runtime mode switching.
 - Use unified launcher modes (`python scripts/launch.py --mode cli|voice|web|api`) instead of hand-wired interface scripts when validating runtime workflows.
 - For capability growth, follow brain-before-eyes sequencing: strengthen local reasoning/planning/tool-use reliability before expanding embodied vision/audio features.
@@ -55,6 +57,7 @@
 ## Common Pitfalls
 - `.venv` not active: activate with `& .venv\Scripts\Activate.ps1` before any Python or pytest command.
 - Temp leakage: route all temporary and cache outputs to `temp/`, not system temp or user-profile paths.
+- Cleanup by deletion: do not hard-delete uncertain project material first; archive it with a restore trail.
 - Layer bypass: avoid implementing policy logic inside tools; route through `router/` and `safety/` ownership.
 - Shim edits: prefer changing owning implementations over compatibility shims unless the task is explicitly about migration wiring.
 - Local-brain stall risk: preserve graceful degradation paths so `llama_cpp` planning failures always fall back to classic planning without stalling user turns.

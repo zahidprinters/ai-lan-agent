@@ -20,8 +20,10 @@ from tools.perception.ocr import run_ocr, run_ocr_from_screenshot
 from tools.perception.vision import capture_screen_text
 from tools.context_builder import build_prompt_context
 from tools.desktop.keyboard import type_text
+from tools.home.esphome import list_nodes, reboot_node
+from tools.home.home_assistant import call_service, list_entities
 from tools.system.clipboard import read_clipboard
-from tools.system.files import list_workspace_files
+from tools.system.files import execute_shell, list_workspace_files
 from tools.system.host import (
     get_system_status,
     list_running_apps,
@@ -128,6 +130,7 @@ TOOL_REGISTRY: dict[str, ToolSpec] = {
     "pc.type_text": ToolSpec(type_text, ("text",)),
     "pc.open_app": ToolSpec(open_app, ("app_name",)),
     "pc.read_clipboard": ToolSpec(read_clipboard, ()),
+    "pc.execute_shell": ToolSpec(execute_shell, ("command",)),
     "pc.get_system_status": ToolSpec(get_system_status, ()),
     "pc.list_running_apps": ToolSpec(list_running_apps, (), ("limit",)),
     "pc.list_workspace_files": ToolSpec(
@@ -138,6 +141,10 @@ TOOL_REGISTRY: dict[str, ToolSpec] = {
     "android.tap": ToolSpec(tap_screen, ("x", "y"), ("device_id",)),
     "android.swipe": ToolSpec(swipe_screen, ("x1", "y1", "x2", "y2"), ("duration_ms", "device_id")),
     "android.capture_screenshot": ToolSpec(capture_screenshot, (), ("output_path", "device_id")),
+    "home.list_entities": ToolSpec(list_entities, (), ("domain", "state", "limit")),
+    "home.call_service": ToolSpec(call_service, ("domain", "service"), ("service_data",)),
+    "iot.list_nodes": ToolSpec(list_nodes, ()),
+    "iot.reboot_node": ToolSpec(reboot_node, ("node_name",)),
     "pc.inspect_screen": ToolSpec(capture_screen_text, ()),
     "web.browser_fetch": ToolSpec(browser_fetch, ("url",), ("screenshot_path", "timeout_ms")),
     "pc.ocr_image": ToolSpec(run_ocr, ("image_path",)),
@@ -227,8 +234,27 @@ def _verify_android_launch_app(action: AgentAction, observation: object) -> Veri
     )
 
 
+@sentinel
+def _verify_pc_execute_shell(action: AgentAction, observation: object) -> VerificationResult:
+    _ = action
+    if not isinstance(observation, dict):
+        return VerificationResult(
+            "verification_failed",
+            "Shell observation was not a structured object.",
+        )
+
+    status = str(observation.get("status", "")).strip().lower()
+    detail = str(observation.get("detail", "")).strip()
+    if status == "ok":
+        return VerificationResult("verified", detail or "Shell command completed successfully.")
+    if status in {"failed", "timed_out", "blocked_policy"}:
+        return VerificationResult("not_verified", detail or f"Shell status: {status}")
+    return VerificationResult("verification_failed", detail or "Unknown shell execution status.")
+
+
 VERIFICATION_REGISTRY: dict[str, Callable[[AgentAction, object], VerificationResult]] = {
     "pc.open_app": _verify_pc_open_app,
+    "pc.execute_shell": _verify_pc_execute_shell,
     "android.launch_app": _verify_android_launch_app,
 }
 

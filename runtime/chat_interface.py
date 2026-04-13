@@ -14,6 +14,11 @@ from memory.short_term.buffer import ShortTermBuffer
 from runtime.context import build_runtime_context
 from runtime.perception_loop import PerceptionLoop, PerceptionSnapshot
 from tools.context_builder import get_default_merged_corpus_path
+from tools.live_intent_store import (
+    get_live_intent_path,
+    learn_live_intent,
+    resolve_live_intent,
+)
 from tools.memory_store import get_memory_db_path, store_conversation_summary
 
 CHAT_HELP_TEXT = """Commands:
@@ -23,6 +28,7 @@ CHAT_HELP_TEXT = """Commands:
     /policy ...        View or edit policy lists (allow/deny/confirm)
     /settings ...      View or edit config/settings.yaml keys
     /env ...           View or set runtime environment variables
+    /teach ...         Learn custom phrase -> action mapping
   /json { ... }      Send a raw action payload JSON
   /confirm           Confirm the last pending high-risk action
   /reject            Reject and clear the last pending action
@@ -57,6 +63,7 @@ CONTROL_HELP_TEXT = """Control Center Commands:
     /env show [prefix]
     /env set <NAME> <VALUE>
     /env unset <NAME>
+    /teach <phrase> => <command>
 
 Notes:
     - /policy edits config/policies.yaml and reloads policy runtime in-process.
@@ -77,6 +84,7 @@ ACTIONS_HELP_TEXT = """Supported natural-language actions:
   type <text>                -> pc.type_text (confirmation required)
   android devices            -> android.list_devices
   context <query>            -> context.build
+    teach phrase mapping       -> /teach start browser => open app chrome
 """
 
 
@@ -355,6 +363,18 @@ def parse_natural_action(message: str) -> dict[str, object] | None:
                 safety_level="medium",
             )
 
+    if lowered.startswith("open ") and not lowered.startswith("open app "):
+        parts = text.split(maxsplit=1)
+        if len(parts) == 2:
+            app_name = parts[1].strip()
+            if app_name:
+                return _make_payload(
+                    thought=f"Open app {app_name}",
+                    action="pc.open_app",
+                    args={"app_name": app_name},
+                    safety_level="medium",
+                )
+
     if lowered.startswith("type ") and len(text.split(maxsplit=1)) == 2:
         typed_text = text.split(maxsplit=1)[1].strip()
         if typed_text:
@@ -379,15 +399,18 @@ def parse_natural_action(message: str) -> dict[str, object] | None:
 def fallback_reply(message: str) -> str:
     lowered = message.strip().lower()
     if lowered in {"hi", "hello", "hey", "salam", "assalamualaikum"}:
-        return "Hello. I am ready. Try '/help' or '/actions' to see what I can do."
-    if "how are you" in lowered:
-        return "I am operational and ready to execute safe tool actions."
-    if "what can you do" in lowered or lowered == "help":
-        return "I can run routed actions like web search, memory lookup, file listing, and system status. Use '/actions'."
-    return (
-        "I can run tool actions in chat mode. Try commands like 'search <query>', "
-        "'context <query>', 'list docs', 'system status', or '/actions'."
-    )
+        return "Hello! I'm AI Lan. I can help you search the web, manage files, control your PC, and much more. What would you like me to do?"
+    if any(x in lowered for x in ["who are you", "what are you", "tell me about yourself"]):
+        return ("I'm AI Lan - a local AI assistant that can: search the web, access memory and files, check system status, open applications, and execute safe commands. Use '/actions' for the full list.")
+    if any(x in lowered for x in ["how are you", "how's it going", "what's up"]):
+        return "I'm running well and ready to help! You can search the web, access files, manage your system, and more. What do you need?"
+    if any(x in lowered for x in ["what can you do", "can you help", "capabilities"]):
+        return ("I can: search the web ('search <query>'), access memory ('memory <query>'), list files ('list docs'), check system status, open apps ('open <app>'), and more. Use '/actions' for the complete list.")
+    if any(x in lowered for x in ["teach", "learn", "explain", "what is ", "how do", "how to"]):
+        query = message.lower().replace("what is ", "").replace("how to ", "").replace("explain ", "").strip()
+        return f"I can search the web or memory for that! Try 'search {query}' or 'memory {query}' to find information."
+    return ("I'm here to help! I can search the web, access files, control your PC, and much more. "
+            "Try '/actions' to see all my capabilities, or just ask me what you need!")
 
 
 def format_router_result(result: dict[str, Any]) -> str:
@@ -413,7 +436,9 @@ def format_router_result(result: dict[str, Any]) -> str:
 @dataclass
 class ChatSession:
     agent: ReactAgent = field(default_factory=ReactAgent)
-    controller: NeuralActionController = field(default_factory=NeuralActionController)
+    controller: NeuralActionController = field(
+        default_factory=lambda: NeuralActionController(generation_length=200)
+    )
     pending_payload: dict[str, object] | None = None
     pending_user_text: str | None = None
     last_result: dict[str, Any] | None = None
@@ -461,8 +486,15 @@ class ChatSession:
     runtime_context_max_chars: int = field(
         default_factory=lambda: _env_int("AI_LAN_RUNTIME_CONTEXT_MAX_CHARS", 4000, minimum=256)
     )
+    live_intent_path: Path = field(default_factory=get_live_intent_path)
     perception_snapshot: PerceptionSnapshot | None = None
     perception_loop: PerceptionLoop | None = field(default=None, init=False, repr=False)
+    device_type: str = field(
+        default_factory=lambda: os.getenv("AI_LAN_DEVICE_TYPE", "cli").strip().lower() or "cli"
+    )
+    profile: str = field(
+        default_factory=lambda: os.getenv("AI_LAN_PROFILE", "default").strip() or "default"
+    )
 
     def __post_init__(self) -> None:
         if not self.perception_enabled:
@@ -730,6 +762,7 @@ class ChatSession:
             "perception_max_interval_sec": self.perception_max_interval_sec,
             "perception_adaptive": self.perception_adaptive,
             "runtime_context_max_chars": self.runtime_context_max_chars,
+            "live_intent_path": str(self.live_intent_path),
             "perception_snapshot": (
                 self.perception_snapshot.to_dict() if self.perception_snapshot is not None else None
             ),
@@ -900,6 +933,8 @@ class ChatSession:
                 self.perception_snapshot.to_dict() if self.perception_snapshot is not None else None
             ),
             "merged_corpus_path": str(self.merged_corpus_path),
+            "device_type": self.device_type,
+            "profile": self.profile,
         }
 
     def handle_message(self, message: str) -> str:
@@ -926,6 +961,10 @@ class ChatSession:
             return reply
         if text.startswith("/env"):
             reply = self._handle_env_command(text)
+            self._append_turn("assistant", reply)
+            return reply
+        if text.startswith("/teach"):
+            reply = self._handle_teach_command(text)
             self._append_turn("assistant", reply)
             return reply
         if text == "/actions":
@@ -1019,17 +1058,30 @@ class ChatSession:
                 action=str(payload.get("action", "")),
             )
         else:
-            payload = parse_natural_action(text)
+            resolved_from_learned = False
+            payload = resolve_live_intent(message=text, path=self.live_intent_path)
             if payload is not None:
+                resolved_from_learned = True
+                self._store_plan(
+                    source="learned",
+                    mode="action",
+                    action=str(payload.get("action", "")),
+                )
+            else:
+                payload = parse_natural_action(text)
+            if payload is not None and not resolved_from_learned:
                 self._store_plan(
                     source="deterministic",
                     mode="action",
                     action=str(payload.get("action", "")),
                 )
-            else:
+            if payload is None:
+                # Try neural controller for natural language understanding
                 neural_reply = self._run_neural_controller(text)
                 if neural_reply is not None:
                     return neural_reply
+                # If neural controller didn't provide a response, payload remains None
+                # and we'll use the fallback reply below
 
         if payload is None:
             fallback = fallback_reply(text)
@@ -1142,6 +1194,47 @@ class ChatSession:
         values[key] = _coerce_scalar(raw_value)
         _write_settings_values(path, values)
         return f"Settings updated at {path}: {key}={values[key]!r}"
+
+    def _handle_teach_command(self, text: str) -> str:
+        body = text[len("/teach") :].strip()
+        if not body:
+            return "Usage: /teach <phrase> => <command>"
+        if "=>" not in body:
+            return "Teach format is: /teach <phrase> => <command>"
+
+        trigger_raw, command_raw = body.split("=>", 1)
+        trigger = trigger_raw.strip()
+        command_text = command_raw.strip()
+        if not trigger:
+            return "Teach phrase cannot be empty."
+        if not command_text:
+            return "Teach command cannot be empty."
+
+        payload: dict[str, object] | None = None
+        if command_text.startswith("/json "):
+            raw_json = command_text[6:].strip()
+            try:
+                loaded = json.loads(raw_json)
+            except json.JSONDecodeError as exc:
+                return f"Invalid teach JSON: {exc.msg}"
+            if not isinstance(loaded, dict):
+                return "Teach JSON command must be an object payload."
+            payload = {str(key): value for key, value in loaded.items()}
+        else:
+            payload = parse_natural_action(command_text)
+
+        if payload is None:
+            return (
+                "I could not learn that command yet. Use a supported natural command "
+                "or /json payload on the right side of =>."
+            )
+
+        target = learn_live_intent(trigger=trigger, payload=payload, path=self.live_intent_path)
+        action_name = str(payload.get("action", ""))
+        return (
+            f"Learned phrase '{trigger}' -> {action_name}. "
+            f"Saved to {target}."
+        )
 
     def _handle_env_command(self, text: str) -> str:
         parts = text.split(maxsplit=3)

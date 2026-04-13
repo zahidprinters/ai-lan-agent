@@ -31,6 +31,13 @@ def test_parse_natural_action_open_app_requires_medium_safety() -> None:
     assert payload["safety_level"] == "medium"
 
 
+def test_parse_natural_action_open_without_app_keyword() -> None:
+    payload = parse_natural_action("open notepad")
+    assert payload is not None
+    assert payload["action"] == "pc.open_app"
+    assert payload["args"] == {"app_name": "notepad"}
+
+
 def test_parse_natural_action_unknown_returns_none() -> None:
     assert parse_natural_action("tell me a joke") is None
 
@@ -42,7 +49,9 @@ def test_parse_natural_action_context_query() -> None:
 
 
 def test_fallback_reply_for_greeting() -> None:
-    assert "ready" in fallback_reply("hello").lower()
+    reply = fallback_reply("hello").lower()
+    assert "hello" in reply
+    assert "help" in reply
 
 
 def test_format_router_result_includes_policy_reason() -> None:
@@ -131,6 +140,34 @@ def test_chat_session_records_memory_and_context(tmp_path: Path, monkeypatch: An
 
     recent_memories = get_recent_memories(limit=5, db_path=db_path)
     assert any(entry.kind == "conversation" for entry in recent_memories)
+
+
+def test_chat_session_teach_learns_custom_phrase(tmp_path: Path, monkeypatch: Any) -> None:
+    session = ChatSession(live_intent_path=tmp_path / "live_intents.json")
+
+    def fake_run(payload: dict[str, object], *, confirmed: bool = False) -> dict[str, Any]:
+        assert confirmed is False
+        return {
+            "status": "executed",
+            "action": str(payload.get("action", "")),
+            "policy_reason": "ok",
+            "observation": {"used": True},
+        }
+
+    monkeypatch.setattr(session, "_run_payload", fake_run)
+
+    teach_reply = session.handle_message("/teach start notes => open app notepad")
+    assert "Learned phrase 'start notes'" in teach_reply
+
+    reply = session.handle_message("start notes")
+    assert "status: executed" in reply
+    assert "action: pc.open_app" in reply
+
+
+def test_chat_session_teach_requires_mapping_format() -> None:
+    session = ChatSession()
+    reply = session.handle_message("/teach open browser")
+    assert "Teach format is" in reply
 
 
 def test_chat_session_uses_neural_controller_reply(monkeypatch: Any) -> None:

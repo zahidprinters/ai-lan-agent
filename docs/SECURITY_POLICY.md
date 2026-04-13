@@ -49,6 +49,10 @@ Current rule categories:
 - `allow_actions`
 - `deny_actions`
 - `require_confirmation`
+- `allow_home_services`
+- `deny_home_services`
+- `allow_iot_nodes`
+- `deny_iot_nodes`
 
 If an action is denied, it is rejected before execution.
 
@@ -63,6 +67,8 @@ Examples of confirmation-gated behavior include:
 - typing text into the system,
 - opening applications,
 - Android control actions,
+- Home Assistant service actions,
+- IoT side-effect actions (for example ESPHome reboot requests),
 - browser workflows that may cause navigation or side effects,
 - future PC and mobile control adapters.
 

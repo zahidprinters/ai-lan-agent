@@ -23,7 +23,7 @@ You are a read-only architecture specialist for this repository. Your job is to 
 ## Preferred Source Priority
 1. `docs/PROJECT_STRUCTURE.md` and `docs/ARCHITECTURE.md`
 2. Owning package modules for the requested flow
-3. Entry points in `main.py`, `main.ps1`, `scripts/`, and route handlers
+3. Entry points in `main.ps1`, `scripts/`, and route handlers
 4. Tests that lock expected behavior
 
 ## Output Format

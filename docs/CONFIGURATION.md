@@ -71,14 +71,40 @@ You can override any individual setting by setting its corresponding environment
 ### Policy Runtime Config
 
 - **`AI_LAN_POLICY_CONFIG_PATH`**: Optional path override for router action policy config (defaults to `config/policies.yaml`).
-  The policy file supports `allow_actions`, `deny_actions`, and `require_confirmation` lists.
+  The policy file supports `allow_actions`, `deny_actions`, `require_confirmation`, `allow_home_services`, `deny_home_services`, `allow_iot_nodes`, and `deny_iot_nodes` lists.
 - **`AI_LAN_SETTINGS_PATH`**: Optional path override for runtime settings (defaults to `config/settings.yaml`).
   CLI control-center settings commands (`/settings show`, `/settings set`) read and write this file.
+- **`AI_LAN_LIVE_INTENT_PATH`**: Optional path override for persisted live phrase-to-action mappings created by `/teach` (defaults to `temp/learning/live_intents.json`).
 - **`AI_LAN_ANDROID_ALLOW_SIDE_EFFECTS`**: Enable Android ADB side effects (`0`/`1`). Keep disabled by default.
 - **`AI_LAN_ANDROID_ALLOWED_PACKAGES`**: Comma-separated allowlist for Android package launches. `android.launch_app` stays blocked until the target package is listed here.
 - **`AI_LAN_ANDROID_ALLOWED_DEVICE_IDS`**: Optional comma-separated allowlist for Android device IDs. When set, side-effect Android actions must include an explicit `device_id` from this list.
 - **`AI_LAN_ANDROID_ADB_TIMEOUT_SECONDS`**: ADB command timeout in seconds (default `15`, clamped to `1..120`) for deterministic failure instead of hanging subprocess calls.
 - **`AI_LAN_PC_PROCESS_LIST_TIMEOUT_SECONDS`**: `tasklist` timeout in seconds (default `8`, clamped to `1..60`) for deterministic `pc.list_running_apps` failure instead of hanging process probes.
+- **`AI_LAN_PC_OPEN_APP_TIMEOUT_SECONDS`**: Launch-request timeout metadata for `pc.open_app` (default `8`, clamped to `1..60`).
+- **`AI_LAN_ALLOWED_APPS`**: Optional comma-separated desktop app allowlist for `pc.open_app`. Supports simple names (`notepad,calc`) or alias mappings (`notes=notepad.exe`).
+- **`AI_LAN_CLIPBOARD_TIMEOUT_SECONDS`**: Timeout for clipboard reads via PowerShell (default `5`, clamped to `1..30`).
+- **`AI_LAN_CLIPBOARD_MAX_CHARS`**: Maximum clipboard text characters returned to runtime surfaces before truncation.
+- **`AI_LAN_SHELL_ALLOW`**: Master enable switch for the shell adapter (`0`/`1`). Keep disabled by default.
+- **`AI_LAN_SHELL_ALLOWED_COMMANDS`**: Comma-separated allowlist of PowerShell command heads permitted by the shell adapter when `AI_LAN_SHELL_ALLOW=1`.
+- **`AI_LAN_SHELL_TIMEOUT_SECONDS`**: Timeout for shell execution (default `10`, clamped to `1..120`).
+- **`AI_LAN_SHELL_OUTPUT_MAX_CHARS`**: Maximum captured stdout/stderr characters returned by the shell adapter before truncation.
+- **`AI_LAN_HOME_ASSISTANT_URL`**: Base URL for Home Assistant API access (for example `http://homeassistant.local:8123`).
+- **`AI_LAN_HOME_ASSISTANT_TOKEN`**: Long-lived access token used for Home Assistant API calls.
+- **`AI_LAN_HOME_ALLOW_SIDE_EFFECTS`**: Master enable switch for Home/IoT side effects (`0`/`1`). Keep disabled by default.
+- **`AI_LAN_HOME_ALLOWED_SERVICES`**: Comma-separated allowlist for Home Assistant side-effect service calls (`domain.service`, for example `light.turn_on,switch.turn_off`). Required for `home.call_service` execution when side effects are enabled.
+- **`AI_LAN_HOME_ALLOWED_ENTITIES`**: Comma-separated allowlist of entity IDs permitted in `service_data.entity_id` (for example `light.office,switch.fan`). Required when `home.call_service` includes entity targets.
+
+Home service policy packs (`config/policies.yaml`):
+
+- **`allow_home_services`**: Per-domain allowlist entries (`domain.service`) used by safety policy to constrain `home.call_service` in high-risk domains.
+- **`deny_home_services`**: Explicit denylist entries (`domain.service`) that are rejected before adapter execution even when action-level confirmation is provided.
+
+IoT node policy packs (`config/policies.yaml`):
+
+- **`allow_iot_nodes`**: Node-name allowlist used by safety policy for `iot.reboot_node`. When set, nodes outside this list are rejected before adapter execution.
+- **`deny_iot_nodes`**: Explicit node denylist that always rejects `iot.reboot_node` for listed nodes, even when confirmation is provided.
+- **`AI_LAN_ESPHOME_NODES`**: Comma-separated inventory of known ESPHome node names exposed by `iot.list_nodes`.
+- **`AI_LAN_ESPHOME_ALLOWED_NODES`**: Optional comma-separated allowlist for `iot.reboot_node` when side effects are enabled.
 
 Storage retention and housekeeping defaults (`config/settings.yaml`):
 
@@ -86,6 +112,22 @@ Storage retention and housekeeping defaults (`config/settings.yaml`):
 - **`storage_benchmark_retention_days`**: Retention window for benchmark artifacts under `temp/benchmarks`.
 - **`storage_download_retention_days`**: Retention window for cache/download artifacts under `temp/downloads`.
 - **`storage_temp_soft_limit_mb`**: Soft-limit threshold used by dashboard storage health warnings.
+
+Ingestion scheduler defaults (`config/settings.yaml`):
+
+- **`ingestion_profile_default`**: Default scheduler profile used by `scripts/ingest_sources.py` (`fast`, `daily`, or `deep`).
+- **`ingestion_min_final_score_fast`**: Minimum final score gate for the `fast` profile.
+- **`ingestion_freshness_half_life_days_fast`**: Freshness decay half-life for the `fast` profile.
+- **`ingestion_min_final_score_daily`**: Minimum final score gate for the `daily` profile.
+- **`ingestion_freshness_half_life_days_daily`**: Freshness decay half-life for the `daily` profile.
+- **`ingestion_min_final_score_deep`**: Minimum final score gate for the `deep` profile.
+- **`ingestion_freshness_half_life_days_deep`**: Freshness decay half-life for the `deep` profile.
+- **`ingestion_drift_kept_drop_warn`**: Warning threshold for `scripts/ingestion_scheduler.py` when kept document count drops versus baseline.
+- **`ingestion_drift_avg_final_score_drop_warn`**: Warning threshold for `scripts/ingestion_scheduler.py` when average final score drops versus baseline.
+- **`ingestion_weekly_window_days`**: Look-back window in days for `scripts/ingestion_weekly_summary.py` (default `7`).
+- **`ingestion_unreliable_source_threshold`**: Average final score below which a source is flagged as unreliable in the weekly summary (default `0.4`).
+
+Ingestion source entries in JSON configs may now include optional **`last_updated`** (ISO timestamp). When present, freshness scoring decays by age relative to the selected profile half-life. For local file sources, file modification time is used when `last_updated` is omitted.
 
 Android screenshot captures are also constrained to paths under `temp/` to keep device artifacts inside the project scratch area.
 
@@ -125,6 +167,7 @@ Android screenshot captures are also constrained to paths under `temp/` to keep 
 - **`quality_guardrail_baseline_model`** (`config/settings.yaml`): Optional registry version that a candidate must meet or exceed in the quality benchmark artifacts under `runs/quality/`.
 - **`dynamic_safety_enabled`** (`config/settings.yaml`): Enables dynamic safety escalation from runtime context/perception signals.
 - **`sensitive_context_keywords`** (`config/settings.yaml`): Comma-separated keywords used to classify sensitive context (for example `password,otp,bank`).
+- **`home_strong_confirmation_domains`** (`config/settings.yaml`): Comma-separated Home Assistant domains that always require strong confirmation for `home.call_service` (default `lock,alarm_control_panel,security_system,garage_door,cover`).
 - **`AI_LAN_PERCEPTION_ENABLED`**: Enable background perception loop (`0`/`1`).
 - **`AI_LAN_PERCEPTION_INTERVAL_SEC`**: Perception sampling interval in seconds.
 - **`AI_LAN_PERCEPTION_MAX_INTERVAL_SEC`**: Maximum interval cap for adaptive perception backoff.
@@ -159,6 +202,8 @@ Active in the current 4.5A foundation slice:
 - **`AI_LAN_VOSK_MODEL_PATH`**: Local path to Vosk model directory used by offline STT listener.
 - **`AI_LAN_MEMORY_BACKEND`**: Memory backend selector (`none` or `chroma`).
 - **`AI_LAN_CHROMA_PATH`**: Local storage path for Chroma backend.
+- **`AI_LAN_DEVICE_TYPE`**: Surface identifier for the current session (`cli`, `voice`, `web`, `api`, `companion`, `satellite`). Set automatically by `scripts/launch.py`.
+- **`AI_LAN_PROFILE`**: User context profile name for session segmentation (default `default`). Set automatically by `scripts/launch.py --profile`.
 - **`AI_LAN_MEMORY_RETENTION_DAYS`**: Override memory retention window in days before old entries are pruned.
 - **`AI_LAN_MEMORY_MAX_ENTRIES`**: Override maximum retained memory entries before oldest entries are pruned.
 
@@ -166,6 +211,9 @@ Memory retention defaults (`config/settings.yaml`):
 
 - **`memory_retention_days`**: Default prune window for memory entries (used when env override is not set).
 - **`memory_max_entries`**: Default maximum retained memory entries (used when env override is not set).
+
+Memory profile segmentation:
+Pass `profile="<name>"` to `add_memory_entry`, `retrieve_relevant_memories`, and `get_recent_memories` to scope entries to a named context segment (for example `"work"`, `"home"`, `"default"`). Profile is stored in entry metadata — no schema change is required.
 
 Planned for later 4.5A slices (documented target, not active yet):
 
@@ -222,6 +270,7 @@ Recommended baseline for reliable local runs:
 - `AI_LAN_BATCH_SIZE=8`
 - `AI_LAN_BLOCK_SIZE=16`
 
-Work that exceeds this machine profile should be queued to the heavy-machine lanes (`Phase X5/X6`) documented in `docs/PHASE_X_MACHINE_PLAN.md`.
+Work that exceeds this machine profile should be queued to the heavy-machine lanes (`Phase X5/X6`) documented in `docs/plans/PHASE_X_MACHINE_PLAN.md`.
 
 For full hardware details, see `docs/HARDWARE_PROFILE.md`.
+

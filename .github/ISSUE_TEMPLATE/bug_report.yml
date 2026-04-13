@@ -20,7 +20,7 @@ body:
       label: How to reproduce?
       description: Steps to reproduce the behavior.
       placeholder: |
-        1. Run `python main.py`
+        1. Run `python scripts/launch.py --mode cli`
         2. ...
     validations:
       required: true

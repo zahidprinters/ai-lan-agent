@@ -63,7 +63,100 @@ $env:AI_LAN_BLOCK_SIZE = "16"
 python training/train_char_model.py
 ```
 
-If a workflow requires higher memory, longer sweeps, or GPU-dependent acceleration, move it to `Phase X5/X6` in `docs/PHASE_X_MACHINE_PLAN.md`.
+If a workflow requires higher memory, longer sweeps, or GPU-dependent acceleration, move it to `Phase X5/X6` in `docs/plans/PHASE_X_MACHINE_PLAN.md`.
+
+### 📍 Final Project Goal: Jarvis-Like AI (i5 / 16 GB)
+
+AI Lan's final direction is a Jarvis-style local assistant that can understand natural language, reason about intent, and safely execute real actions across PC and Android workflows.
+
+Target capabilities:
+
+1. Natural language understanding (human phrasing, not just fixed keywords).
+2. Reasoning and planning (break one request into safe multi-step actions).
+3. Tool execution (PC control, Android control, browser and shell tasks).
+4. Internet retrieval when needed (search/fetch/docs lookup).
+5. Memory and adaptation (remember user preferences and learned phrase mappings).
+6. Multimodal runtime (text first, then voice and optional perception loop).
+
+Architecture alignment in this repository:
+
+- `agents/`: planner/reasoning behavior.
+- `router/`: action dispatch and schema validation.
+- `safety/`: policy and confirmation gates.
+- `tools/`: PC/Android/internet/context capabilities.
+- `memory/`: short-term and long-term retrieval.
+- `runtime/`: CLI, web, voice, and session flow.
+
+What "self-learning" means in this project:
+
+- On-the-go learning is supported through runtime memory and phrase teaching (`/teach <phrase> => <command>`).
+- Full model-weight learning is offline (dataset build + retrain + promote), not uncontrolled live self-modification.
+
+Recommended implementation order on this machine:
+
+1. Stabilize text agent quality first (CLI + web action reliability).
+2. Expand teachable intents and memory retrieval quality.
+3. Strengthen multi-step automation with strict confirmation on side effects.
+4. Add voice workflows (STT/TTS) with CPU-safe defaults.
+5. Add optional perception (OCR/screen summaries) only after reasoning reliability is stable.
+
+Reality boundary (explicit):
+
+- Fully autonomous movie-style AI is not the target for this hardware/profile.
+- Safe semi-autonomous operation is the target: high capability, policy-gated, auditable, and user-confirmed for risky actions.
+
+### 📍 Apply-Now Final Sequence
+
+Use this sequence as the official implementation path for the final goal:
+
+1. **F1 Core Action Reliability:** replace app-launch, shell, and clipboard stubs with real policy-gated adapters plus verification.
+2. **F2 Human Intent Layer:** improve natural phrasing support, add correction-driven learning, and add ambiguity clarification for risky requests.
+3. **F3 Internet Intelligence Loop:** run scheduled trusted ingestion and add freshness/trust weighting to runtime context.
+4. **F4 Persistent Personalization:** harden long-term memory retrieval precision and retention controls.
+5. **F5 Meta-Agent (Guarded):** add nightly optimizer suggestions from logs as patch proposals only.
+6. **F6 IoT Embodiment:** integrate Home Assistant actions with explicit policy + confirmation boundaries.
+7. **F7 Verified Self-Modification:** allow autonomous logic updates only after strict test/replay/benchmark gates pass.
+
+Recommended first implementation action: replace the app-launch stub path currently exposed through the PC control adapter chain with a real allowlisted launcher and verification probe.
+
+Current F1 adapter controls:
+
+- `pc.open_app` now expects the target app to be present in the desktop allowlist. Configure `AI_LAN_ALLOWED_APPS` for custom targets.
+- `pc.read_clipboard` now performs a bounded PowerShell clipboard read and truncates large results safely.
+- `pc.execute_shell` now has a real adapter path, but it remains denied by policy by default and also requires both `AI_LAN_SHELL_ALLOW=1` and `AI_LAN_SHELL_ALLOWED_COMMANDS=...` before the adapter itself will run anything.
+- `home.list_entities` and `iot.list_nodes` are read-only by default and safe to query when configured.
+- `home.call_service` and `iot.reboot_node` are confirmation-gated and additionally blocked unless `AI_LAN_HOME_ALLOW_SIDE_EFFECTS=1` is set.
+- `home.call_service` also requires `AI_LAN_HOME_ALLOWED_SERVICES` and (when targeting entity IDs) `AI_LAN_HOME_ALLOWED_ENTITIES` to prevent broad or accidental home-automation writes.
+- High-risk Home Assistant domains (for example `lock` and `alarm_control_panel`) are escalated to strong confirmation using `home_strong_confirmation_domains` in `config/settings.yaml`.
+
+### 📍 Archive-First Cleanup Policy
+
+AI Lan now treats cleanup as a reversible archive workflow, not immediate deletion.
+
+- Keep active project code/features in the normal working tree.
+- Move old, unused, duplicate, uncertain, or extra material into `archive/`.
+- Use:
+  - `archive/code/`
+  - `archive/docs/`
+  - `archive/assets/`
+  - `archive/tools/`
+  - `archive/tmp_snapshots/`
+- Record each move in `archive/ARCHIVE_LOG.md`.
+
+What belongs in `archive/`:
+
+- retired code modules and compatibility layers,
+- stale docs and duplicate plans,
+- no-longer-needed temp downloads and debug outputs,
+- snapshots taken before cleanup,
+- other unused extras that are not part of the active attached project path.
+
+What stays active:
+
+- current product code,
+- current tests,
+- active models/runs/config,
+- live temp artifacts still needed for current workflows.
 
 ### 📍 Real-World Workflow: Agentic ReAct
 
@@ -87,10 +180,51 @@ For high-quality storytelling logic, use the pre-curated TinyStories dataset:
 To improve model quality using external free resources:
 
 1. Curate trusted text sources (public datasets, docs, articles, transcripts).
-2. Normalize and deduplicate corpus (`python scripts/clean_dataset.py`).
-3. Merge curated sources into one corpus (`scripts/merge_corpus.ps1`).
-4. Run quality report (`python scripts/data_report.py`).
-5. Retrain with fixed profile and compare run summaries in `runs/`.
+2. Run trusted-ingestion merge with a scheduler profile (`fast`, `daily`, or `deep`):
+
+```powershell
+python scripts/ingest_sources.py --config temp/ingestion/sources.json --profile daily
+```
+
+3. For deterministic freshness scoring during audits/replays, pin the reference timestamp:
+
+```powershell
+python scripts/ingest_sources.py --config temp/ingestion/sources.json --profile deep --as-of 2026-04-13T00:00:00Z
+```
+
+4. Use optional score and freshness overrides when tuning profile behavior:
+
+```powershell
+python scripts/ingest_sources.py --config temp/ingestion/sources.json --min-final-score 0.5 --freshness-half-life-days 21
+```
+
+5. Run scheduled ingestion with drift analysis and benchmark history output:
+
+```powershell
+python scripts/ingestion_scheduler.py --config temp/ingestion/sources.json --profile daily
+```
+
+The scheduler writes:
+
+- latest drift status report: `temp/benchmarks/ingestion_drift_report.json`
+- per-run history timeline: `temp/benchmarks/ingestion_report_history.jsonl`
+
+6. Generate a weekly reliability summary across all scheduler runs:
+
+```powershell
+python scripts/ingestion_weekly_summary.py --history temp/benchmarks/ingestion_report_history.jsonl
+```
+
+The summary writes to `temp/benchmarks/ingestion_weekly_summary.json` and includes:
+
+- per-source `avg_final_score`, trend direction (`improving`/`stable`/`degrading`), and run count
+- unreliable sources (avg score below `ingestion_unreliable_source_threshold`)
+- weekly totals: run counts by profile, drift status distribution, avg kept/fetched per run
+
+7. Normalize and deduplicate corpus (`python scripts/clean_dataset.py`).
+7. Merge curated sources into one corpus (`scripts/merge_corpus.ps1`).
+8. Run quality report (`python scripts/data_report.py`).
+9. Retrain with fixed profile and compare run summaries in `runs/`.
 
 When you review run summaries, the leaderboard tooling now normalizes both legacy flat summaries and newer nested summaries automatically, so you can compare old and new runs side by side.
 
@@ -111,6 +245,16 @@ Voice mode quick start:
 python scripts/launch.py --mode voice
 ```
 
+Companion and satellite modes (JSON REST API on dedicated ports for mobile or voice satellite clients):
+
+```powershell
+python scripts/launch.py --mode companion   # port 8766
+python scripts/launch.py --mode satellite   # port 8767
+python scripts/launch.py --mode companion --profile work  # named session profile
+```
+
+The `device_type` and `profile` values are recorded in the session and returned by `/api/session`.
+
 CLI control center quick start:
 
 ```powershell
@@ -128,8 +272,10 @@ Inside chat mode, use these commands to inspect or update behavior without leavi
 - `/env show [prefix]` prints current process environment values, optionally filtered by prefix.
 - `/env set <KEY> <VALUE>` sets a process environment variable for the active chat process.
 - `/env unset <KEY>` clears a process environment variable from the active chat process.
+- `/teach <phrase> => <command>` stores a custom phrase mapping for this assistant runtime (saved under `temp/learning/live_intents.json` by default).
 
 Policy and settings commands persist changes to disk. Environment commands affect only the running process session and do not edit `.env` files.
+Teach mappings also persist to disk and are re-used by the chat parser before deterministic command parsing.
 
 Web control center quick start:
 
@@ -181,6 +327,21 @@ python scripts/memory_store.py prune --dry-run
 python scripts/memory_store.py prune --retention-days 30 --max-entries 2000
 ```
 
+For automated retention with a machine-readable report, use the retention script:
+
+```powershell
+python scripts/memory_retention.py --dry-run
+python scripts/memory_retention.py --output temp/benchmarks/memory_retention_report.json
+```
+
+To scope memories to a specific user context, pass `profile` when adding or retrieving:
+
+```python
+from tools.memory_store import add_memory_entry, retrieve_relevant_memories
+add_memory_entry(kind="notes", content="...", profile="work")
+hits = retrieve_relevant_memories(query="...", profile="work")
+```
+
 Retention defaults are read from `config/settings.yaml` keys `memory_retention_days` and
 `memory_max_entries`, and can be overridden per-process with `AI_LAN_MEMORY_RETENTION_DAYS`
 and `AI_LAN_MEMORY_MAX_ENTRIES`.
@@ -194,6 +355,8 @@ python scripts/storage_cleanup.py
 ```
 
 The default is dry-run mode and writes a JSON report to `temp/benchmarks/storage_cleanup_report.json`.
+
+If you want a reversible cleanup instead of direct removal, move the reported candidates into `archive/tmp_snapshots/` or another matching `archive/` bucket and add an entry to `archive/ARCHIVE_LOG.md`.
 To apply deletions for files older than configured retention windows:
 
 ```powershell
@@ -243,7 +406,7 @@ The shortest safe Phase 4 path is `Playwright` + `Tavily` + `Tesseract` + `ADB`/
 The shortest safe Phase 4.5 path is `mss`/`OpenCV` + `Tesseract` + `Vosk` + `pyttsx3` + `llama.cpp`.
 The shortest safe Phase 5 path is `Chroma` or `Qdrant` plus `PEFT` + `LoRA` + `QLoRA` + `TRL`.
 
-Machine execution rule: run only `X0` to `X4` on the current i5/16 GB machine, and queue heavy runs to `X5/X6` in `docs/PHASE_X_MACHINE_PLAN.md`.
+Machine execution rule: run only `X0` to `X4` on the current i5/16 GB machine, and queue heavy runs to `X5/X6` in `docs/plans/PHASE_X_MACHINE_PLAN.md`.
 
 Optional Phase 4 install commands (Windows-first):
 
@@ -282,6 +445,12 @@ For tool-use safety, confirmation gates, audit logging, and local file/system pr
 To regenerate that inventory and refresh the package snapshot automatically on this machine, run:
 
 ```powershell
+powershell -ExecutionPolicy Bypass -File scripts/ops/audit_resources.ps1
+```
+
+Compatibility wrapper (still supported):
+
+```powershell
 powershell -ExecutionPolicy Bypass -File scripts/audit_resources.ps1
 ```
 
@@ -316,3 +485,4 @@ python scripts/replay_audit.py --assume-confirmed
 ---
 
 *Developed by Nadeem Abbas | 🌌 AI Lan Project | [Phase 3.0 Stabilized & Phase 4.0 Ready]*
+

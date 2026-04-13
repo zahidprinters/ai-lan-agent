@@ -5,10 +5,22 @@ quality_guardrail_min_score: 0.75
 quality_guardrail_baseline_model: ""
 dynamic_safety_enabled: false
 sensitive_context_keywords: "password,otp,2fa,bank,payment,wallet,private key,credential"
+home_strong_confirmation_domains: "lock,alarm_control_panel,security_system,garage_door,cover"
 storage_temp_retention_days: 14
 storage_benchmark_retention_days: 30
 storage_download_retention_days: 45
 storage_temp_soft_limit_mb: 2048
 memory_retention_days: 30
 memory_max_entries: 2000
+ingestion_profile_default: daily
+ingestion_min_final_score_fast: 0.25
+ingestion_freshness_half_life_days_fast: 45
+ingestion_min_final_score_daily: 0.30
+ingestion_freshness_half_life_days_daily: 30
+ingestion_min_final_score_deep: 0.40
+ingestion_freshness_half_life_days_deep: 14
+ingestion_drift_kept_drop_warn: 2
+ingestion_drift_avg_final_score_drop_warn: 0.08
+ingestion_weekly_window_days: 7
+ingestion_unreliable_source_threshold: 0.4
 

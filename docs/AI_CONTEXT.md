@@ -28,6 +28,8 @@ This file is a handoff brief for contributors and coding agents working in AI La
 
 ## Current Product Direction
 
+Canonical ecosystem re-audit and phase ordering reference: `docs/plans/ECOSYSTEM_PHASE_REAUDIT_2026-04-13.md`.
+
 AI Lan is evolving from a local text model toolkit into a safe, tool-using AI agent with:
 
 - internet-assisted retrieval and data ingestion,
@@ -47,14 +49,30 @@ Keep Phase 4 and Phase 5 intake narrow: one framework per capability, tests firs
 
 ## Immediate Next Build Sequence
 
-1. **Phase X lane enforcement (current machine):** execute only `X0` through `X4` from `docs/PHASE_X_MACHINE_PLAN.md` on the active i5/16 GB host; queue heavy jobs to `X5/X6`.
-2. **Phase 4.3:** evaluation + regression control exit gate is complete: CI now enforces curated benchmark thresholds, checked-in trace regression coverage, category coverage minimums, per-category success thresholds, and distinct action diversity thresholds.
-3. **Phase 4.5A (Reasoning-first):** completed (2026-04-11) and exit-gated. The Strong Reasoning Core baseline now includes GGUF inference management, memory-aware residency fallback, plan validation/repair, stream-trigger tool orchestration, runtime guard + execution-contract enforcement, pressure-aware routing, structured logs, context compaction hardening, and strict benchmark assertions for these behaviors.
-4. **Phase 4.5B (Embodied perception):** completed (2026-04-11). The perception runtime now provides bounded sampling, confidence-filtered OCR summaries, selectable OCR backend/fallback (`auto`/`tesseract`/`easyocr`), optional OpenCV preprocessing, and runtime-context metadata propagation (`source`, `confidence`, `ocr_backend`) without direct policy bypass.
-5. **Phase 5.1:** integrate one persistent memory backend and verify retrieval quality under tests.
-6. **Phase 5.2+:** run offline learning with model-registry promotion/rollback gates plus benchmark-regression blocking, then add orchestration only when scale requires it.
+1. **Phase X lane enforcement (current machine):** execute only `X0` through `X4` from `docs/plans/PHASE_X_MACHINE_PLAN.md` on the active i5/16 GB host; queue heavy jobs to `X5/X6`.
+2. **Phase 3.0 Knowledge Mesh (Immediate):** complete scheduler-driven ingestion, freshness/trust weighting, and source drift diagnostics.
+3. **Phase 3.1 Memory Persona Layer (Immediate):** improve long-term retrieval precision and deterministic retention for personalized behavior.
+4. **Phase 4.0 Ecosystem Client Surfaces (Immediate):** expand from CLI/Web/API into companion/mobile and satellite-capable control surfaces.
+5. **Phase 4.1 Home/IoT Orchestration (Next):** integrate Home Assistant/ESPHome adapters behind strict policy, allowlist, and confirmation profiles.
+6. **Phase 5.0 Guarded Self-Evolution (Last):** meta-agent proposes changes only; self-modification requires mandatory tests/replay/benchmark gates.
 
 Execution rule for this cycle: prefer brain-first upgrades (reasoning/planning quality) before eye/ear expansion (vision/audio perception depth).
+
+## Ecosystem Direction Lock (2026-04-13)
+
+AI Lan now targets a full assistant ecosystem, not only a PC assistant:
+
+- one safe reasoning core,
+- multiple client surfaces (CLI/Web/API/voice/mobile),
+- multiple controlled action planes (PC/Android/Home/IoT),
+- shared memory/policy/audit across all surfaces.
+
+External architecture signals used to shape this direction:
+
+- Home Assistant Assist for local-first + cloud-optional voice and home automations,
+- OpenVoiceOS for multi-device voice satellite ecosystem patterns,
+- Open Interpreter for local execution with explicit human approval and server mode,
+- Semantic Kernel/LangGraph for multi-agent orchestration, tool contracts, memory, and HITL control.
 
 ## Reliability Pillars (Production-Grade Overlay)
 
@@ -78,3 +96,4 @@ Phase 4.5A direction lock (2026-04-10) outcome: achieved on 2026-04-11. Phase 4.
 ## Long-Term Vision
 
 Build a self-learning local AI that can reason, retrieve information, and safely control devices while remaining resource-efficient and auditable.
+

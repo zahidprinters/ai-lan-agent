@@ -34,7 +34,11 @@ AI Lan is a **Windows-first, CPU-optimized, and agent-centric** workspace.
 
 - **Temporary Data:** Must be stored in `temp/` (ensure `TEMP_DIR` is initialized using `ensure_project_temp`).
 - **Data/Artifacts:** Never commit `.pt` models (check `.gitignore`).
-- **Dead Code:** Delete scratchpads immediately.
+- **Archive-First Cleanup:** Do not hard-delete old or unused project material first. Move it into `archive/` with a restore trail.
+- **Archive Buckets:** Use `archive/code/`, `archive/docs/`, `archive/assets/`, `archive/tools/`, and `archive/tmp_snapshots/`.
+- **Archive Log:** Every archive move must be recorded in `archive/ARCHIVE_LOG.md` with original path, archive path, date, reason, and restore notes.
+- **Dead Code / Extra Assets:** Old scratchpads, stale downloads, deprecated modules, unused docs, debug leftovers, and other non-attached extras should be archived before any permanent removal.
+- **Working Tree Rule:** Keep only active attached project code/features in the main working tree; move uncertain or retired material to `archive/`.
 
 ### Checkpoint & Artifact Rules
 
@@ -94,4 +98,4 @@ Use the following prefixes for all commits:
 
 ## Last Updated
 
-2026-04-05
+2026-04-12

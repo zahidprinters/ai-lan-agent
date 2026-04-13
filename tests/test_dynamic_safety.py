@@ -164,3 +164,90 @@ def test_dispatch_requires_strong_confirmation_when_sensitive(
 
     assert result.status == "confirmation_required"
     assert "strong confirmation" in result.policy_reason.lower()
+
+
+@pytest.mark.unit
+def test_home_high_risk_domain_requires_strong_confirmation(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    settings_path = tmp_path / "settings.yaml"
+    settings_path.write_text(
+        "\n".join(
+            [
+                "project_name: AI Lan",
+                "mode: safe",
+                "default_device: cpu",
+                "dynamic_safety_enabled: false",
+                'home_strong_confirmation_domains: "lock,alarm_control_panel"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AI_LAN_SETTINGS_PATH", str(settings_path))
+
+    import safety.policy_engine as pe
+
+    importlib.reload(pe)
+
+    action = parse_agent_action(
+        {
+            "thought": "Lock front door.",
+            "action": "home.call_service",
+            "args": {
+                "domain": "lock",
+                "service": "lock",
+                "service_data": {"entity_id": "lock.front_door"},
+            },
+            "safety_level": "medium",
+        }
+    )
+    decision = pe.evaluate_action_policy(action, policy_context={"sensitive_context": False})
+
+    assert decision.allowed
+    assert decision.requires_confirmation
+    assert decision.requires_strong_confirmation
+    assert "high-risk home domain 'lock'" in decision.reason.lower()
+
+
+@pytest.mark.unit
+def test_home_low_risk_domain_keeps_regular_confirmation(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    settings_path = tmp_path / "settings.yaml"
+    settings_path.write_text(
+        "\n".join(
+            [
+                "project_name: AI Lan",
+                "mode: safe",
+                "default_device: cpu",
+                "dynamic_safety_enabled: false",
+                'home_strong_confirmation_domains: "lock,alarm_control_panel"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AI_LAN_SETTINGS_PATH", str(settings_path))
+
+    import safety.policy_engine as pe
+
+    importlib.reload(pe)
+
+    action = parse_agent_action(
+        {
+            "thought": "Turn on office light.",
+            "action": "home.call_service",
+            "args": {
+                "domain": "light",
+                "service": "turn_on",
+                "service_data": {"entity_id": "light.office"},
+            },
+            "safety_level": "medium",
+        }
+    )
+    decision = pe.evaluate_action_policy(action, policy_context={"sensitive_context": False})
+
+    assert decision.allowed
+    assert decision.requires_confirmation
+    assert not decision.requires_strong_confirmation

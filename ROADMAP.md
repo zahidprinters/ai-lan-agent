@@ -8,18 +8,72 @@ This document outlines the technical evolution of the **AI Lan** project, tracki
 
 |Phase|Milestone|Status|Strategic Focus|HW Target|
 |:----|:--------|:-----|:--------------|:--------|
-|**1.0**|**Foundations**|✅|Workspace setup, character tokenizer, basic training loop.|Single-core CPU|
-|**1.5**|**Refinement**|✅|Run indexing, dashboard, config hardening, static analysis.|Single-core CPU|
-|**2.0**|**Maturity**|✅|Bigram baseline, model factory, generation controls, transformer.|4-core CPU|
-|**2.5**|**Blocks**|✅|Feed-forward blocks, residual connections, LayerNorm, full.|4-core CPU|
-|**3.0**|**Scaling**|✅|BPE tokenization, KV caching, quantization, larger datasets.|8-core CPU/AVX-512|
-|**4.0**|**Agency**|🛠️|ReAct loop, tool-using APIs (Internet, PC/Windows, Android).|Edge/Mobile|
-|**4.5**|**Embodiment**|🛠️|Vision, speech, screen understanding, and real-time local thinking on CPU.|CPU-only Edge|
-|**5.0**|**Autonomy**|⏳|Persistent Vector Memory, Recursive Self-Learning, IoT control.|Distributed|
+|**1.0**|**Safety and Governance Foundation**|✅|Schema validation, policy gating, confirmation model, audit logging/replay.|CPU-first local|
+|**1.1**|**Verified Adapter Reliability**|✅|Deterministic PC/Android adapters with allowlists and timeout-safe behavior.|CPU-first local|
+|**2.0**|**Reasoning and Perception Core**|✅|Local-brain reasoning, bounded perception loop, graceful fallback behavior.|CPU-only Edge|
+|**2.1**|**Reliability and Evaluation Gates**|✅|Reflection/verification slices, strict benchmark gates, health telemetry.|CPU-only Edge|
+|**3.0**|**Knowledge Mesh**|🛠️|Trusted ingestion orchestration, freshness weighting, source drift analytics.|CPU-first local|
+|**3.1**|**Memory Persona Layer**|🛠️|Long-term retrieval quality, deterministic retention, personalization controls.|CPU-first local|
+|**4.0**|**Ecosystem Client Surfaces**|🛠️|Unified CLI/Web/API plus companion/mobile/satellite expansion.|Edge + Mobile|
+|**4.1**|**Home and IoT Orchestration**|⬜|Home Assistant and ESPHome tool plane with strict policy tiers.|Distributed local|
+|**5.0**|**Guarded Self-Evolution**|⬜|Proposal-only meta-agent and verified self-modification after hard gates.|Distributed|
+
+## Ecosystem Re-Audit (2026-04-13)
+
+This audit replaces the old "PC assistant" framing with an ecosystem-first target:
+one reasoning core, many controlled surfaces (PC, Android, Web/API, Voice, Home/IoT).
+
+|Track|Current State|Status|Evidence In Repo|What Is Missing|
+|:----|:------------|:-----|:---------------|:--------------|
+|Core reasoning and safety kernel|Policy-gated router + schema + replay + health gates are active.|✅|`router/`, `safety/`, `scripts/replay_audit.py`, health endpoints/tests.|Increase benchmark depth for long-horizon planning failures.|
+|PC + Android execution layer|Policy-gated adapters are live with allowlists and deterministic failures.|✅|`tools/system/`, `tools/android/`, Phase 4.2 hardening notes/tests.|Expand verified side-effect coverage beyond current adapter slice.|
+|Internet intelligence loop|Trusted ingestion + scoring + context merge exists.|🛠️|`tools/web_ingest.py`, `scripts/ingest_sources.py`, context builder wiring.|Continuous freshness ranking, drift alerts, and scheduler-backed ingestion profiles.|
+|Memory and personalization|SQLite and optional Chroma foundations are in place.|🛠️|`tools/memory_store.py`, `memory/long_term/chroma_store.py`.|Retrieval precision tuning, profile segmentation, and retention automation policy.|
+|Voice and embodied interface|Runtime voice/perception loop exists with OCR backend controls.|🛠️|`runtime/voice_chat_interface.py`, `runtime/perception_loop.py`, `tools/perception/`.|Voice satellite architecture across rooms/devices and stronger wake-word UX.|
+|Multi-client surface (ecosystem shell)|CLI/Web/API surfaces exist and are aligned around one session model.|✅|`runtime/`, `api/`, `web/`, `scripts/launch.py`.|Mobile-first companion workflow and account/device federation model.|
+|Home and IoT ecosystem|Planned and documented, not yet integrated as a hardened control plane.|⬜|Roadmap and status docs only.|Home Assistant tool adapters, policy packs for home actions, and simulator tests.|
+|Meta-agent and self-modification|Guarded concept defined; not yet productionized.|⬜|F5/F7 design notes.|Patch proposal loop + mandatory CI/replay/benchmark promotion gate.|
+
+Legend: ✅ completed, 🛠️ in progress, ⬜ not started.
+
+### Dependency-First Professional Phase Ladder
+
+1. **Phase 1.0 Safety and Governance Foundation (Done):** schema validation, policy gating, confirmation flow, and audit replay.
+2. **Phase 1.1 Verified Adapter Reliability (Done):** policy-compliant PC/Android adapters with deterministic failures and allowlists.
+3. **Phase 2.0 Reasoning and Perception Core (Done):** local-brain reasoning, bounded perception loop, and deterministic fallback.
+4. **Phase 2.1 Reliability and Evaluation Gates (Done):** reflection/verification reliability slices with strict regression gates.
+5. **Phase 3.0 Knowledge Mesh (In Progress):** scheduler-driven ingestion, freshness/trust weighting, and source drift diagnostics.
+6. **Phase 3.1 Memory Persona Layer (In Progress):** retrieval precision and deterministic retention for personalization.
+7. **Phase 4.0 Ecosystem Client Surfaces (In Progress):** expand from CLI/Web/API into companion/mobile and voice-satellite patterns.
+8. **Phase 4.1 Home and IoT Orchestration (Next):** Home Assistant and ESPHome control plane behind strict policy/confirmation tiers.
+9. **Phase 5.0 Guarded Self-Evolution (Last):** proposal-only meta-agent and verified self-modification after mandatory gates.
+
+Execution rule: complete 3.0 before 3.1, complete 3.1 before 4.0, complete 4.0 before 4.1, and complete 4.1 before 5.0.
+
+### External Ecosystem Signals (Internet Research)
+
+- **Home Assistant Assist:** validates local-first plus cloud-optional voice architecture, Android wake-word support, and ESPHome satellite model for multi-room assistants.
+- **OpenVoiceOS:** validates multi-platform voice assistant packaging for embedded/headless/screen devices with community plugin growth.
+- **Open Interpreter:** validates local execution with explicit human approval and REST/server mode for multi-surface orchestration.
+- **Semantic Kernel / LangGraph:** validate enterprise-style multi-agent orchestration, plugin/tool contracts, memory, streaming, and human-in-the-loop controls.
+
+### Final Execution Approach (2026-04-11)
+
+The canonical implementation order from this point is a merged practical + ambitious plan:
+
+1. **F1 Core Action Reliability (Immediate):** replace runtime stubs for app launch, shell, and clipboard with policy-gated real adapters and verification metadata.
+2. **F2 Human Intent Layer (Immediate):** expand intent normalization, add correction-driven learning, and add ambiguity resolution before risky execution.
+3. **F3 Internet Intelligence Loop (Immediate):** add scheduled ingestion profiles plus freshness/trust-weighted context ranking and source drift reporting.
+4. **F4 Persistent Personalization:** harden long-term memory retrieval quality and deterministic retention controls.
+5. **F5 Meta-Agent (Guarded):** analyze logs nightly and propose prompt/tool patches only; require tests/replay/benchmarks before apply.
+6. **F6 IoT & Home Embodiment:** add Home Assistant integration with strict policy/allowlist/confirmation controls.
+7. **F7 Verified Self-Modification (End Game):** allow autonomous logic changes only after mandatory CI, replay, and quality gates pass.
+
+Priority rule: complete **F1 -> F2 -> F3** before broad IoT or self-modifying automation.
 
 ### Phase X (Machine-Specific Execution Lanes)
 
-Use `docs/PHASE_X_MACHINE_PLAN.md` as the operational lane map for the active i5/16 GB machine.
+Use `docs/plans/PHASE_X_MACHINE_PLAN.md` as the operational lane map for the active i5/16 GB machine.
 
 - Run now: `X0` to `X4` (stability, reasoning reliability, safety verification, embodied-lite, heavy-run readiness).
 - Defer: `X5` and `X6` on stronger hardware (large sweeps, long-horizon benchmarks, extended concurrency, heavy promotion loops).
@@ -143,7 +197,7 @@ Technical polish for this overlay:
 ### Phase 4.0 Engineering Todo List (Professional Build Path)
 
 - [x] **Architecture Restructure Scaffold:** Added layered folders/modules (`core`, `agents`, `tools`, `memory`, `safety`, `router`, `learning`, `runtime`, `api`, `config`, `logs`) for incremental migration.
-- [x] **Minimal Working Path Scaffold:** Added first runnable path for `agents/react`, `tools/system`, `memory/short_term`, `router`, `safety`, and `main.py`.
+- [x] **Minimal Working Path Scaffold:** Added the first runnable layered path for `agents/react`, `tools/system`, `memory/short_term`, `router`, and `safety`; active entrypoints now live under `scripts/` and `main.ps1`.
 - [x] **Function Calling Schema v1:** Define strict JSON schema for `thought`, `action`, `args`, `safety_level`.
 - [x] **Tool Router Core:** Implement deterministic router that validates actions before execution.
 - [x] **Web Ingestion Pipeline:** Add fetch -> clean -> dedupe -> score pipeline for external text sources.
@@ -269,3 +323,4 @@ This is the approved design target for the reasoning-first slice before deeper p
 ## Last Updated
 
 2026-04-11
+

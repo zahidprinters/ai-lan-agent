@@ -16,6 +16,7 @@ _TOOL_DESCRIPTIONS: dict[str, str] = {
     "pc.type_text": "Type text into the currently focused desktop application.",
     "pc.open_app": "Open a desktop application by name.",
     "pc.read_clipboard": "Read the current clipboard contents.",
+    "pc.execute_shell": "Execute an allowlisted shell command when policy and adapter settings allow it.",
     "pc.get_system_status": "Get a summary of local system status and resource information.",
     "pc.list_running_apps": "List currently running desktop applications.",
     "pc.list_workspace_files": "List files in a workspace-relative folder.",

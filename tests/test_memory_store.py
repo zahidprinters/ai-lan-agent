@@ -200,3 +200,165 @@ def test_prune_memory_entries_honors_retention_days(tmp_path: Path) -> None:
     summaries = " ".join(entry.summary for entry in remaining).lower()
     assert "latest memory" in summaries
     assert "fresh memory" not in summaries
+
+
+# ---------------------------------------------------------------------------
+# Phase 3.1 — profile segmentation
+# ---------------------------------------------------------------------------
+
+def test_add_and_retrieve_with_profile(tmp_path: Path) -> None:
+    db_path = tmp_path / "memory.sqlite3"
+    add_memory_entry(
+        kind="notes",
+        content="Work task: review policy engine changes.",
+        profile="work",
+        db_path=db_path,
+    )
+    add_memory_entry(
+        kind="notes",
+        content="Home task: water the plants.",
+        profile="home",
+        db_path=db_path,
+    )
+
+    work_hits = retrieve_relevant_memories(query="policy review task", profile="work", db_path=db_path)
+    home_hits = retrieve_relevant_memories(query="water plants", profile="home", db_path=db_path)
+
+    assert work_hits
+    assert all(hit.metadata.get("profile") == "work" for hit in work_hits)
+    assert home_hits
+    assert all(hit.metadata.get("profile") == "home" for hit in home_hits)
+
+
+def test_profile_filter_excludes_other_profiles_from_retrieve(tmp_path: Path) -> None:
+    db_path = tmp_path / "memory.sqlite3"
+    add_memory_entry(
+        kind="notes",
+        content="Router schema validation is policy-gated.",
+        profile="work",
+        db_path=db_path,
+    )
+    add_memory_entry(
+        kind="notes",
+        content="Router schema validation is policy-gated.",
+        profile="home",
+        db_path=db_path,
+    )
+
+    work_hits = retrieve_relevant_memories(
+        query="router schema policy", profile="work", db_path=db_path
+    )
+    assert all(hit.metadata.get("profile") == "work" for hit in work_hits)
+
+
+def test_get_recent_memories_profile_filter(tmp_path: Path) -> None:
+    db_path = tmp_path / "memory.sqlite3"
+    add_memory_entry(kind="notes", content="Work note one.", profile="work", db_path=db_path)
+    add_memory_entry(kind="notes", content="Home note one.", profile="home", db_path=db_path)
+    add_memory_entry(kind="notes", content="Home note two.", profile="home", db_path=db_path)
+
+    home_recent = get_recent_memories(profile="home", db_path=db_path)
+    assert len(home_recent) == 2
+    assert all(e.metadata.get("profile") == "home" for e in home_recent)
+
+    work_recent = get_recent_memories(profile="work", db_path=db_path)
+    assert len(work_recent) == 1
+
+
+# ---------------------------------------------------------------------------
+# Phase 3.1 — retention automation CLI
+# ---------------------------------------------------------------------------
+
+def test_memory_retention_cli_dry_run(tmp_path: Path) -> None:
+    db_path = tmp_path / "memory.sqlite3"
+    output_path = tmp_path / "retention_report.json"
+    settings_path = tmp_path / "settings.yaml"
+    settings_path.write_text(
+        "memory_retention_days: 365\nmemory_max_entries: 2000\n",
+        encoding="utf-8",
+    )
+
+    import os
+
+    env = {**os.environ, "AI_LAN_DEBUG": "0", "AI_LAN_TRACE": "0", "AI_LAN_PROFILE": "0"}
+
+    for idx in range(3):
+        add_memory_entry(
+            kind="notes",
+            content=f"dry run note {idx}",
+            db_path=db_path,
+        )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/memory_retention.py",
+            "--db",
+            str(db_path),
+            "--settings",
+            str(settings_path),
+            "--output",
+            str(output_path),
+            "--dry-run",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=Path.cwd(),
+        env=env,
+    )
+
+    assert output_path.exists()
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert payload["dry_run"] is True
+    assert "pruned_count" in payload
+    assert "DRY RUN" in result.stdout
+
+    remaining = get_recent_memories(db_path=db_path, limit=10)
+    assert len(remaining) == 3  # nothing deleted in dry run
+
+
+def test_memory_retention_cli_prunes_overflow(tmp_path: Path) -> None:
+    db_path = tmp_path / "memory.sqlite3"
+    output_path = tmp_path / "retention_report.json"
+    settings_path = tmp_path / "settings.yaml"
+    settings_path.write_text(
+        "memory_retention_days: 365\nmemory_max_entries: 2000\n",
+        encoding="utf-8",
+    )
+
+    import os
+
+    env = {**os.environ, "AI_LAN_DEBUG": "0", "AI_LAN_TRACE": "0", "AI_LAN_PROFILE": "0"}
+
+    for idx in range(5):
+        add_memory_entry(
+            kind="notes",
+            content=f"overflow note {idx}",
+            db_path=db_path,
+        )
+
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/memory_retention.py",
+            "--db",
+            str(db_path),
+            "--settings",
+            str(settings_path),
+            "--output",
+            str(output_path),
+            "--max-entries",
+            "2",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=Path.cwd(),
+        env=env,
+    )
+
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert payload["pruned_count"] == 3
+    remaining = get_recent_memories(db_path=db_path, limit=10)
+    assert len(remaining) == 2

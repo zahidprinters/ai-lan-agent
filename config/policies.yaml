@@ -19,6 +19,10 @@ policy:
     - android.swipe
     - android.capture_screenshot
     - android.scrcpy_mirror
+    - home.list_entities
+    - home.call_service
+    - iot.list_nodes
+    - iot.reboot_node
   deny_actions:
     - pc.execute_shell
     - pc.move_mouse
@@ -31,4 +35,14 @@ policy:
     - android.capture_screenshot
     - android.scrcpy_mirror
     - web.browser_fetch
+    - home.call_service
+    - iot.reboot_node
+  allow_home_services:
+    - lock.lock
+  deny_home_services:
+    - lock.unlock
+  allow_iot_nodes:
+    - hallway-node
+  deny_iot_nodes:
+    - front-door-node
 

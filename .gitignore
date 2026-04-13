@@ -17,6 +17,10 @@ temp/*
 .temp/
 logs/*.log
 
+# Tracked archive structure
+!archive/
+!archive/**
+
 # Model artifacts (keep metadata/json tracked)
 models/*.pt
 models/*.onnx

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 from tools.web_ingest import (
@@ -96,6 +97,48 @@ def test_run_ingestion_pipeline_filters_low_score_sources(tmp_path: Path) -> Non
     assert payload["filtered_low_score_count"] == 1
 
 
+def test_run_ingestion_pipeline_applies_freshness_decay(tmp_path: Path) -> None:
+    as_of = datetime(2026, 4, 13, tzinfo=UTC)
+    sources = [
+        IngestionSource(
+            name="fresh-source",
+            source_type="inline",
+            location=(
+                "Fresh source has useful recent content.\n"
+                "Second line keeps quality high for comparison.\n"
+                "Third line provides enough body for scoring."
+            ),
+            trust_score=0.9,
+            last_updated="2026-04-12T00:00:00Z",
+        ),
+        IngestionSource(
+            name="stale-source",
+            source_type="inline",
+            location=(
+                "Stale source has useful old content.\n"
+                "Second line keeps quality high for comparison.\n"
+                "Third line provides enough body for scoring."
+            ),
+            trust_score=0.9,
+            last_updated="2025-04-12T00:00:00Z",
+        ),
+    ]
+
+    report = run_ingestion_pipeline(
+        sources,
+        merged_output_path=tmp_path / "merged.txt",
+        report_output_path=tmp_path / "report.json",
+        min_final_score=0.0,
+        freshness_half_life_days=30.0,
+        as_of=as_of,
+    )
+
+    assert report.kept_count == 2
+    by_name = {document.name: document for document in report.documents}
+    assert by_name["fresh-source"].freshness_score > by_name["stale-source"].freshness_score
+    assert by_name["fresh-source"].final_score > by_name["stale-source"].final_score
+
+
 def test_merge_documents_preserves_first_seen_order() -> None:
     documents = [
         IngestionSource(name="a", source_type="inline", location="one\ntwo", trust_score=0.6),
@@ -149,6 +192,7 @@ def test_ingest_sources_cli_writes_outputs(tmp_path: Path) -> None:
     )
 
     assert "Ingestion sources: 2" in result.stdout
+    assert "Scheduler profile: daily" in result.stdout
     assert merged_path.read_text(encoding="utf-8").splitlines() == [
         "first line",
         "second line",
@@ -157,3 +201,68 @@ def test_ingest_sources_cli_writes_outputs(tmp_path: Path) -> None:
     payload = json.loads(report_path.read_text(encoding="utf-8"))
     assert payload["duplicate_count"] == 0
     assert payload["filtered_low_score_count"] == 0
+
+
+def test_ingest_sources_cli_profile_uses_settings_overrides(tmp_path: Path) -> None:
+    config_path = tmp_path / "sources.json"
+    merged_path = tmp_path / "merged.txt"
+    report_path = tmp_path / "report.json"
+    settings_path = tmp_path / "settings.yaml"
+    config_path.write_text(
+        json.dumps(
+            [
+                {
+                    "name": "old-inline",
+                    "source_type": "inline",
+                    "location": (
+                        "This document has content but is stale.\n"
+                        "Second line keeps quality calculation stable.\n"
+                        "Third line ensures baseline scoring remains strong."
+                    ),
+                    "trust_score": 0.9,
+                    "last_updated": "2025-01-01T00:00:00Z",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    settings_path.write_text(
+        "\n".join(
+            [
+                "ingestion_profile_default: daily",
+                    "ingestion_min_final_score_deep: 0.8",
+                "ingestion_freshness_half_life_days_deep: 10",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/ingest_sources.py",
+            "--config",
+            str(config_path),
+            "--settings",
+            str(settings_path),
+            "--profile",
+            "deep",
+            "--as-of",
+            "2026-04-13T00:00:00Z",
+            "--output",
+            str(merged_path),
+            "--report",
+            str(report_path),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=Path.cwd(),
+    )
+
+    assert "Scheduler profile: deep" in result.stdout
+    assert "Min final score: 0.8" in result.stdout
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    assert payload["profile_name"] == "deep"
+    assert payload["kept_count"] == 0

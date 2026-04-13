@@ -1,16 +1,28 @@
 from __future__ import annotations
 
 import json
+import importlib
 from pathlib import Path
 import subprocess
 
 import pytest
+import tools.home.home_assistant as home_assistant
 
 from router import dispatch_core as action_router
 from router.router import parse_and_dispatch
 from router.schema import ActionSchemaError, parse_agent_action
 from router.dispatch_core import dispatch_agent_action
 from tools.memory_store import add_memory_entry
+
+
+@pytest.fixture(autouse=True)
+def _reset_policy_engine(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("AI_LAN_POLICY_CONFIG_PATH", raising=False)
+
+    import safety.policy_engine as pe
+
+    importlib.reload(pe)
+    monkeypatch.setattr(action_router, "evaluate_action_policy", pe.evaluate_action_policy)
 
 
 def test_parse_agent_action_rejects_unknown_fields() -> None:
@@ -453,3 +465,259 @@ def test_dispatch_agent_action_android_list_devices_low_risk(
 
     assert result.status == "executed"
     assert isinstance(result.observation, list)
+
+
+def test_dispatch_agent_action_home_list_entities_is_read_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(tmp_path / "audit.jsonl"))
+    monkeypatch.delenv("AI_LAN_HOME_ASSISTANT_URL", raising=False)
+    monkeypatch.delenv("AI_LAN_HOME_ASSISTANT_TOKEN", raising=False)
+
+    result = dispatch_agent_action(
+        {
+            "thought": "List light entities.",
+            "action": "home.list_entities",
+            "args": {"domain": "light", "limit": 3},
+            "safety_level": "low",
+        }
+    )
+
+    assert result.status == "executed"
+    assert result.observation["status"] == "unavailable"
+    assert result.observation["count"] == 0
+
+
+def test_dispatch_agent_action_home_call_service_requires_confirmation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(tmp_path / "audit.jsonl"))
+    monkeypatch.delenv("AI_LAN_HOME_ALLOW_SIDE_EFFECTS", raising=False)
+
+    pending = dispatch_agent_action(
+        {
+            "thought": "Turn off the living room light.",
+            "action": "home.call_service",
+            "args": {
+                "domain": "light",
+                "service": "turn_off",
+                "service_data": {"entity_id": "light.living_room"},
+            },
+            "safety_level": "medium",
+        }
+    )
+    confirmed = dispatch_agent_action(
+        {
+            "thought": "Turn off the living room light.",
+            "action": "home.call_service",
+            "args": {
+                "domain": "light",
+                "service": "turn_off",
+                "service_data": {"entity_id": "light.living_room"},
+            },
+            "safety_level": "medium",
+        },
+        confirmed=True,
+    )
+
+    assert pending.status == "confirmation_required"
+    assert confirmed.status == "executed"
+    assert confirmed.observation["status"] == "blocked_safe_mode"
+
+
+def test_dispatch_agent_action_iot_reboot_node_requires_confirmation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(tmp_path / "audit.jsonl"))
+    monkeypatch.delenv("AI_LAN_HOME_ALLOW_SIDE_EFFECTS", raising=False)
+
+    pending = dispatch_agent_action(
+        {
+            "thought": "Reboot hallway node.",
+            "action": "iot.reboot_node",
+            "args": {"node_name": "hallway-node"},
+            "safety_level": "medium",
+        }
+    )
+    confirmed = dispatch_agent_action(
+        {
+            "thought": "Reboot hallway node.",
+            "action": "iot.reboot_node",
+            "args": {"node_name": "hallway-node"},
+            "safety_level": "medium",
+        },
+        confirmed=True,
+    )
+
+    assert pending.status == "confirmation_required"
+    assert confirmed.status == "executed"
+    assert confirmed.observation["status"] == "blocked_safe_mode"
+
+
+def test_dispatch_agent_action_home_call_service_blocks_without_service_allowlist(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(tmp_path / "audit.jsonl"))
+    monkeypatch.setenv("AI_LAN_HOME_ALLOW_SIDE_EFFECTS", "1")
+    monkeypatch.delenv("AI_LAN_HOME_ALLOWED_SERVICES", raising=False)
+
+    result = dispatch_agent_action(
+        {
+            "thought": "Turn on office light.",
+            "action": "home.call_service",
+            "args": {
+                "domain": "light",
+                "service": "turn_on",
+                "service_data": {"entity_id": "light.office"},
+            },
+            "safety_level": "medium",
+        },
+        confirmed=True,
+    )
+
+    assert result.status == "executed"
+    assert result.observation["status"] == "blocked_policy"
+    assert "AI_LAN_HOME_ALLOWED_SERVICES" in result.observation["detail"]
+
+
+def test_dispatch_agent_action_home_call_service_blocks_without_entity_allowlist(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(tmp_path / "audit.jsonl"))
+    monkeypatch.setenv("AI_LAN_HOME_ALLOW_SIDE_EFFECTS", "1")
+    monkeypatch.setenv("AI_LAN_HOME_ALLOWED_SERVICES", "light.turn_on")
+    monkeypatch.delenv("AI_LAN_HOME_ALLOWED_ENTITIES", raising=False)
+
+    result = dispatch_agent_action(
+        {
+            "thought": "Turn on office light.",
+            "action": "home.call_service",
+            "args": {
+                "domain": "light",
+                "service": "turn_on",
+                "service_data": {"entity_id": "light.office"},
+            },
+            "safety_level": "medium",
+        },
+        confirmed=True,
+    )
+
+    assert result.status == "executed"
+    assert result.observation["status"] == "blocked_policy"
+    assert "AI_LAN_HOME_ALLOWED_ENTITIES" in result.observation["detail"]
+
+
+def test_dispatch_agent_action_home_call_service_runs_for_allowlisted_service_and_entity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(tmp_path / "audit.jsonl"))
+    monkeypatch.setenv("AI_LAN_HOME_ALLOW_SIDE_EFFECTS", "1")
+    monkeypatch.setenv("AI_LAN_HOME_ALLOWED_SERVICES", "light.turn_on")
+    monkeypatch.setenv("AI_LAN_HOME_ALLOWED_ENTITIES", "light.office")
+    monkeypatch.setenv("AI_LAN_HOME_ASSISTANT_URL", "http://homeassistant.local:8123")
+    monkeypatch.setenv("AI_LAN_HOME_ASSISTANT_TOKEN", "local-token")
+
+    monkeypatch.setattr(home_assistant, "_request_json", lambda *args, **kwargs: (200, [{"ok": True}]))
+
+    result = dispatch_agent_action(
+        {
+            "thought": "Turn on office light.",
+            "action": "home.call_service",
+            "args": {
+                "domain": "light",
+                "service": "turn_on",
+                "service_data": {"entity_id": "light.office"},
+            },
+            "safety_level": "medium",
+        },
+        confirmed=True,
+    )
+
+    assert result.status == "executed"
+    assert result.observation["status"] == "ok"
+
+
+def test_dispatch_agent_action_home_call_service_denied_by_policy_pack(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+        policy_file = tmp_path / "policies.yaml"
+        policy_file.write_text(
+                """
+policy:
+    allow_actions:
+        - home.call_service
+    deny_actions: []
+    require_confirmation:
+        - home.call_service
+    allow_home_services:
+        - lock.lock
+    deny_home_services:
+        - lock.unlock
+""".strip(),
+                encoding="utf-8",
+        )
+        monkeypatch.setenv("AI_LAN_POLICY_CONFIG_PATH", str(policy_file))
+        monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(tmp_path / "audit.jsonl"))
+
+        import safety.policy_engine as pe
+
+        importlib.reload(pe)
+        monkeypatch.setattr(action_router, "evaluate_action_policy", pe.evaluate_action_policy)
+
+        result = dispatch_agent_action(
+                {
+                        "thought": "Unlock front door.",
+                        "action": "home.call_service",
+                        "args": {
+                                "domain": "lock",
+                                "service": "unlock",
+                                "service_data": {"entity_id": "lock.front_door"},
+                        },
+                        "safety_level": "medium",
+                },
+                confirmed=True,
+        )
+
+        assert result.status == "rejected"
+        assert "deny_home_services" in result.policy_reason
+
+
+def test_dispatch_agent_action_iot_reboot_denied_by_policy_pack(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+        policy_file = tmp_path / "policies.yaml"
+        policy_file.write_text(
+                """
+policy:
+    allow_actions:
+        - iot.reboot_node
+    deny_actions: []
+    require_confirmation:
+        - iot.reboot_node
+    allow_iot_nodes:
+        - hallway-node
+    deny_iot_nodes:
+        - front-door-node
+""".strip(),
+                encoding="utf-8",
+        )
+        monkeypatch.setenv("AI_LAN_POLICY_CONFIG_PATH", str(policy_file))
+        monkeypatch.setenv("AI_LAN_ACTION_AUDIT_PATH", str(tmp_path / "audit.jsonl"))
+
+        import safety.policy_engine as pe
+
+        importlib.reload(pe)
+        monkeypatch.setattr(action_router, "evaluate_action_policy", pe.evaluate_action_policy)
+
+        result = dispatch_agent_action(
+                {
+                        "thought": "Reboot front door node.",
+                        "action": "iot.reboot_node",
+                        "args": {"node_name": "front-door-node"},
+                        "safety_level": "medium",
+                },
+                confirmed=True,
+        )
+
+        assert result.status == "rejected"
+        assert "deny_iot_nodes" in result.policy_reason

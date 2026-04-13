@@ -5,9 +5,37 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Reorganized planning docs into `docs/plans/` as the canonical planning location.
+- Reworked phase ordering and status audit toward an ecosystem-first assistant strategy using dependency-first professional phase numbering (`1.0`, `1.1`, `2.0`, ...) across `ROADMAP.md`, `docs/AI_CONTEXT.md`, and `docs/PROJECT_STATUS.md`.
+- Reorganized dependency pins into `requirements/base.txt` and `requirements/dev.txt` while preserving `requirements.txt` and `dev-requirements.txt` install commands.
+- Aligned strategic documents to the merged final-goal implementation plan:
+	- `ROADMAP.md`
+	- `docs/AI_CONTEXT.md`
+	- `docs/PROJECT_STATUS.md`
+	- `docs/USER_GUIDE.md`
+- Added an explicit F1->F7 apply-now execution sequence for implementation ordering.
+- Implemented Phase 3.0.1 ingestion controls: scheduler profiles (`fast`/`daily`/`deep`) with settings-based overrides plus freshness-aware scoring using source `last_updated` timestamps (or file mtime fallback) and deterministic `--as-of` support in `scripts/ingest_sources.py`.
+- Added Phase 3.0.2 ingestion automation via `scripts/ingestion_scheduler.py`, including baseline drift warnings (`kept_count` and average final score), machine-readable drift output, and JSONL ingestion history timelines under `temp/benchmarks/`.
+- Added Phase 3.0.3 source reliability trend scoring and weekly health summary via `scripts/ingestion_weekly_summary.py`: per-source `avg_final_score`, trend direction (`improving`/`stable`/`degrading`), unreliable source flagging, and weekly rollup statistics written to `temp/benchmarks/ingestion_weekly_summary.json`. History entries now include `source_scores` for per-run reliability tracking.
+- Added Phase 3.1.1 memory profile segmentation: `add_memory_entry`, `retrieve_relevant_memories`, and `get_recent_memories` now accept an optional `profile` parameter to isolate memories by user context segment (stored in metadata; fully backward-compatible).
+- Added Phase 3.1.2 memory retention automation via `scripts/memory_retention.py`: CLI to prune expired and overflow entries, with `--dry-run` mode and machine-readable report written to `temp/benchmarks/memory_retention_report.json`.
+- Added Phase 4.0 Ecosystem Client Surfaces: `runtime/session.py` now provides a proper `RuntimeSession` with uuid `session_id`, `device_type`, `profile`, and `started_at`; `ChatSession` exposes `device_type` and `profile` fields (env-backed) and includes them in `get_state()`; `scripts/launch.py` adds `companion` (port 8766) and `satellite` (port 8767) modes plus `--profile` arg so each surface session is annotated at launch.
+- Added Phase 4.1 Home/IoT orchestration starter slice: new policy-gated actions (`home.list_entities`, `home.call_service`, `iot.list_nodes`, `iot.reboot_node`), safe Home Assistant facade reads, confirmation-required side-effect routes, and deterministic ESPHome safe-stub behavior behind `AI_LAN_HOME_ALLOW_SIDE_EFFECTS` and optional node allowlists.
+- Hardened Home Assistant side effects in Phase 4.1: `home.call_service` now requires explicit service allowlisting (`AI_LAN_HOME_ALLOWED_SERVICES`) and entity allowlisting (`AI_LAN_HOME_ALLOWED_ENTITIES` when `entity_id` targets are provided), returning deterministic `blocked_policy` results when constraints are not met.
+- Added Home domain risk-tier escalation in policy evaluation: `home.call_service` now marks configured high-risk domains as strong-confirmation paths via `home_strong_confirmation_domains` in `config/settings.yaml`.
+- Added per-domain Home service policy packs in `config/policies.yaml` (`allow_home_services`, `deny_home_services`) and policy-engine enforcement so risky services can be explicitly allowed/denied (for example `lock.lock` allowed while `lock.unlock` is denied by default).
+- Added IoT node policy packs in `config/policies.yaml` (`allow_iot_nodes`, `deny_iot_nodes`) and policy-engine enforcement so `iot.reboot_node` can be constrained per node before adapter execution.
+- Preserved both audit references and the merged implementation plan as canonical planning inputs:
+	- `docs/FINAL_GOAL_AUDIT_REPORT_2026-04-11.md`
+	- `docs/FINAL_GOAL_AUDIT_REPORT_GEMINI_2026-04-11.md`
+	- `docs/plans/FINAL_GOAL_IMPLEMENTATION_PLAN_2026-04-11.md`
+
 ### Added
 
-- Added `docs/PHASE_X_MACHINE_PLAN.md` with machine-specific execution lanes (`X0`-`X6`) to separate i5-safe work from heavy-machine-only workloads
+- Added `docs/plans/ULTIMATE_JARVIS_MASTER_PLAN.md` as the single practical execution guide from the current codebase to a full local-first Jarvis system
+- Added `docs/plans/PHASE_X_MACHINE_PLAN.md` with machine-specific execution lanes (`X0`-`X6`) to separate i5-safe work from heavy-machine-only workloads
 - Added `scripts/phase_x_audit.py` to run reproducible Phase X gate audits (`X0`/`X1`/`X2`) and write a machine-readable report under `temp/benchmarks/`
 - Added `scripts/prefetch_low_bandwidth_assets.py` to prefetch packages and resumable model/data assets into `temp/downloads` for low-speed internet workflows
 - Added low-bandwidth prefetch controls in `scripts/prefetch_low_bandwidth_assets.py`: `--skip-packages` for HTTP-only caching and repeatable `--asset` for per-asset prefetch
@@ -80,6 +108,7 @@ All notable changes to this project will be documented in this file.
 - Added initial 4.5B perception runtime slice: vision capture service entrypoint with bounded per-tick sampling, OCR confidence-filtering facade output, and runtime-context wiring of perception source/confidence metadata without policy bypass
 - Added deeper 4.5B perception runtime completion: selectable OCR backend/fallback path (`auto`/`tesseract`/`easyocr`), optional OpenCV preprocessing before OCR, and propagation of OCR backend metadata through perception snapshots and runtime context assembly
 - Added Phase 5.1 memory-retention controls: configurable retention/max-entry boundaries in `tools/memory_store.py` plus `scripts/memory_store.py prune` for dry-run/apply cleanup of old or overflow memory entries
+- Added runtime live-intent learning: chat now supports `/teach <phrase> => <command>` to persist custom phrase mappings and resolve them before normal action parsing (default path `temp/learning/live_intents.json`)
 
 ### Changed
 
@@ -197,3 +226,4 @@ All notable changes to this project will be documented in this file.
 - integration tests pass
 - docs links match the simplified structure
 - repo is ready to close Phase 1.5 and begin the next milestone
+

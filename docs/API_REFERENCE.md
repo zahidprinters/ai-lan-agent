@@ -372,6 +372,10 @@ For selected side-effect actions, the router also injects verification metadata 
 - `pc.list_running_apps`: read-only process listing action.
 - `android.list_devices`: read-only Android device discovery action.
 - `android.launch_app` / `android.tap` / `android.swipe` / `android.capture_screenshot`: confirmation-gated Android adapter actions.
+- `home.list_entities`: read-only Home Assistant entity state query action.
+- `home.call_service`: confirmation-gated Home Assistant service invocation (safe-mode blocked unless explicitly enabled).
+- `iot.list_nodes`: read-only ESPHome node inventory action.
+- `iot.reboot_node`: confirmation-gated ESPHome reboot action (safe stub, policy-gated).
 
 Future tool additions should be selected from [OPEN_SOURCE_REFERENCE.md](OPEN_SOURCE_REFERENCE.md), wrapped behind the local router and safety layers, and covered by tests before they reach the live path.
 
